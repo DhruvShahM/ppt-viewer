@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Slide from './Slide';
 import AnnotationLayer from './AnnotationLayer';
-import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, FileDown, Video, ArrowUpRight, Upload, Palette } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, FileDown, Video, ArrowUpRight, Upload, Palette, Type, Check } from 'lucide-react';
 
 
 const PresentationViewer = ({ slides, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient }) => {
@@ -10,7 +10,17 @@ const PresentationViewer = ({ slides, onBack, showVideo, toggleVideo, videos, on
     const [showControls, setShowControls] = useState(true);
     const [showCursor, setShowCursor] = useState(true);
     const [activeTool, setActiveTool] = useState('none');
+    const [activeColor, setActiveColor] = useState('#ef4444');
     const [clearTrigger, setClearTrigger] = useState(0);
+
+    const COLORS = [
+        { name: 'Red', value: '#ef4444' },
+        { name: 'Blue', value: '#3b82f6' },
+        { name: 'Green', value: '#22c55e' },
+        { name: 'Yellow', value: '#eab308' },
+        { name: 'White', value: '#ffffff' },
+        { name: 'Black', value: '#000000' },
+    ];
 
     const controlsTimeoutRef = useRef(null);
     const cursorTimeoutRef = useRef(null);
@@ -19,17 +29,31 @@ const PresentationViewer = ({ slides, onBack, showVideo, toggleVideo, videos, on
     const isHoveringControls = useRef(false);
     const totalSlides = slides.length;
 
+    const [annotations, setAnnotations] = useState({}); // { [slideIndex]: { image, texts } }
+    const annotationRef = useRef(null);
+
+    const saveCurrentAnnotations = () => {
+        if (annotationRef.current) {
+            const data = annotationRef.current.getData();
+            console.log(`Saving annotations for slide ${currentSlide}:`, data);
+            setAnnotations(prev => ({
+                ...prev,
+                [currentSlide]: data
+            }));
+        }
+    };
+
     const nextSlide = () => {
         if (currentSlide < totalSlides - 1) {
+            saveCurrentAnnotations();
             setCurrentSlide(c => c + 1);
-            setClearTrigger(t => t + 1); // Clear annotations on slide change
         }
     };
 
     const prevSlide = () => {
         if (currentSlide > 0) {
+            saveCurrentAnnotations();
             setCurrentSlide(c => c - 1);
-            setClearTrigger(t => t + 1); // Clear annotations on slide change
         }
     };
 
@@ -147,10 +171,14 @@ const PresentationViewer = ({ slides, onBack, showVideo, toggleVideo, videos, on
 
             {/* Annotation Layer */}
             <AnnotationLayer
+                ref={annotationRef}
+                key={currentSlide}
                 activeTool={activeTool}
+                color={activeTool === 'eraser' ? '#000000' : activeColor}
                 clearTrigger={clearTrigger}
-                width={containerRef.current?.clientWidth || window.innerWidth}
-                height={containerRef.current?.clientHeight || window.innerHeight}
+                width={containerRef.current?.offsetWidth || 1920}
+                height={containerRef.current?.offsetHeight || 1080}
+                initialData={annotations[currentSlide]}
             />
 
             {/* Annotation Toolbar (Only in Presentation Mode) */}
@@ -198,12 +226,36 @@ const PresentationViewer = ({ slides, onBack, showVideo, toggleVideo, videos, on
                         <ArrowUpRight size={20} />
                     </button>
                     <button
+                        onClick={() => setActiveTool('text')}
+                        className={`p-3 rounded-full transition-all ${activeTool === 'text' ? 'bg-red-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                        title="Text"
+                    >
+                        <Type size={20} />
+                    </button>
+                    <button
                         onClick={() => setActiveTool('eraser')}
                         className={`p-3 rounded-full transition-all ${activeTool === 'eraser' ? 'bg-white text-black' : 'bg-white/10 hover:bg-white/20 text-white'}`}
                         title="Eraser"
                     >
                         <Eraser size={20} />
                     </button>
+                    <div className="w-px h-8 bg-white/20 mx-1 self-center" />
+
+                    {/* Color Picker */}
+                    <div className="flex gap-1 mr-1">
+                        {COLORS.map((c) => (
+                            <button
+                                key={c.value}
+                                onClick={() => setActiveColor(c.value)}
+                                className={`w-6 h-6 rounded-full border-2 transition-all flex items-center justify-center ${activeColor === c.value ? 'border-white scale-110' : 'border-transparent hover:scale-110'}`}
+                                style={{ backgroundColor: c.value }}
+                                title={c.name}
+                            >
+                                {activeColor === c.value && <Check size={12} className={c.value === '#ffffff' ? 'text-black' : 'text-white'} />}
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="w-px h-8 bg-white/20 mx-1 self-center" />
                     <button
                         onClick={() => setClearTrigger(t => t + 1)}
