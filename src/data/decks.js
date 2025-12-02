@@ -89,6 +89,12 @@ import HindiRealWorld from '../decks/hindi-concurrency/HindiRealWorld';
 import HindiBestPractices from '../decks/hindi-concurrency/HindiBestPractices';
 import HindiSummary from '../decks/hindi-concurrency/HindiSummary';
 
+// Anime Golang Deck
+import { AnimeGolangDeck } from '../decks/anime-golang/AnimeGolangDeck';
+
+// Load Balancer Deck
+import { LoadBalancerDeck } from '../decks/load-balancer/LoadBalancerDeck';
+
 export const DECKS = {
     concurrency: [
         TitleSlide,
@@ -185,5 +191,7 @@ export const DECKS = {
         HindiRealWorld,
         HindiBestPractices,
         HindiSummary
-    ]
+    ],
+    'anime-golang': AnimeGolangDeck,
+    'load-balancer': LoadBalancerDeck
 };

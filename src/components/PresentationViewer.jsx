@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import Slide from './Slide';
 import AnnotationLayer from './AnnotationLayer';
 import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, FileDown, Video, ArrowUpRight, Upload, Palette, Type, Check } from 'lucide-react';
@@ -162,11 +163,15 @@ const PresentationViewer = ({ slides, onBack, showVideo, toggleVideo, videos, on
         >
             {/* Slides */}
             <div className="relative z-10 w-full h-full">
-                {slides.map((SlideComponent, index) => (
-                    <Slide key={index} isActive={currentSlide === index}>
-                        <SlideComponent />
-                    </Slide>
-                ))}
+                <AnimatePresence mode="popLayout">
+                    {slides.map((SlideComponent, index) => (
+                        index === currentSlide && (
+                            <Slide key={index} isActive={true}>
+                                <SlideComponent />
+                            </Slide>
+                        )
+                    ))}
+                </AnimatePresence>
             </div>
 
             {/* Annotation Layer */}
