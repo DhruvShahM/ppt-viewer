@@ -11,7 +11,7 @@ const Slide6_Code = () => {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-[#2d2d2d] rounded-xl shadow-2xl overflow-hidden border border-slate-700 relative"
+                    className="bg-[#2d2d2d] rounded-xl shadow-2xl overflow-hidden border border-slate-700 relative max-h-[600px] overflow-y-auto custom-scrollbar"
                 >
                     {/* Execution Highlight Bar */}
                     <motion.div
@@ -31,7 +31,7 @@ const Slide6_Code = () => {
                         <div className="w-3 h-3 rounded-full bg-green-500" />
                         <span className="ml-2 text-xs text-slate-400 font-mono">main.go</span>
                     </div>
-                    <div className="p-6 font-mono text-sm leading-relaxed relative z-0">
+                    <div className="p-6 font-mono text-sm leading-relaxed relative z-0 whitespace-pre-wrap break-words">
                         <div className="text-pink-400">package</div> <div className="text-white inline">main</div>
                         <br /><br />
                         <div className="text-pink-400">import</div> <div className="text-orange-300">"fmt"</div>
@@ -53,14 +53,14 @@ const Slide6_Code = () => {
                 </motion.div>
 
                 {/* Gopher Typing & Spawning Animation */}
-                <div className="flex flex-col items-center relative h-[400px] justify-center">
+                <div className="flex flex-col items-center relative h-full justify-center">
                     {/* Main Thread Gopher */}
                     <motion.div
                         className="absolute top-0"
                         animate={{ y: [0, 10, 0] }}
                         transition={{ duration: 2, repeat: Infinity }}
                     >
-                        <div className="w-32 h-32 bg-slate-800 rounded-full flex items-center justify-center border-4 border-blue-500 z-10 relative">
+                        <div className="w-32 h-32 bg-slate-800 rounded-full flex items-center justify-center border-4 border-blue-500 z-20 relative">
                             <span className="text-5xl">🤖</span>
                             <div className="absolute -bottom-8 bg-blue-500 text-white text-xs px-2 py-1 rounded">Main Thread</div>
                         </div>

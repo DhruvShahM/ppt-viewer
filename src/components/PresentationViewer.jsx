@@ -3,10 +3,14 @@ import { AnimatePresence } from 'framer-motion';
 import Slide from './Slide';
 import AnnotationLayer from './AnnotationLayer';
 import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, FileDown, Video, ArrowUpRight, Upload, Palette, Type, Check } from 'lucide-react';
+import DesignFeedback from './DesignFeedback';
 
 
-const PresentationViewer = ({ slides, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient }) => {
-    const [currentSlide, setCurrentSlide] = useState(0);
+const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient }) => {
+    const [currentSlide, setCurrentSlide] = useState(() => {
+        const saved = localStorage.getItem(`lastSlide_${deckId}`);
+        return saved ? Math.min(parseInt(saved, 10), slides.length - 1) : 0;
+    });
     const [isPresenting, setIsPresenting] = useState(false);
     const [showControls, setShowControls] = useState(true);
     const [showCursor, setShowCursor] = useState(true);
@@ -59,6 +63,10 @@ const PresentationViewer = ({ slides, onBack, showVideo, toggleVideo, videos, on
     };
 
 
+
+    useEffect(() => {
+        localStorage.setItem(`lastSlide_${deckId}`, currentSlide);
+    }, [currentSlide, deckId]);
 
     // Handle Full Screen
     useEffect(() => {
@@ -138,7 +146,7 @@ const PresentationViewer = ({ slides, onBack, showVideo, toggleVideo, videos, on
         const handleKeyDown = (e) => {
             if (e.key === 'ArrowRight' || e.key === 'Space') nextSlide();
             if (e.key === 'ArrowLeft') prevSlide();
-            if (e.key === 'p' || e.key === 'P') setIsPresenting(p => !p);
+            // if (e.key === 'p' || e.key === 'P') setIsPresenting(p => !p);
             // Escape is handled by browser for fullscreen, but we sync state below
         };
         window.addEventListener('keydown', handleKeyDown);
@@ -343,6 +351,7 @@ const PresentationViewer = ({ slides, onBack, showVideo, toggleVideo, videos, on
                         >
                             <Home size={24} />
                         </button>
+                        <DesignFeedback deckId={deckId} slideIndex={currentSlide} />
                     </>
                 )}
 
@@ -388,6 +397,8 @@ const PresentationViewer = ({ slides, onBack, showVideo, toggleVideo, videos, on
                     }`}
                 style={{ width: `${((currentSlide + 1) / totalSlides) * 100}%` }}
             />
+
+            {/* Design Feedback Loop - Moved to Toolbar */}
         </div >
     );
 };

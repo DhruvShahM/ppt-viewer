@@ -95,6 +95,10 @@ import { AnimeGolangDeck } from '../decks/anime-golang/AnimeGolangDeck';
 // Load Balancer Deck
 import { LoadBalancerDeck } from '../decks/load-balancer/LoadBalancerDeck';
 
+import { DemoDeck } from '../decks/demo/DemoDeck';
+
+
+
 export const DECKS = {
     concurrency: [
         TitleSlide,
@@ -193,5 +197,6 @@ export const DECKS = {
         HindiSummary
     ],
     'anime-golang': AnimeGolangDeck,
-    'load-balancer': LoadBalancerDeck
+    'load-balancer': LoadBalancerDeck,
+    'demo': DemoDeck,
 };

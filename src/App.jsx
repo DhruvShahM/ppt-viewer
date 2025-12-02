@@ -4,7 +4,18 @@ import PresentationViewer from './components/PresentationViewer';
 import { DECKS } from './data/decks';
 
 function App() {
-    const [currentDeckId, setCurrentDeckId] = useState(null);
+    const [currentDeckId, setCurrentDeckId] = useState(() => {
+        return localStorage.getItem('lastDeckId') || null;
+    });
+
+    const handleDeckSelect = (deckId) => {
+        setCurrentDeckId(deckId);
+        if (deckId) {
+            localStorage.setItem('lastDeckId', deckId);
+        } else {
+            localStorage.removeItem('lastDeckId');
+        }
+    };
     const [showVideo, setShowVideo] = useState(true);
     // Dynamically import all mp4 files from src/assets/backgrounds
     const videoModules = import.meta.glob('/src/assets/backgrounds/*.mp4', { eager: true, as: 'url' });
@@ -39,7 +50,7 @@ function App() {
     const [currentGradient, setCurrentGradient] = useState(GRADIENTS[0].value);
 
     return (
-        <div className={`w-screen h-screen text-white relative overflow-hidden font-sans selection:bg-go-blue selection:text-white ${currentGradient}`}>
+        <div className={`w-screen h-screen text-white relative overflow-hidden font-sans selection:bg-go-blue selection:text-white select-none ${currentGradient}`}>
             {/* Background Elements */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
                 {showVideo && (
@@ -60,7 +71,8 @@ function App() {
             {currentDeckId ? (
                 <PresentationViewer
                     slides={DECKS[currentDeckId]}
-                    onBack={() => setCurrentDeckId(null)}
+                    deckId={currentDeckId}
+                    onBack={() => handleDeckSelect(null)}
                     showVideo={showVideo}
                     toggleVideo={() => setShowVideo(!showVideo)}
                     videos={videos}
@@ -70,7 +82,7 @@ function App() {
                     currentGradient={currentGradient}
                 />
             ) : (
-                <DeckSelector onSelectDeck={setCurrentDeckId} />
+                <DeckSelector onSelectDeck={handleDeckSelect} />
             )}
         </div>
     );

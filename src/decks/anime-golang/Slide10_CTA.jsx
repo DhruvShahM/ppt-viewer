@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Youtube, Twitter, Github } from 'lucide-react';
+import { Youtube, Twitter, Github, ThumbsUp, Share2, Bell } from 'lucide-react';
 
 const Slide10_CTA = () => {
     return (
@@ -48,6 +48,30 @@ const Slide10_CTA = () => {
                     >
                         <Github size={32} />
                     </motion.a>
+                </div>
+
+                <div className="flex gap-6 justify-center mt-12">
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-full text-white font-bold transition-colors border border-white/10"
+                    >
+                        <ThumbsUp size={20} /> Like
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-full text-white font-bold transition-colors border border-white/10"
+                    >
+                        <Share2 size={20} /> Share
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 rounded-full text-white font-bold transition-colors shadow-lg shadow-red-600/20"
+                    >
+                        <Bell size={20} /> Subscribe
+                    </motion.button>
                 </div>
             </div>
         </div>
