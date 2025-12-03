@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { MessageSquarePlus, Send, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { MessageSquarePlus, Send, X, Image as ImageIcon, Trash2 } from 'lucide-react';
 
 const DesignFeedback = ({ deckId, slideIndex }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [instruction, setInstruction] = useState('');
     const [status, setStatus] = useState('idle'); // idle, sending, success, error
     const [pendingFeedback, setPendingFeedback] = useState(null);
+    const [screenshot, setScreenshot] = useState(null);
+    const [screenshotPreview, setScreenshotPreview] = useState(null);
+    const fileInputRef = useRef(null);
+    const textareaRef = useRef(null);
 
     useEffect(() => {
         const fetchFeedback = async () => {
@@ -31,6 +35,73 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
         return () => clearInterval(interval);
     }, [deckId, slideIndex]);
 
+    // Handle paste event for screenshots
+    useEffect(() => {
+        const handlePaste = (e) => {
+            if (!isOpen) return;
+
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    e.preventDefault();
+                    const blob = items[i].getAsFile();
+                    handleScreenshotFile(blob);
+                    break;
+                }
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('paste', handlePaste);
+        }
+
+        return () => {
+            document.removeEventListener('paste', handlePaste);
+        };
+    }, [isOpen]);
+
+    const handleScreenshotFile = (file) => {
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file');
+            return;
+        }
+
+        // Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image size must be less than 5MB');
+            return;
+        }
+
+        setScreenshot(file);
+
+        // Create preview URL
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setScreenshotPreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleFileInputChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            handleScreenshotFile(file);
+        }
+    };
+
+    const removeScreenshot = () => {
+        setScreenshot(null);
+        setScreenshotPreview(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!instruction.trim()) return;
@@ -38,21 +109,25 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
         setStatus('sending');
 
         try {
+            const formData = new FormData();
+            formData.append('deckId', deckId);
+            formData.append('slideIndex', slideIndex);
+            formData.append('instruction', instruction);
+
+            if (screenshot) {
+                formData.append('screenshot', screenshot);
+            }
+
             const response = await fetch('/api/feedback', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    deckId,
-                    slideIndex,
-                    instruction,
-                }),
+                body: formData,
             });
 
             if (response.ok) {
                 setStatus('success');
                 setInstruction('');
+                removeScreenshot();
+
                 // Refresh pending feedback immediately
                 const newFeedback = await response.json();
                 setPendingFeedback(newFeedback);
@@ -97,7 +172,10 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                             {pendingFeedback ? 'Pending Request' : 'Request Change'}
                         </h3>
                         <button
-                            onClick={() => setIsOpen(false)}
+                            onClick={() => {
+                                setIsOpen(false);
+                                removeScreenshot();
+                            }}
                             className="text-slate-400 hover:text-white transition-colors"
                         >
                             <X size={16} />
@@ -108,6 +186,19 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mb-3">
                             <p className="text-xs text-yellow-200/70 mb-1">Instruction:</p>
                             <p className="text-sm text-white font-medium">{pendingFeedback.instruction}</p>
+
+                            {/* Show screenshot if present */}
+                            {pendingFeedback.screenshot && (
+                                <div className="mt-2">
+                                    <img
+                                        src={`/api/screenshots/${pendingFeedback.screenshot}`}
+                                        alt="Feedback screenshot"
+                                        className="w-full rounded border border-yellow-500/20 cursor-pointer hover:opacity-80 transition-opacity"
+                                        onClick={() => window.open(`/api/screenshots/${pendingFeedback.screenshot}`, '_blank')}
+                                    />
+                                </div>
+                            )}
+
                             <div className="mt-2 text-[10px] text-yellow-200/50 flex justify-between items-center">
                                 <span>Status: Pending</span>
                                 <span>{new Date(pendingFeedback.timestamp).toLocaleTimeString()}</span>
@@ -125,7 +216,47 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit}>
+                            {/* Screenshot Preview */}
+                            {screenshotPreview && (
+                                <div className="mb-3 relative">
+                                    <img
+                                        src={screenshotPreview}
+                                        alt="Screenshot preview"
+                                        className="w-full rounded border border-slate-700"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={removeScreenshot}
+                                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded transition-colors"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Screenshot Upload Button */}
+                            {!screenshotPreview && (
+                                <div className="mb-3">
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleFileInputChange}
+                                        className="hidden"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="w-full py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-slate-400 hover:text-white hover:border-purple-500 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <ImageIcon size={16} />
+                                        Upload Screenshot (or paste with Ctrl+V)
+                                    </button>
+                                </div>
+                            )}
+
                             <textarea
+                                ref={textareaRef}
                                 value={instruction}
                                 onChange={(e) => setInstruction(e.target.value)}
                                 placeholder="Describe the changes you want for this slide..."
@@ -167,3 +298,4 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
 };
 
 export default DesignFeedback;
+

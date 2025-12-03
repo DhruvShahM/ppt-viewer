@@ -1,9 +1,10 @@
+import React from 'react';
 import { motion } from 'framer-motion';
 
-const Slide = ({ children, isActive = true, noAnimation = false }) => {
+const Slide = React.forwardRef(({ children, isActive = true, noAnimation = false }, ref) => {
     if (noAnimation) {
         return (
-            <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-12 z-10">
+            <div ref={ref} className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-12 z-10">
                 {children}
             </div>
         );
@@ -11,6 +12,7 @@ const Slide = ({ children, isActive = true, noAnimation = false }) => {
 
     return (
         <motion.div
+            ref={ref}
             initial={{ opacity: 0, x: 100 }}
             animate={{
                 opacity: isActive ? 1 : 0,
@@ -24,6 +26,9 @@ const Slide = ({ children, isActive = true, noAnimation = false }) => {
             {children}
         </motion.div>
     );
-};
+});
+
+Slide.displayName = 'Slide';
 
 export default Slide;
+

@@ -13,8 +13,7 @@ const Summary = () => {
                     "Goroutines are cheap and lightweight",
                     "Channels orchestrate communication",
                     "Don't communicate by sharing memory",
-                    "Use WaitGroups to sync execution",
-                    "Use Worker Pools to manage load"
+                    "Use WaitGroups to sync execution"
                 ].map((item, index) => (
                     <motion.div
                         key={index}
