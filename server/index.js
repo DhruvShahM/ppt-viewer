@@ -32,15 +32,23 @@ const cleanupScreenshots = () => {
         const feedback = JSON.parse(fileContent);
 
         feedback.forEach(item => {
-            if (item.status === 'completed' && item.screenshot) {
-                const screenshotPath = path.join(SCREENSHOTS_DIR, item.screenshot);
-                if (fs.existsSync(screenshotPath)) {
-                    try {
-                        fs.unlinkSync(screenshotPath);
-                        console.log(`Deleted screenshot for completed feedback ${item.id}: ${item.screenshot}`);
-                    } catch (err) {
-                        console.error(`Failed to delete screenshot ${item.screenshot}:`, err);
+            if (item.status === 'completed') {
+                const deleteFile = (filename) => {
+                    const screenshotPath = path.join(SCREENSHOTS_DIR, filename);
+                    if (fs.existsSync(screenshotPath)) {
+                        try {
+                            fs.unlinkSync(screenshotPath);
+                            console.log(`Deleted screenshot for completed feedback ${item.id}: ${filename}`);
+                        } catch (err) {
+                            console.error(`Failed to delete screenshot ${filename}:`, err);
+                        }
                     }
+                };
+
+                if (item.screenshots && Array.isArray(item.screenshots)) {
+                    item.screenshots.forEach(deleteFile);
+                } else if (item.screenshot) {
+                    deleteFile(item.screenshot);
                 }
             }
         });
@@ -85,7 +93,7 @@ const storage = multer.diskStorage({
         cb(null, SCREENSHOTS_DIR);
     },
     filename: (req, file, cb) => {
-        const uniqueName = `${Date.now()}-${file.originalname}`;
+        const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1E9)}-${file.originalname}`;
         cb(null, uniqueName);
     }
 });
@@ -106,7 +114,7 @@ const upload = multer({
     }
 });
 
-app.post('/api/feedback', upload.single('screenshot'), (req, res) => {
+app.post('/api/feedback', upload.array('screenshots', 10), (req, res) => {
     const { deckId, slideIndex, instruction } = req.body;
 
     if (!deckId || slideIndex === undefined || !instruction) {
@@ -126,16 +134,16 @@ app.post('/api/feedback', upload.single('screenshot'), (req, res) => {
             status: 'pending'
         };
 
-        // Add screenshot path if file was uploaded
-        if (req.file) {
-            newFeedback.screenshot = req.file.filename;
+        // Add screenshot paths if files were uploaded
+        if (req.files && req.files.length > 0) {
+            newFeedback.screenshots = req.files.map(f => f.filename);
         }
 
         feedback.push(newFeedback);
 
         fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedback, null, 2));
 
-        console.log(`Feedback received for ${deckId} slide ${slideIndex}: ${instruction}${req.file ? ' (with screenshot)' : ''}`);
+        console.log(`Feedback received for ${deckId} slide ${slideIndex}: ${instruction} (${req.files ? req.files.length : 0} screenshots)`);
         res.status(201).json(newFeedback);
     } catch (error) {
         console.error('Error saving feedback:', error);
@@ -162,6 +170,51 @@ app.get('/api/screenshots/:filename', (req, res) => {
         res.sendFile(filepath);
     } else {
         res.status(404).json({ error: 'Screenshot not found' });
+    }
+});
+
+app.delete('/api/feedback/:id', (req, res) => {
+    const id = parseInt(req.params.id);
+
+    try {
+        const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
+        let feedback = JSON.parse(fileContent);
+
+        const itemIndex = feedback.findIndex(f => f.id === id);
+        if (itemIndex === -1) {
+            return res.status(404).json({ error: 'Feedback not found' });
+        }
+
+        const item = feedback[itemIndex];
+
+        // Delete screenshots
+        const deleteFile = (filename) => {
+            const screenshotPath = path.join(SCREENSHOTS_DIR, filename);
+            if (fs.existsSync(screenshotPath)) {
+                try {
+                    fs.unlinkSync(screenshotPath);
+                    console.log(`Deleted screenshot for feedback ${id}: ${filename}`);
+                } catch (err) {
+                    console.error(`Failed to delete screenshot ${filename}:`, err);
+                }
+            }
+        };
+
+        if (item.screenshots && Array.isArray(item.screenshots)) {
+            item.screenshots.forEach(deleteFile);
+        } else if (item.screenshot) {
+            deleteFile(item.screenshot);
+        }
+
+        // Remove from array
+        feedback.splice(itemIndex, 1);
+
+        fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedback, null, 2));
+        console.log(`Deleted feedback ${id}`);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting feedback:', error);
+        res.status(500).json({ error: 'Failed to delete feedback' });
     }
 });
 
