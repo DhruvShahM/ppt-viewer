@@ -2,12 +2,15 @@
     "name": "go-concurrency-ppt-server",
     "version": "1.0.0",
     "description": "Backend for Go Concurrency PPT Feedback",
+    "type": "module",
     "main": "index.js",
     "scripts": {
         "start": "node index.js"
     },
     "dependencies": {
         "cors": "^2.8.5",
-        "express": "^4.18.2"
+        "express": "^4.18.2",
+        "lowdb": "^7.0.1",
+        "socket.io": "^4.8.1"
     }
 }

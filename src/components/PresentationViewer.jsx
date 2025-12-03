@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Slide from './Slide';
 import AnnotationLayer from './AnnotationLayer';
-import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, FileDown, Video, ArrowUpRight, Upload, Palette, Type, Check } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, FileDown, Video, ArrowUpRight, Upload, Palette, Type, Check, ClipboardList } from 'lucide-react';
 import DesignFeedback from './DesignFeedback';
+import FeedbackSummary from './FeedbackSummary';
+import UIAnalysis from './UIAnalysis';
 
 
 const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient }) => {
@@ -17,6 +19,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const [activeTool, setActiveTool] = useState('none');
     const [activeColor, setActiveColor] = useState('#ef4444');
     const [clearTrigger, setClearTrigger] = useState(0);
+    const [showFeedbackSummary, setShowFeedbackSummary] = useState(false);
 
     const COLORS = [
         { name: 'Red', value: '#ef4444' },
@@ -351,6 +354,18 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                         >
                             <Home size={24} />
                         </button>
+
+                        {/* Improvement Summary Button */}
+                        <button
+                            onClick={() => setShowFeedbackSummary(true)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-full shadow-lg transition-all hover:scale-105 backdrop-blur-md border bg-slate-800/80 hover:bg-slate-700 border-slate-600/30 text-white mr-2"
+                            title="View Improvement Summary"
+                        >
+                            <ClipboardList size={18} />
+                            <span className="text-sm font-medium">Summary</span>
+                        </button>
+
+                        <UIAnalysis deckId={deckId} slideIndex={currentSlide} />
                         <DesignFeedback deckId={deckId} slideIndex={currentSlide} />
                     </>
                 )}
@@ -398,7 +413,13 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                 style={{ width: `${((currentSlide + 1) / totalSlides) * 100}%` }}
             />
 
-            {/* Design Feedback Loop - Moved to Toolbar */}
+            {/* Feedback Summary Modal */}
+            {showFeedbackSummary && (
+                <FeedbackSummary
+                    deckId={deckId}
+                    onClose={() => setShowFeedbackSummary(false)}
+                />
+            )}
         </div >
     );
 };

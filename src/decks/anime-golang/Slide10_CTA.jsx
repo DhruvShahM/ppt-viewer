@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Youtube, Twitter, Github, ThumbsUp, Share2, Bell } from 'lucide-react';
+import { Youtube, Twitter, Github, ThumbsUp, Share2, Bell, Rocket } from 'lucide-react';
 
 const Slide10_CTA = () => {
     return (
@@ -26,51 +26,74 @@ const Slide10_CTA = () => {
                     Subscribe for more <span className="text-[#00ADD8] font-bold">Go</span> & <span className="text-pink-400 font-bold">Anime</span> content!
                 </p>
 
-                <div className="flex gap-8 justify-center">
-                    <motion.a
-                        href="#"
-                        whileHover={{ scale: 1.1 }}
-                        className="p-4 bg-red-600 rounded-full text-white shadow-lg shadow-red-600/30"
-                    >
-                        <Youtube size={32} />
-                    </motion.a>
-                    <motion.a
-                        href="#"
-                        whileHover={{ scale: 1.1 }}
-                        className="p-4 bg-[#1DA1F2] rounded-full text-white shadow-lg shadow-[#1DA1F2]/30"
-                    >
-                        <Twitter size={32} />
-                    </motion.a>
-                    <motion.a
-                        href="#"
-                        whileHover={{ scale: 1.1 }}
-                        className="p-4 bg-[#333] rounded-full text-white shadow-lg shadow-black/30"
-                    >
-                        <Github size={32} />
-                    </motion.a>
-                </div>
-
-                <div className="flex gap-6 justify-center mt-12">
+                <div className="flex items-center justify-center gap-6">
                     <motion.button
+                        animate={{ y: [0, -5, 0] }}
+                        transition={{
+                            duration: 3,
+                            repeat: Infinity,
+                            repeatType: "reverse",
+                            ease: "easeInOut"
+                        }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-full text-white font-bold transition-colors border border-white/10"
+                        className="flex items-center justify-center gap-2 w-40 h-16 px-6 bg-white/10 hover:bg-white/20 rounded-full text-white text-lg font-bold transition-colors border border-white/10 backdrop-blur-sm"
                     >
                         <ThumbsUp size={20} /> Like
                     </motion.button>
+
                     <motion.button
+                        animate={{ y: [0, -8, 0], rotate: [0, 5, -5, 0] }}
+                        transition={{
+                            duration: 2.5,
+                            repeat: Infinity,
+                            repeatType: "reverse",
+                            ease: "easeInOut",
+                            delay: 0.5
+                        }}
+                        whileHover={{ scale: 1.1, rotate: 10 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="flex items-center justify-center gap-2 w-40 h-16 px-6 bg-purple-600/20 hover:bg-purple-600/40 rounded-full text-purple-300 text-lg font-bold transition-colors border border-purple-500/30 backdrop-blur-sm"
+                    >
+                        <Rocket size={20} /> Hype
+                    </motion.button>
+
+                    <motion.button
+                        animate={{
+                            scale: [1, 1.05, 1],
+                            boxShadow: [
+                                "0 0 0 0 rgba(220, 38, 38, 0.7)",
+                                "0 0 0 20px rgba(220, 38, 38, 0)",
+                                "0 0 0 0 rgba(220, 38, 38, 0)"
+                            ]
+                        }}
+                        transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            repeatType: "loop"
+                        }}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-72 h-16 px-10 bg-gradient-to-r from-red-600 to-pink-600 rounded-full text-white text-2xl font-black shadow-2xl flex items-center justify-center gap-3 border-4 border-white/20"
+                    >
+                        <Bell size={32} className="fill-white" />
+                        SUBSCRIBE
+                    </motion.button>
+
+                    <motion.button
+                        animate={{ y: [0, -5, 0] }}
+                        transition={{
+                            duration: 3,
+                            repeat: Infinity,
+                            repeatType: "reverse",
+                            ease: "easeInOut",
+                            delay: 1.5
+                        }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-full text-white font-bold transition-colors border border-white/10"
+                        className="flex items-center justify-center gap-2 w-40 h-16 px-6 bg-white/10 hover:bg-white/20 rounded-full text-white text-lg font-bold transition-colors border border-white/10 backdrop-blur-sm"
                     >
                         <Share2 size={20} /> Share
-                    </motion.button>
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 rounded-full text-white font-bold transition-colors shadow-lg shadow-red-600/20"
-                    >
-                        <Bell size={20} /> Subscribe
                     </motion.button>
                 </div>
             </div>

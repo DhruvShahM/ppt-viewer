@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import gopherImage from '../../assets/characters/golang-gopher.png';
 
 const Slide1_Title = () => {
     return (
@@ -18,12 +19,7 @@ const Slide1_Title = () => {
                 >
                     <div className="aspect-square rounded-3xl bg-gradient-to-tr from-[#00ADD8] to-pink-400 p-1 shadow-2xl shadow-[#00ADD8]/30">
                         <div className="w-full h-full bg-slate-900 rounded-[22px] flex items-center justify-center overflow-hidden">
-                            {/* Placeholder for Anime Gopher */}
-                            <div className="text-center p-8">
-                                <span className="text-6xl mb-4 block">🐹</span>
-                                <p className="text-slate-400">Anime Gopher Placeholder</p>
-                            </div>
-                            {/* <img src="/assets/anime-gopher/title.png" alt="Anime Gopher" className="w-full h-full object-cover" /> */}
+                            <img src={gopherImage} alt="Anime Gopher" className="w-full h-full object-cover" />
                         </div>
                     </div>
                     {/* Floating Elements */}
@@ -52,8 +48,8 @@ const Slide1_Title = () => {
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-gradient-to-r from-pink-500 to-purple-500" />
                         <div>
-                            <p className="text-white font-bold text-lg">Your Name</p>
-                            <p className="text-slate-400 text-sm">Gopher Enthusiast</p>
+                            <p className="text-white font-bold text-lg">Dhruv</p>
+                            <p className="text-slate-400 text-sm">Software Developer</p>
                         </div>
                     </div>
                 </motion.div>

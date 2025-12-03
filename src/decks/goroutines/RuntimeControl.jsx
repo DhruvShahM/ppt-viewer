@@ -11,7 +11,7 @@ const RuntimeControl = () => {
                     initial={{ x: -50, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-white/5 p-8 rounded-2xl border border-white/10 flex items-center gap-8"
+                    className="bg-white/5 p-8 rounded-2xl border border-white/10 flex items-center gap-8 hover:bg-white/10 transition-colors duration-300"
                 >
                     <div className="bg-black/30 p-4 rounded-lg font-mono text-purple-300 text-xl min-w-[250px]">
                         runtime.GOMAXPROCS(n)
@@ -30,7 +30,7 @@ const RuntimeControl = () => {
                     initial={{ x: -50, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: 0.4 }}
-                    className="bg-white/5 p-8 rounded-2xl border border-white/10 flex items-center gap-8"
+                    className="bg-white/5 p-8 rounded-2xl border border-white/10 flex items-center gap-8 hover:bg-white/10 transition-colors duration-300"
                 >
                     <div className="bg-black/30 p-4 rounded-lg font-mono text-purple-300 text-xl min-w-[250px]">
                         runtime.Gosched()
@@ -49,7 +49,7 @@ const RuntimeControl = () => {
                     initial={{ x: -50, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: 0.6 }}
-                    className="bg-white/5 p-8 rounded-2xl border border-white/10 flex items-center gap-8"
+                    className="bg-white/5 p-8 rounded-2xl border border-white/10 flex items-center gap-8 hover:bg-white/10 transition-colors duration-300"
                 >
                     <div className="bg-black/30 p-4 rounded-lg font-mono text-purple-300 text-xl min-w-[250px]">
                         runtime.Goexit()

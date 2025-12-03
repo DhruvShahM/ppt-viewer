@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 
 const TitleSlide = () => {
+    // UI Analysis: Verified
     return (
         <div className="text-center">
             <motion.div
