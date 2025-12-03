@@ -52,6 +52,7 @@ import GoroutineLeaks from '../decks/concurrency-interview/GoroutineLeaks';
 import DoneChannel from '../decks/concurrency-interview/DoneChannel';
 import RaceConditions from '../decks/concurrency-interview/RaceConditions';
 import AdvancedRuntime from '../decks/concurrency-interview/AdvancedRuntime';
+import YouTubeEnding from '../decks/concurrency-interview/YouTubeEnding';
 
 // Gen-Z Mental Health Deck
 import GenZTitle from '../decks/genz-mental-health/GenZTitle';
@@ -157,6 +158,7 @@ export const DECKS = {
         DoneChannel,
         RaceConditions,
         AdvancedRuntime,
+        YouTubeEnding,
         Summary // Reusing summary for now
     ],
     'genz-mental-health': [

@@ -22,7 +22,7 @@ const Slide6_Algorithms = () => {
                             initial={{ x: -50, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
                             transition={{ delay: index * 0.2 }}
-                            className="bg-slate-800/50 p-6 rounded-xl border-l-4 border-blue-500 hover:bg-slate-800 transition-colors"
+                            className="bg-slate-900/80 p-6 rounded-xl border-l-4 border-blue-500 hover:bg-slate-900 transition-colors"
                         >
                             <h3 className="text-2xl font-bold text-white mb-2">{algo.name}</h3>
                             <p className="text-slate-400">{algo.desc}</p>

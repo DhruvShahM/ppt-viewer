@@ -97,7 +97,7 @@
     "deckId": "concurrency-interview",
     "slideIndex": 17,
     "instruction": "Like , share and susbscribe button add in the youtube ending page after this slide",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": 1764754181624,
@@ -105,7 +105,7 @@
     "deckId": "interview",
     "slideIndex": 6,
     "instruction": "Demo testing\r\n",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": 1764754193828,
@@ -113,7 +113,7 @@
     "deckId": "interview",
     "slideIndex": 6,
     "instruction": "Demo testing 2\r\n",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": 1764754206018,
@@ -121,7 +121,7 @@
     "deckId": "interview",
     "slideIndex": 6,
     "instruction": "3",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": 1764754329799,
@@ -129,7 +129,7 @@
     "deckId": "interview",
     "slideIndex": 6,
     "instruction": "4",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": 1764754375951,
@@ -137,6 +137,50 @@
     "deckId": "interview",
     "slideIndex": 6,
     "instruction": "5",
-    "status": "pending"
+    "status": "completed"
+  },
+  {
+    "id": 1764755113659,
+    "timestamp": "2025-12-03T09:45:13.659Z",
+    "deckId": "load-balancer",
+    "slideIndex": 4,
+    "instruction": "animation css related transation issue please fixed here",
+    "status": "completed",
+    "screenshots": [
+      "1764755113649-637413624-image.png"
+    ]
+  },
+  {
+    "id": 1764755192066,
+    "timestamp": "2025-12-03T09:46:32.066Z",
+    "deckId": "load-balancer",
+    "slideIndex": 4,
+    "instruction": "here container color change here",
+    "status": "completed",
+    "screenshots": [
+      "1764755192060-868262931-image.png"
+    ]
+  },
+  {
+    "id": 1764755562632,
+    "timestamp": "2025-12-03T09:52:42.633Z",
+    "deckId": "load-balancer",
+    "slideIndex": 5,
+    "instruction": "change the color of this tile",
+    "status": "completed",
+    "screenshots": [
+      "1764755562630-457271699-image.png"
+    ]
+  },
+  {
+    "id": 1764755611155,
+    "timestamp": "2025-12-03T09:53:31.155Z",
+    "deckId": "load-balancer",
+    "slideIndex": 6,
+    "instruction": "change the color of this tile",
+    "status": "completed",
+    "screenshots": [
+      "1764755611152-486880045-image.png"
+    ]
   }
 ]

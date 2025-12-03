@@ -134,6 +134,25 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
         }
     };
 
+    const handleDeleteAll = async () => {
+        if (!confirm('Are you sure you want to delete ALL pending requests for this slide?')) return;
+
+        try {
+            const response = await fetch(`/api/feedback/${deckId}/${slideIndex}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                setPendingFeedbacks([]);
+            } else {
+                alert('Failed to delete feedbacks');
+            }
+        } catch (error) {
+            console.error('Error deleting feedbacks:', error);
+            alert('Error deleting feedbacks');
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!instruction.trim()) return;
@@ -276,6 +295,16 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                                 <MessageSquarePlus size={14} />
                                 Add Another Request
                             </button>
+
+                            {pendingFeedbacks.length > 1 && (
+                                <button
+                                    onClick={handleDeleteAll}
+                                    className="w-full py-2 mb-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Trash2 size={14} />
+                                    Delete All Requests
+                                </button>
+                            )}
 
                             <button
                                 onClick={() => {

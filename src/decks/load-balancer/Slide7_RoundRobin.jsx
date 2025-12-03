@@ -61,7 +61,7 @@ const Slide7_RoundRobin = () => {
                                 borderColor: activeServer === (i + 1) % 3 ? ["#475569", "#3b82f6", "#475569"] : "#475569"
                             }}
                             transition={{ duration: 0.5 }}
-                            className="w-32 h-40 bg-slate-800 rounded-lg border-4 border-slate-600 flex flex-col items-center justify-center relative"
+                            className="w-32 h-40 bg-slate-900 rounded-lg border-4 border-slate-600 flex flex-col items-center justify-center relative"
                         >
                             <span className="text-4xl mb-2">🖥️</span>
                             <span className="text-lg font-bold text-white">Server {i + 1}</span>

@@ -218,6 +218,61 @@ app.delete('/api/feedback/:id', (req, res) => {
     }
 });
 
+app.delete('/api/feedback/:deckId/:slideIndex', (req, res) => {
+    const { deckId, slideIndex } = req.params;
+    const index = parseInt(slideIndex);
+
+    try {
+        const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
+        let feedback = JSON.parse(fileContent);
+
+        // Find items to delete
+        const itemsToDelete = feedback.filter(f =>
+            f.deckId === deckId &&
+            f.slideIndex === index &&
+            f.status === 'pending'
+        );
+
+        if (itemsToDelete.length === 0) {
+            return res.json({ success: true, count: 0 });
+        }
+
+        // Helper to delete screenshots
+        const deleteFile = (filename) => {
+            const screenshotPath = path.join(SCREENSHOTS_DIR, filename);
+            if (fs.existsSync(screenshotPath)) {
+                try {
+                    fs.unlinkSync(screenshotPath);
+                    console.log(`Deleted screenshot: ${filename}`);
+                } catch (err) {
+                    console.error(`Failed to delete screenshot ${filename}:`, err);
+                }
+            }
+        };
+
+        // Delete screenshots for all items
+        itemsToDelete.forEach(item => {
+            if (item.screenshots && Array.isArray(item.screenshots)) {
+                item.screenshots.forEach(deleteFile);
+            } else if (item.screenshot) {
+                deleteFile(item.screenshot);
+            }
+        });
+
+        // Filter out deleted items
+        feedback = feedback.filter(f =>
+            !(f.deckId === deckId && f.slideIndex === index && f.status === 'pending')
+        );
+
+        fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedback, null, 2));
+        console.log(`Deleted ${itemsToDelete.length} pending feedback entries for ${deckId} slide ${index}`);
+        res.json({ success: true, count: itemsToDelete.length });
+    } catch (error) {
+        console.error('Error deleting feedback:', error);
+        res.status(500).json({ error: 'Failed to delete feedback' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
