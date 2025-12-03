@@ -55,5 +55,13 @@
     "instruction": "fix these css related issue\r\n",
     "status": "completed",
     "screenshot": "1764737622065-image.png"
+  },
+  {
+    "id": 1764738568165,
+    "timestamp": "2025-12-03T05:09:28.165Z",
+    "deckId": "goroutines",
+    "slideIndex": 4,
+    "instruction": "Add one more slide after this lide \"how runtime package work\"",
+    "status": "pending"
   }
 ]

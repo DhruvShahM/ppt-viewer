@@ -23,6 +23,42 @@ if (!fs.existsSync(SCREENSHOTS_DIR)) {
     fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 }
 
+// Cleanup screenshots for completed feedback
+const cleanupScreenshots = () => {
+    try {
+        if (!fs.existsSync(FEEDBACK_FILE)) return;
+
+        const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
+        const feedback = JSON.parse(fileContent);
+
+        feedback.forEach(item => {
+            if (item.status === 'completed' && item.screenshot) {
+                const screenshotPath = path.join(SCREENSHOTS_DIR, item.screenshot);
+                if (fs.existsSync(screenshotPath)) {
+                    try {
+                        fs.unlinkSync(screenshotPath);
+                        console.log(`Deleted screenshot for completed feedback ${item.id}: ${item.screenshot}`);
+                    } catch (err) {
+                        console.error(`Failed to delete screenshot ${item.screenshot}:`, err);
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        // Ignore errors during cleanup
+    }
+};
+
+// Watch for changes in feedback file to trigger cleanup
+fs.watchFile(FEEDBACK_FILE, { interval: 2000 }, (curr, prev) => {
+    if (curr.mtime !== prev.mtime) {
+        cleanupScreenshots();
+    }
+});
+
+// Run cleanup on startup
+cleanupScreenshots();
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
