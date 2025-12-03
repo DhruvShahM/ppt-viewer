@@ -17,6 +17,7 @@ import GMPModel from '../decks/goroutines/GMPModel';
 import StackGrowth from '../decks/goroutines/StackGrowth';
 import ContextSwitching from '../decks/goroutines/ContextSwitching';
 import RuntimeControl from '../decks/goroutines/RuntimeControl';
+import RuntimeMechanics from '../decks/goroutines/RuntimeMechanics';
 import WorkStealing from '../decks/goroutines/WorkStealing';
 import Preemption from '../decks/goroutines/Preemption';
 import GoroutineStates from '../decks/goroutines/GoroutineStates';
@@ -119,6 +120,7 @@ export const DECKS = {
         StackGrowth,
         ContextSwitching,
         RuntimeControl,
+        RuntimeMechanics,
         WorkStealing,
         Preemption,
         GoroutineStates,

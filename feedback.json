@@ -62,6 +62,33 @@
     "deckId": "goroutines",
     "slideIndex": 4,
     "instruction": "Add one more slide after this lide \"how runtime package work\"",
-    "status": "pending"
+    "status": "completed"
+  },
+  {
+    "id": 1764738931407,
+    "timestamp": "2025-12-03T05:15:31.407Z",
+    "deckId": "goroutines",
+    "slideIndex": 5,
+    "instruction": "add second point here",
+    "status": "completed",
+    "screenshot": "1764738931404-image.png"
+  },
+  {
+    "id": 1764739041526,
+    "timestamp": "2025-12-03T05:17:21.526Z",
+    "deckId": "goroutines",
+    "slideIndex": 5,
+    "instruction": "add some text here",
+    "status": "completed",
+    "screenshot": "1764739041520-image.png"
+  },
+  {
+    "id": 1764739276965,
+    "timestamp": "2025-12-03T05:21:16.965Z",
+    "deckId": "goroutines",
+    "slideIndex": 5,
+    "instruction": "match the text style from the above text",
+    "status": "completed",
+    "screenshot": "1764739276957-image.png"
   }
 ]
