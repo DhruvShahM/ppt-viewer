@@ -1,12 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DeckSelector from './components/DeckSelector';
 import PresentationViewer from './components/PresentationViewer';
-import { DECKS } from './data/decks';
+import { getDeck } from './data/decks';
+import { Loader2 } from 'lucide-react';
 
 function App() {
     const [currentDeckId, setCurrentDeckId] = useState(() => {
         return localStorage.getItem('lastDeckId') || null;
     });
+
+    const [currentSlides, setCurrentSlides] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        const loadDeck = async () => {
+            if (!currentDeckId) {
+                setCurrentSlides(null);
+                return;
+            }
+
+            setIsLoading(true);
+            try {
+                const slides = await getDeck(currentDeckId);
+                setCurrentSlides(slides);
+            } catch (error) {
+                console.error("Failed to load deck:", error);
+                setCurrentSlides(null);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadDeck();
+    }, [currentDeckId]);
 
     const handleDeckSelect = (deckId) => {
         setCurrentDeckId(deckId);
@@ -49,6 +75,14 @@ function App() {
 
     const [currentGradient, setCurrentGradient] = useState(GRADIENTS[0].value);
 
+    if (isLoading) {
+        return (
+            <div className="w-screen h-screen flex items-center justify-center bg-slate-950 text-white">
+                <Loader2 className="animate-spin" size={48} />
+            </div>
+        );
+    }
+
     return (
         <div className={`w-screen h-screen text-white relative overflow-hidden font-sans selection:bg-go-blue selection:text-white select-none ${currentGradient}`}>
             {/* Background Elements */}
@@ -68,9 +102,9 @@ function App() {
                 <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[120px]" />
             </div>
 
-            {currentDeckId ? (
+            {currentDeckId && currentSlides ? (
                 <PresentationViewer
-                    slides={DECKS[currentDeckId]}
+                    slides={currentSlides}
                     deckId={currentDeckId}
                     onBack={() => handleDeckSelect(null)}
                     showVideo={showVideo}

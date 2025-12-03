@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, FileDown, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X } from 'lucide-react';
+import { Play, FileDown, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
-import { DECKS } from '../data/decks';
+
 import { REPOSITORIES } from '../data/repositories';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -72,6 +72,8 @@ const DeckSelector = ({ onSelectDeck }) => {
     const [isEditMode, setIsEditMode] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [isSortedAsc, setIsSortedAsc] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 1;
 
     const [repositories, setRepositories] = useState(() => {
         const saved = localStorage.getItem('deck_repositories');
@@ -109,6 +111,31 @@ const DeckSelector = ({ onSelectDeck }) => {
 
         return processed;
     }, [repositories, searchQuery, isSortedAsc]);
+
+    // Reset page when search/sort changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, isSortedAsc]);
+
+    const totalPages = Math.ceil(processedRepositories.length / ITEMS_PER_PAGE);
+
+    // Adjust current page if it exceeds total pages (e.g. after deletion)
+    useEffect(() => {
+        if (currentPage > totalPages && totalPages > 0) {
+            setCurrentPage(totalPages);
+        }
+    }, [totalPages, currentPage]);
+
+    const currentRepositories = useMemo(() => {
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        return processedRepositories.slice(start, start + ITEMS_PER_PAGE);
+    }, [processedRepositories, currentPage, ITEMS_PER_PAGE]);
+
+    const handlePageChange = (page) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
+    };
 
     const handleAddRepository = () => {
         const newRepo = {
@@ -174,13 +201,15 @@ const DeckSelector = ({ onSelectDeck }) => {
 
             let pageAdded = false;
 
+            // Load all decks dynamically
+            const { getAllDecks } = await import('../data/decks');
+            const allDecks = await getAllDecks();
+
             // Iterate through all decks
             for (const repo of repositories) {
                 for (const deck of repo.decks) {
-                    // Find the component from DECKS map
-                    // We need to handle the case where deck might be in a different structure in DECKS
-                    // But currently DECKS is flat map of deckId -> slides
-                    const slides = DECKS[deck.id];
+                    // Find the component from allDecks map
+                    const slides = allDecks[deck.id];
 
                     if (!slides) continue;
 
@@ -275,8 +304,8 @@ const DeckSelector = ({ onSelectDeck }) => {
                     <button
                         onClick={() => setIsSortedAsc(!isSortedAsc)}
                         className={`p-3 rounded-xl border transition-all flex items-center gap-2 ${isSortedAsc
-                                ? 'bg-blue-500/20 border-blue-500 text-blue-400'
-                                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
+                            ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
                             }`}
                         title="Sort Alphabetically"
                     >
@@ -288,8 +317,8 @@ const DeckSelector = ({ onSelectDeck }) => {
                     <button
                         onClick={() => setIsEditMode(!isEditMode)}
                         className={`px-4 py-3 rounded-xl border transition-all whitespace-nowrap ${isEditMode
-                                ? 'bg-purple-500/20 border-purple-500 text-purple-400'
-                                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
+                            ? 'bg-purple-500/20 border-purple-500 text-purple-400'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
                             }`}
                     >
                         {isEditMode ? 'Done Editing' : 'Edit Structure'}
@@ -297,9 +326,9 @@ const DeckSelector = ({ onSelectDeck }) => {
                 </div>
             </motion.div>
 
-            <div className="w-full max-w-7xl max-h-[60vh] overflow-y-auto pr-4 pb-4 custom-scrollbar space-y-12">
-                <AnimatePresence>
-                    {processedRepositories.map((repo) => (
+            <div className="w-full max-w-7xl max-h-[60vh] overflow-y-auto pr-4 pb-4 custom-scrollbar space-y-12 min-h-[400px]">
+                <AnimatePresence mode="wait">
+                    {currentRepositories.map((repo) => (
                         <motion.div
                             key={repo.id}
                             layout
@@ -374,6 +403,46 @@ const DeckSelector = ({ onSelectDeck }) => {
                     </div>
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center justify-center gap-4 mt-8"
+                >
+                    <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="p-3 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-white/5 transition-all"
+                    >
+                        <ChevronLeft size={20} />
+                    </button>
+
+                    <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl p-1">
+                        {Array.from({ length: totalPages }).map((_, i) => (
+                            <button
+                                key={i}
+                                onClick={() => handlePageChange(i + 1)}
+                                className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all ${currentPage === i + 1
+                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                    }`}
+                            >
+                                {i + 1}
+                            </button>
+                        ))}
+                    </div>
+
+                    <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="p-3 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-white/5 transition-all"
+                    >
+                        <ChevronRight size={20} />
+                    </button>
+                </motion.div>
+            )}
 
             {/* Export All Button */}
             <motion.button

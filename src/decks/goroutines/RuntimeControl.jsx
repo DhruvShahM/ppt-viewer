@@ -13,7 +13,7 @@ const RuntimeControl = () => {
                     transition={{ delay: 0.2 }}
                     className="bg-white/5 p-6 rounded-2xl border border-white/10 flex flex-col md:flex-row items-start md:items-center gap-6"
                 >
-                    <div className="bg-black/30 p-4 rounded-lg font-mono text-purple-300 text-lg md:text-xl flex-shrink-0 w-full md:w-auto">
+                    <div className="bg-black/30 p-4 rounded-lg font-mono text-purple-300 text-lg md:text-xl flex-shrink-0 w-full md:w-72 text-center">
                         runtime.GOMAXPROCS(n)
                     </div>
                     <div className="flex-1">
@@ -32,7 +32,7 @@ const RuntimeControl = () => {
                     transition={{ delay: 0.4 }}
                     className="bg-white/5 p-6 rounded-2xl border border-white/10 flex flex-col md:flex-row items-start md:items-center gap-6"
                 >
-                    <div className="bg-black/30 p-4 rounded-lg font-mono text-purple-300 text-lg md:text-xl flex-shrink-0 w-full md:w-auto">
+                    <div className="bg-black/30 p-4 rounded-lg font-mono text-purple-300 text-lg md:text-xl flex-shrink-0 w-full md:w-72 text-center">
                         runtime.Gosched()
                     </div>
                     <div className="flex-1">
@@ -51,7 +51,7 @@ const RuntimeControl = () => {
                     transition={{ delay: 0.6 }}
                     className="bg-white/5 p-6 rounded-2xl border border-white/10 flex flex-col md:flex-row items-start md:items-center gap-6"
                 >
-                    <div className="bg-black/30 p-4 rounded-lg font-mono text-purple-300 text-lg md:text-xl flex-shrink-0 w-full md:w-auto">
+                    <div className="bg-black/30 p-4 rounded-lg font-mono text-purple-300 text-lg md:text-xl flex-shrink-0 w-full md:w-72 text-center">
                         runtime.Goexit()
                     </div>
                     <div className="flex-1">
