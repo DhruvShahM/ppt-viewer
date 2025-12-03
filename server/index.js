@@ -49,6 +49,25 @@ const cleanupScreenshots = () => {
     }
 };
 
+// Cleanup old feedback entries (keep last 30)
+const cleanupFeedback = () => {
+    try {
+        if (!fs.existsSync(FEEDBACK_FILE)) return;
+
+        const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
+        let feedback = JSON.parse(fileContent);
+
+        if (feedback.length > 30) {
+            const count = feedback.length - 30;
+            feedback = feedback.slice(-30);
+            fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedback, null, 2));
+            console.log(`Removed ${count} old feedback entries`);
+        }
+    } catch (error) {
+        console.error('Error cleaning up feedback:', error);
+    }
+};
+
 // Watch for changes in feedback file to trigger cleanup
 fs.watchFile(FEEDBACK_FILE, { interval: 2000 }, (curr, prev) => {
     if (curr.mtime !== prev.mtime) {
@@ -58,6 +77,7 @@ fs.watchFile(FEEDBACK_FILE, { interval: 2000 }, (curr, prev) => {
 
 // Run cleanup on startup
 cleanupScreenshots();
+cleanupFeedback();
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
