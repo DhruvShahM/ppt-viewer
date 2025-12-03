@@ -43,25 +43,35 @@ function App() {
         }
     };
     const [showVideo, setShowVideo] = useState(true);
-    // Dynamically import all mp4 files from src/assets/backgrounds
-    const videoModules = import.meta.glob('/src/assets/backgrounds/*.mp4', { eager: true, as: 'url' });
+    // Dynamically import all mp4 files from src/assets/backgrounds (Lazy Load)
+    const videoModules = import.meta.glob('/src/assets/backgrounds/*.mp4', { query: '?url', import: 'default' });
 
-    const videos = Object.entries(videoModules).map(([path, src], index) => {
+    const videos = Object.entries(videoModules).map(([path, loader], index) => {
         // Extract filename from path for the name
         const name = path.split('/').pop().replace('.mp4', '');
-        return { id: index, name, src };
+        // We use path as the ID/src for selection purposes
+        return { id: index, name, src: path, loader };
     });
 
-    // Set default video if available
-    const [videoSrc, setVideoSrc] = useState(videos.length > 0 ? videos[0].src : "");
+    const [videoSrc, setVideoSrc] = useState("");
 
-    // Update videoSrc if videos change (e.g. hot reload)
-    if (!videoSrc && videos.length > 0) {
-        setVideoSrc(videos[0].src);
-    }
+    // Load default video on mount
+    useEffect(() => {
+        if (videos.length > 0 && !videoSrc) {
+            handleVideoSelect(videos[0].src);
+        }
+    }, []);
 
-    const handleVideoSelect = (src) => {
-        setVideoSrc(src);
+    const handleVideoSelect = async (path) => {
+        const video = videos.find(v => v.src === path);
+        if (video) {
+            try {
+                const module = await video.loader();
+                setVideoSrc(module);
+            } catch (error) {
+                console.error("Failed to load video:", error);
+            }
+        }
     };
 
     const GRADIENTS = [

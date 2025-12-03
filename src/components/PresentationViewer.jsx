@@ -4,6 +4,7 @@ import Slide from './Slide';
 import AnnotationLayer from './AnnotationLayer';
 import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, FileDown, Video, ArrowUpRight, Upload, Palette, Type, Check } from 'lucide-react';
 import DesignFeedback from './DesignFeedback';
+import SlideRenderer from './SlideRenderer';
 
 
 const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient }) => {
@@ -172,10 +173,14 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
             {/* Slides */}
             <div className="relative z-10 w-full h-full">
                 <AnimatePresence mode="popLayout">
-                    {slides.map((SlideComponent, index) => (
+                    {slides.map((SlideItem, index) => (
                         index === currentSlide && (
                             <Slide key={index} isActive={true}>
-                                <SlideComponent />
+                                {typeof SlideItem === 'function' ? (
+                                    <SlideItem />
+                                ) : (
+                                    <SlideRenderer slide={SlideItem} />
+                                )}
                             </Slide>
                         )
                     ))}

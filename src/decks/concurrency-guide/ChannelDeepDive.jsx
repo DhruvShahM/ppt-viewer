@@ -15,12 +15,12 @@ const ChannelDeepDive = () => {
                         <div className="space-y-4">
                             <div className="p-4 bg-black/30 rounded-lg">
                                 <div className="font-mono text-sm text-blue-300 mb-2">Unbuffered</div>
-                                <code className="text-gray-400 text-sm">ch := make(chan int)</code>
+                                <code className="text-gray-200 text-sm">ch := make(chan int)</code>
                                 <p className="text-sm text-gray-500 mt-2">Synchronous. Sender blocks until receiver is ready.</p>
                             </div>
                             <div className="p-4 bg-black/30 rounded-lg">
                                 <div className="font-mono text-sm text-blue-300 mb-2">Buffered</div>
-                                <code className="text-gray-400 text-sm">ch := make(chan int, 5)</code>
+                                <code className="text-gray-200 text-sm">ch := make(chan int, 5)</code>
                                 <p className="text-sm text-gray-500 mt-2">Asynchronous. Sender blocks only when buffer is full.</p>
                             </div>
                         </div>
@@ -30,11 +30,11 @@ const ChannelDeepDive = () => {
                         <h3 className="text-xl font-bold mb-4 text-yellow-400">Directional Channels</h3>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-3 bg-black/30 rounded text-center">
-                                <code className="text-green-400">chan&lt;- int</code>
+                                <code className="text-green-400 bg-black/50 px-2 py-1 rounded">chan&lt;- int</code>
                                 <div className="text-xs text-gray-500 mt-1">Send Only</div>
                             </div>
                             <div className="p-3 bg-black/30 rounded text-center">
-                                <code className="text-green-400">&lt;-chan int</code>
+                                <code className="text-green-400 bg-black/50 px-2 py-1 rounded">&lt;-chan int</code>
                                 <div className="text-xs text-gray-500 mt-1">Receive Only</div>
                             </div>
                         </div>
@@ -70,19 +70,19 @@ const ChannelDeepDive = () => {
                         <ul className="space-y-3 text-sm text-gray-300">
                             <li className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-red-500" />
-                                <span>Sending to nil channel → <strong>Blocks forever</strong></span>
+                                <span>Sending to nil channel → <strong className="text-red-300">Blocks forever</strong></span>
                             </li>
                             <li className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-red-500" />
-                                <span>Receiving from nil channel → <strong>Blocks forever</strong></span>
+                                <span>Receiving from nil channel → <strong className="text-red-300">Blocks forever</strong></span>
                             </li>
                             <li className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-red-500" />
-                                <span>Sending to closed channel → <strong>Panic</strong></span>
+                                <span>Sending to closed channel → <strong className="text-red-300">Panic</strong></span>
                             </li>
                             <li className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-red-500" />
-                                <span>Closing closed channel → <strong>Panic</strong></span>
+                                <span>Closing closed channel → <strong className="text-red-300">Panic</strong></span>
                             </li>
                         </ul>
                     </div>

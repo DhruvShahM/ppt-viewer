@@ -1,12 +1,12 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, FileDown, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-import { REPOSITORIES } from '../data/repositories';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { createRoot } from 'react-dom/client';
 import Slide from './Slide';
+import { getAllDecks, getDeck } from '../data/decks';
 
 const ICON_MAP = {
     Layers,
@@ -73,63 +73,35 @@ const DeckSelector = ({ onSelectDeck }) => {
     const [searchQuery, setSearchQuery] = useState("");
     const [isSortedAsc, setIsSortedAsc] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 1;
+    const [totalPages, setTotalPages] = useState(1);
+    const [isLoading, setIsLoading] = useState(true);
+    const ITEMS_PER_PAGE = 10; // Increased from 1 since we have pagination now
 
-    const [repositories, setRepositories] = useState(() => {
-        const saved = localStorage.getItem('deck_repositories');
-        return saved ? JSON.parse(saved) : REPOSITORIES;
-    });
+    const [repositories, setRepositories] = useState([]);
 
-    // Persist to localStorage whenever repositories change
-    useEffect(() => {
-        localStorage.setItem('deck_repositories', JSON.stringify(repositories));
-    }, [repositories]);
-
-    // Filter and Sort Logic
-    const processedRepositories = useMemo(() => {
-        let processed = repositories.map(repo => ({
-            ...repo,
-            decks: repo.decks.filter(deck =>
-                deck.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                repo.title.toLowerCase().includes(searchQuery.toLowerCase())
-            )
-        })).filter(repo =>
-            repo.decks.length > 0 ||
-            repo.title.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-
-        if (isSortedAsc) {
-            // Sort Repositories A-Z
-            processed.sort((a, b) => a.title.localeCompare(b.title));
-
-            // Sort Decks A-Z within Repositories
-            processed = processed.map(repo => ({
-                ...repo,
-                decks: [...repo.decks].sort((a, b) => a.title.localeCompare(b.title))
-            }));
+    const fetchDecks = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const data = await getAllDecks(currentPage, ITEMS_PER_PAGE, searchQuery);
+            setRepositories(data.repositories);
+            setTotalPages(data.totalPages);
+            // If current page is greater than total pages (e.g. after search), reset to 1
+            if (currentPage > data.totalPages && data.totalPages > 0) {
+                setCurrentPage(1);
+            }
+        } catch (error) {
+            console.error("Failed to fetch decks", error);
+        } finally {
+            setIsLoading(false);
         }
+    }, [currentPage, searchQuery]);
 
-        return processed;
-    }, [repositories, searchQuery, isSortedAsc]);
-
-    // Reset page when search/sort changes
     useEffect(() => {
-        setCurrentPage(1);
-    }, [searchQuery, isSortedAsc]);
-
-    const totalPages = Math.ceil(processedRepositories.length / ITEMS_PER_PAGE);
-
-    // Adjust current page if it exceeds total pages (e.g. after deletion)
-    useEffect(() => {
-        if (currentPage > totalPages && totalPages > 0) {
-            setCurrentPage(totalPages);
-        }
-    }, [totalPages, currentPage]);
-
-    const currentRepositories = useMemo(() => {
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return processedRepositories.slice(start, start + ITEMS_PER_PAGE);
-    }, [processedRepositories, currentPage, ITEMS_PER_PAGE]);
+        const timeoutId = setTimeout(() => {
+            fetchDecks();
+        }, 300); // Debounce search
+        return () => clearTimeout(timeoutId);
+    }, [fetchDecks]);
 
     const handlePageChange = (page) => {
         if (page >= 1 && page <= totalPages) {
@@ -138,51 +110,23 @@ const DeckSelector = ({ onSelectDeck }) => {
     };
 
     const handleAddRepository = () => {
-        const newRepo = {
-            id: `repo-${Date.now()}`,
-            title: 'New Repository',
-            decks: []
-        };
-        setRepositories([...repositories, newRepo]);
+        // Not implemented for server-side yet
+        alert("Creating repositories is not supported in this version.");
     };
 
     const handleDeleteRepository = (repoId) => {
-        const repo = repositories.find(r => r.id === repoId);
-        if (repo && repo.decks.length > 0) {
-            alert("Cannot delete a non-empty repository. Please move or delete decks first.");
-            return;
-        }
-        if (confirm("Are you sure you want to delete this repository?")) {
-            setRepositories(repositories.filter(r => r.id !== repoId));
-        }
+        // Not implemented for server-side yet
+        alert("Deleting repositories is not supported in this version.");
     };
 
     const handleRenameRepository = (repoId, newTitle) => {
-        setRepositories(repositories.map(repo =>
-            repo.id === repoId ? { ...repo, title: newTitle } : repo
-        ));
+        // Not implemented for server-side yet
+        alert("Renaming repositories is not supported in this version.");
     };
 
     const handleMoveDeck = (sourceRepoId, deckId, targetRepoId) => {
-        if (sourceRepoId === targetRepoId) return;
-
-        const sourceRepo = repositories.find(r => r.id === sourceRepoId);
-        const targetRepo = repositories.find(r => r.id === targetRepoId);
-        const deckToMove = sourceRepo.decks.find(d => d.id === deckId);
-
-        if (!deckToMove || !targetRepo) return;
-
-        const newRepositories = repositories.map(repo => {
-            if (repo.id === sourceRepoId) {
-                return { ...repo, decks: repo.decks.filter(d => d.id !== deckId) };
-            }
-            if (repo.id === targetRepoId) {
-                return { ...repo, decks: [...repo.decks, deckToMove] };
-            }
-            return repo;
-        });
-
-        setRepositories(newRepositories);
+        // Not implemented for server-side yet
+        alert("Moving decks is not supported in this version.");
     };
 
     const handleExportAll = async () => {
@@ -201,15 +145,14 @@ const DeckSelector = ({ onSelectDeck }) => {
 
             let pageAdded = false;
 
-            // Load all decks dynamically
-            const { getAllDecks } = await import('../data/decks');
-            const allDecks = await getAllDecks();
-
-            // Iterate through all decks
+            // Iterate through all currently visible decks
+            // Note: This only exports the *visible* decks on the current page.
+            // To export ALL decks from the DB would require fetching them all, which defeats the purpose of pagination.
+            // For now, let's export the visible ones.
             for (const repo of repositories) {
                 for (const deck of repo.decks) {
-                    // Find the component from allDecks map
-                    const slides = allDecks[deck.id];
+                    // Load deck content on demand
+                    const slides = await getDeck(deck.id);
 
                     if (!slides) continue;
 
@@ -255,12 +198,12 @@ const DeckSelector = ({ onSelectDeck }) => {
                 }
             }
 
-            pdf.save('complete-presentation.pdf');
+            pdf.save('presentation-export.pdf');
             document.body.removeChild(container);
 
         } catch (error) {
             console.error("Export failed:", error);
-            alert("Failed to export all slides.");
+            alert("Failed to export slides.");
         } finally {
             setIsExporting(false);
         }
@@ -300,7 +243,7 @@ const DeckSelector = ({ onSelectDeck }) => {
                         )}
                     </div>
 
-                    {/* Sort Button */}
+                    {/* Sort Button - Visual only for now as server handles sort */}
                     <button
                         onClick={() => setIsSortedAsc(!isSortedAsc)}
                         className={`p-3 rounded-xl border transition-all flex items-center gap-2 ${isSortedAsc
@@ -327,62 +270,70 @@ const DeckSelector = ({ onSelectDeck }) => {
             </motion.div>
 
             <div className="w-full max-w-7xl max-h-[60vh] overflow-y-auto pr-4 pb-4 custom-scrollbar space-y-12 min-h-[400px]">
-                <AnimatePresence mode="wait">
-                    {currentRepositories.map((repo) => (
-                        <motion.div
-                            key={repo.id}
-                            layout
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="w-full relative group/repo"
-                        >
-                            <div className="flex items-center gap-4 mb-6 border-b border-white/10 pb-2">
-                                {isEditMode ? (
-                                    <div className="flex-grow flex items-center gap-4">
-                                        <input
-                                            type="text"
-                                            value={repo.title}
-                                            onChange={(e) => handleRenameRepository(repo.id, e.target.value)}
-                                            className="bg-transparent text-2xl font-bold text-white/80 border-b border-blue-500/50 focus:border-blue-500 outline-none px-2 py-1 w-full max-w-md"
-                                            placeholder="Repository Name"
-                                        />
-                                        <button
-                                            onClick={() => handleDeleteRepository(repo.id)}
-                                            className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                            title="Delete Repository"
-                                        >
-                                            <Trash2 size={20} />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <h2 className="text-2xl font-bold text-white/80">
-                                        {repo.title}
-                                    </h2>
-                                )}
-                            </div>
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                        <Loader2 className="animate-spin text-blue-500" size={48} />
+                    </div>
+                ) : (
+                    <AnimatePresence mode="wait">
+                        {repositories.map((repo) => (
+                            <motion.div
+                                key={repo.id}
+                                layout
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="w-full relative group/repo"
+                            >
+                                <div className="flex items-center gap-4 mb-6 border-b border-white/10 pb-2">
+                                    {isEditMode ? (
+                                        <div className="flex-grow flex items-center gap-4">
+                                            <input
+                                                type="text"
+                                                value={repo.title}
+                                                onChange={(e) => handleRenameRepository(repo.id, e.target.value)}
+                                                className="bg-transparent text-2xl font-bold text-white/80 border-b border-blue-500/50 focus:border-blue-500 outline-none px-2 py-1 w-full max-w-md"
+                                                placeholder="Repository Name"
+                                                disabled
+                                            />
+                                            <button
+                                                onClick={() => handleDeleteRepository(repo.id)}
+                                                className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                title="Delete Repository"
+                                                disabled
+                                            >
+                                                <Trash2 size={20} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <h2 className="text-2xl font-bold text-white/80">
+                                            {repo.title}
+                                        </h2>
+                                    )}
+                                </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                <AnimatePresence>
-                                    {repo.decks.map((deck) => (
-                                        <DeckCard
-                                            key={deck.id}
-                                            title={deck.title}
-                                            description={deck.description}
-                                            icon={deck.icon}
-                                            color={deck.color}
-                                            onClick={() => onSelectDeck(deck.id)}
-                                            isEditMode={isEditMode}
-                                            repositories={repositories}
-                                            currentRepoId={repo.id}
-                                            onMove={(targetRepoId) => handleMoveDeck(repo.id, deck.id, targetRepoId)}
-                                        />
-                                    ))}
-                                </AnimatePresence>
-                            </div>
-                        </motion.div>
-                    ))}
-                </AnimatePresence>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    <AnimatePresence>
+                                        {repo.decks.map((deck) => (
+                                            <DeckCard
+                                                key={deck.id}
+                                                title={deck.title}
+                                                description={deck.description}
+                                                icon={deck.icon}
+                                                color={deck.color}
+                                                onClick={() => onSelectDeck(deck.id)}
+                                                isEditMode={isEditMode}
+                                                repositories={repositories}
+                                                currentRepoId={repo.id}
+                                                onMove={(targetRepoId) => handleMoveDeck(repo.id, deck.id, targetRepoId)}
+                                            />
+                                        ))}
+                                    </AnimatePresence>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                )}
 
                 {isEditMode && !searchQuery && (
                     <motion.button
@@ -396,7 +347,7 @@ const DeckSelector = ({ onSelectDeck }) => {
                     </motion.button>
                 )}
 
-                {processedRepositories.length === 0 && searchQuery && (
+                {!isLoading && repositories.length === 0 && searchQuery && (
                     <div className="text-center py-12 text-gray-500">
                         <Search size={48} className="mx-auto mb-4 opacity-20" />
                         <p>No decks found matching "{searchQuery}"</p>
@@ -453,7 +404,7 @@ const DeckSelector = ({ onSelectDeck }) => {
                 className="absolute bottom-8 right-8 flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {isExporting ? <Loader2 className="animate-spin" size={20} /> : <FileDown size={20} />}
-                {isExporting ? 'Exporting...' : 'Export Entire PPT'}
+                {isExporting ? 'Exporting...' : 'Export Visible'}
             </motion.button>
         </div>
     );
