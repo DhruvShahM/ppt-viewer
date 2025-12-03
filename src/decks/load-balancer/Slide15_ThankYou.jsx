@@ -4,7 +4,9 @@ import { ThumbsUp, Bell, Share2 } from 'lucide-react';
 
 const Slide15_ThankYou = () => {
     return (
-        <div className="flex items-center justify-center h-full text-center">
+        <div className="relative h-full w-full overflow-hidden flex items-center justify-center text-center">
+            {/* Light moving gradient background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 bg-[length:400%_400%] animate-gradient-xy -z-20" />
 
             <div className="z-10 text-center">
                 <motion.h1

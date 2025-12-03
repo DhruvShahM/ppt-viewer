@@ -41,12 +41,23 @@ const Slide5_Types = () => {
                         onMouseLeave={() => setHoveredIndex(null)}
                     >
                         <motion.div
-                            initial={{ rotateY: 90, opacity: 0 }}
+                            initial={{
+                                x: index === 0 ? -100 : index === 2 ? 100 : 0,
+                                y: index === 1 ? 100 : 0,
+                                opacity: 0
+                            }}
                             animate={{
+                                x: 0,
+                                y: 0,
                                 rotateY: hoveredIndex === index ? 180 : 0,
                                 opacity: 1
                             }}
-                            transition={{ duration: 0.6 }}
+                            transition={{
+                                duration: 0.8,
+                                delay: index * 0.2,
+                                type: "spring",
+                                stiffness: 100
+                            }}
                             className="relative w-full h-full"
                             style={{ transformStyle: 'preserve-3d' }}
                         >

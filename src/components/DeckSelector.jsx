@@ -371,18 +371,37 @@ const DeckSelector = ({ onSelectDeck }) => {
                     </button>
 
                     <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl p-1">
-                        {Array.from({ length: totalPages }).map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => handlePageChange(i + 1)}
-                                className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all ${currentPage === i + 1
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                    }`}
-                            >
-                                {i + 1}
-                            </button>
-                        ))}
+                        {(() => {
+                            const getVisiblePages = (current, total) => {
+                                if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+
+                                if (current <= 4) {
+                                    return [1, 2, 3, 4, 5, '...', total];
+                                }
+
+                                if (current >= total - 3) {
+                                    return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+                                }
+
+                                return [1, '...', current - 1, current, current + 1, '...', total];
+                            };
+
+                            return getVisiblePages(currentPage, totalPages).map((page, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => typeof page === 'number' ? handlePageChange(page) : null}
+                                    disabled={typeof page !== 'number'}
+                                    className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all ${page === currentPage
+                                            ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                                            : typeof page !== 'number'
+                                                ? 'text-gray-500 cursor-default'
+                                                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                        }`}
+                                >
+                                    {page}
+                                </button>
+                            ));
+                        })()}
                     </div>
 
                     <button

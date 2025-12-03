@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const crypto = require('crypto');
-const { sequelize, Repository, Deck, setupFTS } = require('./db');
+const { initDB } = require('./db');
 const { Op, QueryTypes } = require('sequelize');
 
 const app = express();
@@ -123,6 +123,13 @@ const INITIAL_REPOSITORIES = [
                 description: 'In-depth Explained: Algorithms, Health Checks, and Failover.',
                 icon: 'Network',
                 color: 'cyan'
+            },
+            {
+                id: 'rate-limiting',
+                title: 'Rate Limiting',
+                description: 'In-depth Explained: Fixed Window, Sliding Window, Token Bucket, and Leaky Bucket.',
+                icon: 'Shield',
+                color: 'purple'
             }
         ]
     },
@@ -141,39 +148,42 @@ const INITIAL_REPOSITORIES = [
     }
 ];
 
+let sequelize;
+let Repository;
+let Deck;
+
 // Initialize Database
 const initializeDatabase = async () => {
     try {
-        await sequelize.sync();
-        console.log('Database synced');
+        const db = await initDB();
+        sequelize = db.sequelize;
+        Repository = db.Repository;
+        Deck = db.Deck;
 
-        // Setup FTS
-        await setupFTS();
+        console.log('Ensuring database is seeded...');
+        for (const repoData of INITIAL_REPOSITORIES) {
+            const [repo] = await Repository.findOrCreate({
+                where: { id: repoData.id },
+                defaults: { title: repoData.title }
+            });
 
-        const repoCount = await Repository.count();
-        if (repoCount === 0) {
-            console.log('Seeding database...');
-            for (const repoData of INITIAL_REPOSITORIES) {
-                const repo = await Repository.create({
-                    id: repoData.id,
-                    title: repoData.title
-                });
-
-                for (const deckData of repoData.decks) {
-                    await Deck.create({
+            for (const deckData of repoData.decks) {
+                await Deck.findOrCreate({
+                    where: { id: deckData.id },
+                    defaults: {
                         ...deckData,
                         RepositoryId: repo.id
-                    });
-                }
+                    }
+                });
             }
-            console.log('Database seeded successfully');
         }
+        console.log('Database seeding check complete');
+
     } catch (error) {
         console.error('Failed to initialize database:', error);
+        process.exit(1);
     }
 };
-
-initializeDatabase();
 
 // --- API Endpoints ---
 
@@ -545,7 +555,9 @@ app.delete('/api/feedback/:deckId/:slideIndex', (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+// Start server only after DB is initialized
+initializeDatabase().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+    });
 });
-
