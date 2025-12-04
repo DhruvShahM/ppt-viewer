@@ -99,16 +99,5 @@
     "color": "blue",
     "status": "active",
     "path": "src/decks/rate-limiting"
-  },
-  {
-    "id": "genz-mental-health",
-    "title": "Gen-Z Mental Health",
-    "repoId": "mental-health",
-    "repoTitle": "Mental Health",
-    "description": "The Vibe Check: Burnout, Boundaries, and Communication.",
-    "icon": "Heart",
-    "color": "pink",
-    "status": "active",
-    "path": "src/decks/genz-mental-health"
   }
 ]
