@@ -29,8 +29,9 @@
     "description": "Pointers, Interfaces, Methods, and Type Safety.",
     "icon": "Sparkles",
     "color": "green",
-    "status": "active",
-    "path": "src/decks/interview"
+    "status": "archived",
+    "archivePath": "archives/interview/archive.html",
+    "originalPath": "src/decks/interview"
   },
   {
     "id": "concurrency-interview",
