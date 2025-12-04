@@ -108,8 +108,9 @@
     "description": "Auto-generated dummy deck 1 for testing.",
     "icon": "Zap",
     "color": "gray",
-    "status": "active",
-    "path": "src/decks/dummy-1"
+    "status": "archived",
+    "archivePath": "archives/dummy-1/archive.html",
+    "originalPath": "src/decks/dummy-1"
   },
   {
     "id": "dummy-2",
