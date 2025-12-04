@@ -73,6 +73,21 @@ async function archiveDeck(deckId) {
         fs.writeFileSync(INDEX_FILE, JSON.stringify(deckIndex, null, 2));
         console.log(`Index updated.`);
 
+        // Commit the build and index changes so git-archive.js sees a clean repo
+        console.log(`Committing build artifacts and index update...`);
+        await new Promise((resolve, reject) => {
+            import('child_process').then(({ exec }) => {
+                exec(`git add "${INDEX_FILE}" "archives/${deckId}" && git commit -m "Archive deck ${deckId}: Build artifacts and update index"`, { cwd: ROOT_DIR }, (error, stdout, stderr) => {
+                    if (error) {
+                        console.error(`Git commit failed:`, stderr);
+                    } else {
+                        console.log(stdout);
+                    }
+                    resolve();
+                });
+            });
+        });
+
         // Delete source files using git-archive script
         console.log(`Running git archive for ${deckId}...`);
         await new Promise((resolve, reject) => {
