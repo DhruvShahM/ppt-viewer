@@ -4,6 +4,10 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 
+const AppError = require('./utils/AppError');
+const catchAsync = require('./utils/catchAsync');
+const globalErrorHandler = require('./controllers/errorController');
+
 const app = express();
 const PORT = 3001;
 
@@ -22,6 +26,9 @@ if (!fs.existsSync(FEEDBACK_FILE)) {
 if (!fs.existsSync(SCREENSHOTS_DIR)) {
     fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 }
+
+const ARCHIVES_DIR = path.join(__dirname, '..', 'archives');
+app.use('/archives', express.static(ARCHIVES_DIR));
 
 // Cleanup screenshots for completed feedback
 const cleanupScreenshots = () => {
@@ -114,164 +121,219 @@ const upload = multer({
     }
 });
 
-app.post('/api/feedback', upload.array('screenshots', 10), (req, res) => {
+app.post('/api/feedback', upload.array('screenshots', 10), catchAsync(async (req, res, next) => {
     const { deckId, slideIndex, instruction } = req.body;
 
     if (!deckId || slideIndex === undefined || !instruction) {
-        return res.status(400).json({ error: 'Missing required fields' });
+        return next(new AppError('Missing required fields', 400));
     }
 
-    try {
-        const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
-        const feedback = JSON.parse(fileContent);
+    const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
+    const feedback = JSON.parse(fileContent);
 
-        const newFeedback = {
-            id: Date.now(),
-            timestamp: new Date().toISOString(),
-            deckId,
-            slideIndex: parseInt(slideIndex),
-            instruction,
-            status: 'pending'
-        };
+    const newFeedback = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        deckId,
+        slideIndex: parseInt(slideIndex),
+        instruction,
+        status: 'pending'
+    };
 
-        // Add screenshot paths if files were uploaded
-        if (req.files && req.files.length > 0) {
-            newFeedback.screenshots = req.files.map(f => f.filename);
-        }
-
-        feedback.push(newFeedback);
-
-        fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedback, null, 2));
-
-        console.log(`Feedback received for ${deckId} slide ${slideIndex}: ${instruction} (${req.files ? req.files.length : 0} screenshots)`);
-        res.status(201).json(newFeedback);
-    } catch (error) {
-        console.error('Error saving feedback:', error);
-        res.status(500).json({ error: 'Failed to save feedback' });
+    // Add screenshot paths if files were uploaded
+    if (req.files && req.files.length > 0) {
+        newFeedback.screenshots = req.files.map(f => f.filename);
     }
-});
 
-app.get('/api/feedback', (req, res) => {
-    try {
-        const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
-        const feedback = JSON.parse(fileContent);
-        res.json(feedback);
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to read feedback' });
-    }
-});
+    feedback.push(newFeedback);
+
+    fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedback, null, 2));
+
+    console.log(`Feedback received for ${deckId} slide ${slideIndex}: ${instruction} (${req.files ? req.files.length : 0} screenshots)`);
+    res.status(201).json(newFeedback);
+}));
+
+app.get('/api/feedback', catchAsync(async (req, res, next) => {
+    const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
+    const feedback = JSON.parse(fileContent);
+    res.json(feedback);
+}));
 
 // Serve screenshot images
-app.get('/api/screenshots/:filename', (req, res) => {
+app.get('/api/screenshots/:filename', (req, res, next) => {
     const filename = req.params.filename;
     const filepath = path.join(SCREENSHOTS_DIR, filename);
 
     if (fs.existsSync(filepath)) {
         res.sendFile(filepath);
     } else {
-        res.status(404).json({ error: 'Screenshot not found' });
+        next(new AppError('Screenshot not found', 404));
     }
 });
 
-app.delete('/api/feedback/:id', (req, res) => {
+app.delete('/api/feedback/:id', catchAsync(async (req, res, next) => {
     const id = parseInt(req.params.id);
 
-    try {
-        const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
-        let feedback = JSON.parse(fileContent);
+    const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
+    let feedback = JSON.parse(fileContent);
 
-        const itemIndex = feedback.findIndex(f => f.id === id);
-        if (itemIndex === -1) {
-            return res.status(404).json({ error: 'Feedback not found' });
-        }
+    const itemIndex = feedback.findIndex(f => f.id === id);
+    if (itemIndex === -1) {
+        return next(new AppError('Feedback not found', 404));
+    }
 
-        const item = feedback[itemIndex];
+    const item = feedback[itemIndex];
 
-        // Delete screenshots
-        const deleteFile = (filename) => {
-            const screenshotPath = path.join(SCREENSHOTS_DIR, filename);
-            if (fs.existsSync(screenshotPath)) {
-                try {
-                    fs.unlinkSync(screenshotPath);
-                    console.log(`Deleted screenshot for feedback ${id}: ${filename}`);
-                } catch (err) {
-                    console.error(`Failed to delete screenshot ${filename}:`, err);
-                }
+    // Delete screenshots
+    const deleteFile = (filename) => {
+        const screenshotPath = path.join(SCREENSHOTS_DIR, filename);
+        if (fs.existsSync(screenshotPath)) {
+            try {
+                fs.unlinkSync(screenshotPath);
+                console.log(`Deleted screenshot for feedback ${id}: ${filename}`);
+            } catch (err) {
+                console.error(`Failed to delete screenshot ${filename}:`, err);
             }
-        };
+        }
+    };
 
+    if (item.screenshots && Array.isArray(item.screenshots)) {
+        item.screenshots.forEach(deleteFile);
+    } else if (item.screenshot) {
+        deleteFile(item.screenshot);
+    }
+
+    // Remove from array
+    feedback.splice(itemIndex, 1);
+
+    fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedback, null, 2));
+    console.log(`Deleted feedback ${id}`);
+    res.json({ success: true });
+}));
+
+app.delete('/api/feedback/:deckId/:slideIndex', catchAsync(async (req, res, next) => {
+    const { deckId, slideIndex } = req.params;
+    const index = parseInt(slideIndex);
+
+    const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
+    let feedback = JSON.parse(fileContent);
+
+    // Find items to delete
+    const itemsToDelete = feedback.filter(f =>
+        f.deckId === deckId &&
+        f.slideIndex === index &&
+        f.status === 'pending'
+    );
+
+    if (itemsToDelete.length === 0) {
+        return res.json({ success: true, count: 0 });
+    }
+
+    // Helper to delete screenshots
+    const deleteFile = (filename) => {
+        const screenshotPath = path.join(SCREENSHOTS_DIR, filename);
+        if (fs.existsSync(screenshotPath)) {
+            try {
+                fs.unlinkSync(screenshotPath);
+                console.log(`Deleted screenshot: ${filename}`);
+            } catch (err) {
+                console.error(`Failed to delete screenshot ${filename}:`, err);
+            }
+        }
+    };
+
+    // Delete screenshots for all items
+    itemsToDelete.forEach(item => {
         if (item.screenshots && Array.isArray(item.screenshots)) {
             item.screenshots.forEach(deleteFile);
         } else if (item.screenshot) {
             deleteFile(item.screenshot);
         }
+    });
 
-        // Remove from array
-        feedback.splice(itemIndex, 1);
+    // Filter out deleted items
+    feedback = feedback.filter(f =>
+        !(f.deckId === deckId && f.slideIndex === index && f.status === 'pending')
+    );
 
-        fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedback, null, 2));
-        console.log(`Deleted feedback ${id}`);
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Error deleting feedback:', error);
-        res.status(500).json({ error: 'Failed to delete feedback' });
+    fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedback, null, 2));
+    console.log(`Deleted ${itemsToDelete.length} pending feedback entries for ${deckId} slide ${index}`);
+    res.json({ success: true, count: itemsToDelete.length });
+}));
+
+const { exec } = require('child_process');
+
+app.post('/api/archive', catchAsync(async (req, res, next) => {
+    const { deckIds } = req.body;
+
+    if (!deckIds || !Array.isArray(deckIds) || deckIds.length === 0) {
+        return next(new AppError('Invalid deckIds', 400));
     }
-});
 
-app.delete('/api/feedback/:deckId/:slideIndex', (req, res) => {
-    const { deckId, slideIndex } = req.params;
-    const index = parseInt(slideIndex);
+    console.log(`Archiving decks: ${deckIds.join(', ')}`);
 
-    try {
-        const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
-        let feedback = JSON.parse(fileContent);
-
-        // Find items to delete
-        const itemsToDelete = feedback.filter(f =>
-            f.deckId === deckId &&
-            f.slideIndex === index &&
-            f.status === 'pending'
-        );
-
-        if (itemsToDelete.length === 0) {
-            return res.json({ success: true, count: 0 });
+    const runArchive = async () => {
+        try {
+            for (const id of deckIds) {
+                await new Promise((resolve, reject) => {
+                    exec(`node scripts/archive-decks.js ${id}`, { cwd: path.join(__dirname, '..') }, (error, stdout, stderr) => {
+                        if (error) {
+                            console.error(`Error archiving ${id}:`, error);
+                        } else {
+                            console.log(`Archived ${id}:`, stdout);
+                        }
+                        resolve();
+                    });
+                });
+            }
+            res.json({ success: true });
+        } catch (error) {
+            console.error('Archive process failed:', error);
+            return next(new AppError('Archive process failed', 500));
         }
+    };
 
-        // Helper to delete screenshots
-        const deleteFile = (filename) => {
-            const screenshotPath = path.join(SCREENSHOTS_DIR, filename);
-            if (fs.existsSync(screenshotPath)) {
-                try {
-                    fs.unlinkSync(screenshotPath);
-                    console.log(`Deleted screenshot: ${filename}`);
-                } catch (err) {
-                    console.error(`Failed to delete screenshot ${filename}:`, err);
-                }
-            }
-        };
+    runArchive();
+}));
 
-        // Delete screenshots for all items
-        itemsToDelete.forEach(item => {
-            if (item.screenshots && Array.isArray(item.screenshots)) {
-                item.screenshots.forEach(deleteFile);
-            } else if (item.screenshot) {
-                deleteFile(item.screenshot);
-            }
-        });
+app.post('/api/restore', catchAsync(async (req, res, next) => {
+    const { deckIds } = req.body;
 
-        // Filter out deleted items
-        feedback = feedback.filter(f =>
-            !(f.deckId === deckId && f.slideIndex === index && f.status === 'pending')
-        );
-
-        fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedback, null, 2));
-        console.log(`Deleted ${itemsToDelete.length} pending feedback entries for ${deckId} slide ${index}`);
-        res.json({ success: true, count: itemsToDelete.length });
-    } catch (error) {
-        console.error('Error deleting feedback:', error);
-        res.status(500).json({ error: 'Failed to delete feedback' });
+    if (!deckIds || !Array.isArray(deckIds) || deckIds.length === 0) {
+        return next(new AppError('Invalid deckIds', 400));
     }
+
+    console.log(`Restoring decks: ${deckIds.join(', ')}`);
+
+    const runRestore = async () => {
+        try {
+            for (const id of deckIds) {
+                await new Promise((resolve, reject) => {
+                    exec(`node scripts/restore-deck.js ${id}`, { cwd: path.join(__dirname, '..') }, (error, stdout, stderr) => {
+                        if (error) {
+                            console.error(`Error restoring ${id}:`, error);
+                        } else {
+                            console.log(`Restored ${id}:`, stdout);
+                        }
+                        resolve();
+                    });
+                });
+            }
+            res.json({ success: true });
+        } catch (error) {
+            console.error('Restore process failed:', error);
+            return next(new AppError('Restore process failed', 500));
+        }
+    };
+
+    runRestore();
+}));
+
+app.all('*', (req, res, next) => {
+    next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
+
+app.use(globalErrorHandler);
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);

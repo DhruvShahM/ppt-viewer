@@ -164,6 +164,25 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
         return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
     }, []);
 
+    if (slides.isArchived) {
+        return (
+            <div className="w-full h-full relative bg-black">
+                <iframe
+                    src={slides.archivePath}
+                    className="w-full h-full border-none"
+                    title="Archived Presentation"
+                />
+                <button
+                    onClick={onBack}
+                    className="absolute top-4 left-4 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm text-white z-50"
+                    title="Back to Home"
+                >
+                    <Home size={24} />
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div
             ref={containerRef}

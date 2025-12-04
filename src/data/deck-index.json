@@ -1,0 +1,112 @@
+[
+  {
+    "id": "concurrency",
+    "title": "Mastering Concurrency",
+    "repoId": "go-programming",
+    "repoTitle": "Go Programming",
+    "description": "The complete guide to Goroutines, Channels, Select, and Sync patterns.",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/concurrency"
+  },
+  {
+    "id": "goroutines",
+    "title": "Goroutines Deep Dive",
+    "repoId": "go-programming",
+    "repoTitle": "Go Programming",
+    "description": "Under the hood: Scheduler, Stack Management, and Context Switching.",
+    "icon": "Cpu",
+    "color": "purple",
+    "status": "active",
+    "path": "src/decks/goroutines"
+  },
+  {
+    "id": "interview",
+    "title": "Interview Prep",
+    "repoId": "go-programming",
+    "repoTitle": "Go Programming",
+    "description": "Pointers, Interfaces, Methods, and Type Safety.",
+    "icon": "Sparkles",
+    "color": "green",
+    "status": "active",
+    "path": "src/decks/interview"
+  },
+  {
+    "id": "concurrency-interview",
+    "title": "Concurrency QA",
+    "repoId": "go-programming",
+    "repoTitle": "Go Programming",
+    "description": "Goroutines, Channels, Sync, and Context.",
+    "icon": "Zap",
+    "color": "orange",
+    "status": "active",
+    "path": "src/decks/concurrency-interview"
+  },
+  {
+    "id": "concurrency-guide",
+    "title": "Concurrency Masterclass",
+    "repoId": "go-programming",
+    "repoTitle": "Go Programming",
+    "description": "The complete guide: From Basics to Advanced Patterns & Tools.",
+    "icon": "Zap",
+    "color": "orange",
+    "status": "active",
+    "path": "src/decks/concurrency-guide"
+  },
+  {
+    "id": "hindi-concurrency",
+    "title": "Go Concurrency (हिंदी)",
+    "repoId": "go-programming",
+    "repoTitle": "Go Programming",
+    "description": "Goroutines, Channels, और GMP Scheduler हिंदी में।",
+    "icon": "Layers",
+    "color": "red",
+    "status": "active",
+    "path": "src/decks/hindi-concurrency"
+  },
+  {
+    "id": "anime-golang",
+    "title": "Anime Golang Character",
+    "repoId": "go-programming",
+    "repoTitle": "Go Programming",
+    "description": "Learn concurrency with a cute Anime Gopher! 🐹✨",
+    "icon": "Sparkles",
+    "color": "pink",
+    "status": "archived",
+    "archivePath": "archives/anime-golang/archive.html"
+  },
+  {
+    "id": "load-balancer",
+    "title": "Load Balancer",
+    "repoId": "microservices",
+    "repoTitle": "Microservices",
+    "description": "In-depth Explained: Algorithms, Health Checks, and Failover.",
+    "icon": "Network",
+    "color": "cyan",
+    "status": "active",
+    "path": "src/decks/load-balancer"
+  },
+  {
+    "id": "rate-limiting",
+    "title": "Rate Limiting",
+    "repoId": "microservices",
+    "repoTitle": "Microservices",
+    "description": "In-depth Explained: Algorithms, Token Bucket, and Distributed Systems.",
+    "icon": "Zap",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/rate-limiting"
+  },
+  {
+    "id": "genz-mental-health",
+    "title": "Gen-Z Mental Health",
+    "repoId": "mental-health",
+    "repoTitle": "Mental Health",
+    "description": "The Vibe Check: Burnout, Boundaries, and Communication.",
+    "icon": "Heart",
+    "color": "pink",
+    "status": "archived",
+    "archivePath": "archives/genz-mental-health/archive.html"
+  }
+]
