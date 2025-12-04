@@ -66,6 +66,13 @@ export const REPOSITORIES = [
                 description: 'In-depth Explained: Algorithms, Health Checks, and Failover.',
                 icon: 'Network',
                 color: 'cyan'
+            },
+            {
+                id: 'rate-limiting',
+                title: 'Rate Limiting',
+                description: 'In-depth Explained: Algorithms, Token Bucket, and Distributed Systems.',
+                icon: 'Zap',
+                color: 'blue'
             }
         ]
     },

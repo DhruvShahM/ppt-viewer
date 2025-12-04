@@ -1,0 +1,257 @@
+create the deck using below details:
+
+🔥 PPT Script + Motion Graphics Guide
+📘 Topic: Rate Limiting — In-depth Explained (Beginner Friendly)
+
+Perfect for animated PPT / YouTube explanation video.
+
+🟦 Slide 1 — Title Slide
+Title: Rate Limiting — In-depth Explained
+Subtitle: “How systems control and limit traffic safely”
+🎬 Animations:
+
+Slow zoom-in title
+
+Flowing gradient
+
+Small floating particles
+
+🟦 Slide 2 — What is Rate Limiting?
+Text:
+
+Rate Limiting is a technique used to control how many requests a user or service can make in a given time period.
+
+Examples:
+
+“Max 100 requests per minute”
+
+“Only 5 login attempts per hour”
+
+🎬 Motion:
+
+Tap icon → multiple taps → “STOP” animation
+
+Counter increasing → then freezing
+
+🟦 Slide 3 — Why Rate Limiting is Needed?
+Problems solved:
+
+Prevent DDoS attacks
+
+Stop API abuse
+
+Protect servers from overload
+
+Reduce cost & misuse
+
+Ensure fair usage
+
+🎬 Motion:
+
+Server shaking under heavy load
+
+Shield icon appears
+
+Traffic flow calms down
+
+🟦 Slide 4 — Basic Flow of Rate Limiting
+Flow:
+
+Client → API Gateway → Rate Limiter → Application
+
+🎬 Motion:
+
+Arrows flow left to right
+
+Rate limiter icon acts like a “gate” opening/closing
+
+Requests exceeding limit bounce back
+
+🟦 Slide 5 — Popular Rate Limiting Algorithms
+List:
+
+Fixed Window
+
+Sliding Window
+
+Token Bucket
+
+Leaky Bucket
+
+🎬 Motion:
+
+4 cards flip in
+
+Icons appear with bounce
+
+🟦 Slide 6 — Fixed Window Algorithm
+Text:
+
+Time divided into equal windows (1 minute, 10 sec, etc.)
+
+Max allowed requests per window
+
+Simple but has “burst” problem
+
+🎬 Motion:
+
+Clock animation jumping frame-by-frame
+
+Requests stacking inside the window
+
+Burst animation near window boundary
+
+🟦 Slide 7 — Sliding Window Algorithm
+Text:
+
+More accurate rate control
+
+Uses timestamps
+
+Reduces burst issue
+
+🎬 Motion:
+
+Timeline slider moving smoothly
+
+Requests entering a “moving window”
+
+🟦 Slide 8 — Token Bucket Algorithm
+Text:
+
+Bucket fills with tokens at a steady rate
+
+Each request consumes 1 token
+
+Allows short bursts
+
+🎬 Motion:
+
+Bucket animation with tokens dropping
+
+Requests picking tokens
+
+Bucket empty → request denied
+
+🟦 Slide 9 — Leaky Bucket Algorithm
+Text:
+
+Works like a leaking bucket
+
+Outputs requests at a constant rate
+
+Smoothens traffic spikes
+
+🎬 Motion:
+
+Bucket leaking water
+
+Requests dropping at controlled speed
+
+Overflow request shown as “Rejected”
+
+🟦 Slide 10 — How Systems Enforce Rate Limits
+Techniques:
+
+API Gateway (Nginx, Kong, Traefik)
+
+Redis counters
+
+IP-based limits
+
+User-based limits
+
+Key-based limits (API Keys)
+
+Motion:
+
+Ping animations on each tool logo
+
+Cards slide left/right
+
+🟦 Slide 11 — Where Rate Limiting is Used?
+Use Cases:
+
+Login attempts
+
+API usage
+
+Payment requests
+
+File upload limits
+
+Messaging apps
+
+🎬 Motion:
+
+Icons appear with bounce
+
+Slow pulse animation on API icon
+
+🟦 Slide 12 — What Happens When Limit is Exceeded?
+Results:
+
+HTTP 429 Too Many Requests
+
+Retry-After header
+
+Temporary block
+
+Redirect to queue
+
+Motion:
+
+Red alert animation
+
+“429” shakes
+
+Timer appears (Retry header)
+
+🟦 Slide 13 — Distributed Rate Limiting
+Text:
+
+Needed for:
+
+Microservices
+
+Multi-region systems
+
+High-scale APIs
+
+Usually uses:
+
+Redis
+
+In-memory clusters
+
+API Gateways with shared counters
+
+Motion:
+
+Multi-server diagram
+
+Central Redis cache glowing
+
+Network lines animated
+
+🟦 Slide 14 — Summary (Animated Recap)
+Points:
+
+✔️ Controls API traffic
+✔️ Prevents abuse
+✔️ Ensures fair usage
+✔️ Protects backend systems
+✔️ Uses smart algorithms (Fixed / Sliding / Bucket models)
+
+Motion:
+
+Each line slides from different direction
+
+Highlight effect on keywords
+
+🟦 Slide 15 — Thank You
+Motion:
+
+Fade-in text
+
+Subtle flowing background animation

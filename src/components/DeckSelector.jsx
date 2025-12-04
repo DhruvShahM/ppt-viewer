@@ -85,6 +85,51 @@ const DeckSelector = ({ onSelectDeck }) => {
         localStorage.setItem('deck_repositories', JSON.stringify(repositories));
     }, [repositories]);
 
+    // Sync new decks from REPOSITORIES (code) to state (localStorage)
+    useEffect(() => {
+        let hasChanges = false;
+        const newRepositories = [...repositories];
+        const currentDeckIds = new Set();
+
+        // Collect all current deck IDs
+        newRepositories.forEach(repo => {
+            repo.decks.forEach(deck => currentDeckIds.add(deck.id));
+        });
+
+        // Check for missing decks
+        REPOSITORIES.forEach(defaultRepo => {
+            defaultRepo.decks.forEach(defaultDeck => {
+                if (!currentDeckIds.has(defaultDeck.id)) {
+                    // Deck is missing, find where to add it
+                    const targetRepoIndex = newRepositories.findIndex(r => r.id === defaultRepo.id);
+
+                    if (targetRepoIndex !== -1) {
+                        // Add to existing repo
+                        newRepositories[targetRepoIndex] = {
+                            ...newRepositories[targetRepoIndex],
+                            decks: [...newRepositories[targetRepoIndex].decks, defaultDeck]
+                        };
+                        hasChanges = true;
+                    } else {
+                        // Repo doesn't exist either, add the whole repo (or just the deck in a new repo?)
+                        // Simpler to just add the repo if it's missing, but we need to be careful about partials.
+                        // For now, if repo is missing, we assume the user deleted it or it's new.
+                        // Let's add the repo with just this deck if the repo is missing.
+                        newRepositories.push({
+                            ...defaultRepo,
+                            decks: [defaultDeck]
+                        });
+                        hasChanges = true;
+                    }
+                }
+            });
+        });
+
+        if (hasChanges) {
+            setRepositories(newRepositories);
+        }
+    }, []); // Run once on mount
+
     // Filter and Sort Logic
     const processedRepositories = useMemo(() => {
         let processed = repositories.map(repo => ({

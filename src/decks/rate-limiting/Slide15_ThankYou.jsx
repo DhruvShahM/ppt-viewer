@@ -1,0 +1,75 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Github, Twitter, Linkedin } from 'lucide-react';
+
+const Slide15_ThankYou = () => {
+    return (
+        <div className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden bg-slate-900 text-white">
+
+            {/* Background Animation */}
+            <div className="absolute inset-0 opacity-30">
+                {[...Array(10)].map((_, i) => (
+                    <motion.div
+                        key={i}
+                        className="absolute bg-blue-500/20 rounded-full blur-3xl"
+                        style={{
+                            width: Math.random() * 400 + 200,
+                            height: Math.random() * 400 + 200,
+                            left: Math.random() * 100 + "%",
+                            top: Math.random() * 100 + "%",
+                        }}
+                        animate={{
+                            x: [0, 100, 0],
+                            y: [0, 100, 0],
+                            scale: [1, 1.2, 1],
+                        }}
+                        transition={{
+                            duration: Math.random() * 10 + 10,
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                        }}
+                    />
+                ))}
+            </div>
+
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 1 }}
+                className="z-10 text-center"
+            >
+                <h1 className="text-8xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
+                    Thank You!
+                </h1>
+
+                <p className="text-2xl text-gray-300 mb-12">
+                    Questions?
+                </p>
+
+                <div className="flex gap-8 justify-center">
+                    {[
+                        { icon: Github, link: "#", label: "GitHub" },
+                        { icon: Twitter, link: "#", label: "Twitter" },
+                        { icon: Linkedin, link: "#", label: "LinkedIn" }
+                    ].map((social, index) => (
+                        <motion.a
+                            key={index}
+                            href={social.link}
+                            className="p-4 bg-slate-800 rounded-full hover:bg-slate-700 transition-colors border border-slate-700"
+                            whileHover={{ scale: 1.1, rotate: 5 }}
+                            whileTap={{ scale: 0.9 }}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.5 + index * 0.1 }}
+                        >
+                            <social.icon size={32} className="text-blue-400" />
+                        </motion.a>
+                    ))}
+                </div>
+            </motion.div>
+
+        </div>
+    );
+};
+
+export default Slide15_ThankYou;
