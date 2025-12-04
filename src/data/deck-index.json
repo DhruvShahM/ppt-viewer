@@ -74,8 +74,8 @@
     "icon": "Sparkles",
     "color": "pink",
     "status": "archived",
-    "originalPath": "src/decks/anime-golang",
-    "archivePath": "archives/anime-golang/archive.html"
+    "archivePath": "archives/anime-golang/archive.html",
+    "originalPath": "src/decks/anime-golang"
   },
   {
     "id": "load-balancer",
