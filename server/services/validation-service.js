@@ -56,7 +56,8 @@ class ValidationService {
                 }).trim();
 
                 if (status) {
-                    errors.push('Working directory has uncommitted changes. Please commit or stash changes before archiving.');
+                    // Changed from error to warning to allow archiving with uncommitted changes
+                    warnings.push('Working directory has uncommitted changes.');
                     info.gitStatus = status;
                 }
             } catch (error) {
@@ -183,7 +184,8 @@ class ValidationService {
                 }).trim();
 
                 if (status) {
-                    errors.push('Working directory has uncommitted changes. Please commit or stash changes before restoring.');
+                    // Changed from error to warning to allow restoring with uncommitted changes
+                    warnings.push('Working directory has uncommitted changes.');
                 }
             } catch (error) {
                 warnings.push(`Could not check git status: ${error.message}`);

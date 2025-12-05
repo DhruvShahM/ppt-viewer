@@ -166,10 +166,8 @@ class GitOperations {
 
             // Commit to archive repo
             this.execGit('git add .', this.archiveRepo);
-            // Only commit if there are changes
-            if (!this.isWorkingDirectoryClean(this.archiveRepo)) {
-                this.execGit(`git commit -m "Archive deck: ${deckId}"`, this.archiveRepo);
-            }
+            // Use --allow-empty to permit commits even with no changes
+            this.execGit(`git commit --allow-empty -m "Archive deck: ${deckId}"`, this.archiveRepo);
             result.archiveCommit = this.execGit('git rev-parse HEAD', this.archiveRepo);
 
             console.log(`Deck ${deckId} copied to archive repo (commit: ${result.archiveCommit})`);
@@ -183,10 +181,8 @@ class GitOperations {
                 this.execGit(`git rm -r "${relativeSlidesPath}"`, this.mainRepo);
             }
 
-            // Only commit if there are changes
-            if (!this.isWorkingDirectoryClean(this.mainRepo)) {
-                this.execGit(`git commit -m "Archive deck: ${deckId}"`, this.mainRepo);
-            }
+            // Use --allow-empty to permit commits even with no changes
+            this.execGit(`git commit --allow-empty -m "Archive deck: ${deckId}"`, this.mainRepo);
             result.mainCommit = this.execGit('git rev-parse HEAD', this.mainRepo);
 
             console.log(`Deck ${deckId} removed from main repo (commit: ${result.mainCommit})`);
