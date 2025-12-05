@@ -118,32 +118,36 @@ const DeckSelector = ({ onSelectDeck, onViewArchives }) => {
 
     const [repositories, setRepositories] = useState(() => {
         const repoMap = new Map();
-        deckIndex.forEach(deck => {
-            if (!repoMap.has(deck.repoId)) {
-                repoMap.set(deck.repoId, {
-                    id: deck.repoId,
-                    title: deck.repoTitle,
-                    decks: []
-                });
-            }
-            repoMap.get(deck.repoId).decks.push(deck);
-        });
+        deckIndex
+            .filter(deck => deck.status !== 'archived') // Only show active decks
+            .forEach(deck => {
+                if (!repoMap.has(deck.repoId)) {
+                    repoMap.set(deck.repoId, {
+                        id: deck.repoId,
+                        title: deck.repoTitle,
+                        decks: []
+                    });
+                }
+                repoMap.get(deck.repoId).decks.push(deck);
+            });
         return Array.from(repoMap.values());
     });
 
     // Sync with deckIndex changes (HMR or updates)
     useEffect(() => {
         const repoMap = new Map();
-        deckIndex.forEach(deck => {
-            if (!repoMap.has(deck.repoId)) {
-                repoMap.set(deck.repoId, {
-                    id: deck.repoId,
-                    title: deck.repoTitle,
-                    decks: []
-                });
-            }
-            repoMap.get(deck.repoId).decks.push(deck);
-        });
+        deckIndex
+            .filter(deck => deck.status !== 'archived') // Only show active decks
+            .forEach(deck => {
+                if (!repoMap.has(deck.repoId)) {
+                    repoMap.set(deck.repoId, {
+                        id: deck.repoId,
+                        title: deck.repoTitle,
+                        decks: []
+                    });
+                }
+                repoMap.get(deck.repoId).decks.push(deck);
+            });
         setRepositories(Array.from(repoMap.values()));
     }, [deckIndex]);
 
