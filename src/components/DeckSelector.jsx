@@ -129,6 +129,7 @@ const DeckSelector = ({ onSelectDeck }) => {
     const [isEditMode, setIsEditMode] = useState(false);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedDecks, setSelectedDecks] = useState(new Set());
+    const [isDeleting, setIsDeleting] = useState(false);
 
 
     const [searchQuery, setSearchQuery] = useState(() => {
