@@ -69,21 +69,23 @@ const Slide8_TokenBucket = () => {
                 {/* Right: Animation */}
                 <div className="flex flex-col items-center justify-center bg-slate-800/30 rounded-2xl p-8 border border-slate-700 relative h-[400px]">
 
-                    {/* Bucket */}
-                    <div className="relative w-40 h-48 border-4 border-slate-500 border-t-0 rounded-b-xl bg-slate-900/50 flex flex-col-reverse items-center p-2 gap-1 overflow-hidden">
-                        <span className="absolute -bottom-8 text-gray-400">Token Bucket</span>
+                    {/* Bucket Container */}
+                    <div className="flex flex-col items-center gap-2">
+                        <div className="relative w-40 h-64 border-4 border-slate-500 border-t-0 rounded-b-xl bg-slate-900/50 flex flex-col-reverse items-center p-2 gap-1 overflow-hidden">
 
-                        <AnimatePresence>
-                            {[...Array(tokens)].map((_, i) => (
-                                <motion.div
-                                    key={i}
-                                    initial={{ scale: 0, y: -100 }}
-                                    animate={{ scale: 1, y: 0 }}
-                                    exit={{ scale: 0, opacity: 0 }}
-                                    className="w-8 h-8 rounded-full bg-yellow-400 border-2 border-yellow-600 shadow-[0_0_10px_rgba(250,204,21,0.5)] flex-shrink-0"
-                                />
-                            ))}
-                        </AnimatePresence>
+                            <AnimatePresence>
+                                {[...Array(tokens)].map((_, i) => (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ scale: 0, y: -100 }}
+                                        animate={{ scale: 1, y: 0 }}
+                                        exit={{ scale: 0, opacity: 0 }}
+                                        className="w-6 h-6 rounded-full bg-yellow-400 border-2 border-yellow-600 shadow-[0_0_10px_rgba(250,204,21,0.5)] flex-shrink-0"
+                                    />
+                                ))}
+                            </AnimatePresence>
+                        </div>
+                        <span className="text-gray-400 font-medium">Token Bucket</span>
                     </div>
 
                     {/* Incoming Requests */}

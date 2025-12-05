@@ -237,5 +237,38 @@
     "screenshots": [
       "1764947626762-337540214-image.png"
     ]
+  },
+  {
+    "id": 1764951293736,
+    "timestamp": "2025-12-05T16:14:53.736Z",
+    "deckId": "rate-limiting",
+    "slideIndex": 4,
+    "instruction": "fixed animation tranisition smooth and consistent",
+    "status": "completed",
+    "screenshots": [
+      "1764951293732-937312276-image.png"
+    ]
+  },
+  {
+    "id": 1764951346851,
+    "timestamp": "2025-12-05T16:15:46.851Z",
+    "deckId": "rate-limiting",
+    "slideIndex": 8,
+    "instruction": "fixed these thing here that is going outside",
+    "status": "completed",
+    "screenshots": [
+      "1764951346848-295838826-image.png"
+    ]
+  },
+  {
+    "id": 1764951563726,
+    "timestamp": "2025-12-05T16:19:23.726Z",
+    "deckId": "rate-limiting",
+    "slideIndex": 14,
+    "instruction": "like, share and subscribe button instead of the this social media button",
+    "status": "completed",
+    "screenshots": [
+      "1764951563720-115308610-image.png"
+    ]
   }
 ]

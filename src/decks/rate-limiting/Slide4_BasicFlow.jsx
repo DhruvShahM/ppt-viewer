@@ -70,7 +70,7 @@ const RequestAnimation = ({ isAllowed }) => {
             transition={{
                 duration: 2,
                 times: isAllowed ? [0, 0.5, 1] : [0, 0.4, 0.6, 1],
-                ease: "linear"
+                ease: "easeInOut"
             }}
         >
             <div className="text-[10px] font-bold text-white">REQ</div>

@@ -55,6 +55,10 @@ const cleanupScreenshots = () => {
 
                 if (item.screenshots && Array.isArray(item.screenshots)) {
                     item.screenshots.forEach(deleteFile);
+                }
+
+                if (item.videos && Array.isArray(item.videos)) {
+                    item.videos.forEach(deleteFile);
                 } else if (item.screenshot) {
                     deleteFile(item.screenshot);
                 }
@@ -108,21 +112,21 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
     fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|gif|webp/;
+        const allowedTypes = /jpeg|jpg|png|gif|webp|mp4|webm/;
         const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
         const mimetype = allowedTypes.test(file.mimetype);
 
         if (extname && mimetype) {
             cb(null, true);
         } else {
-            cb(new Error('Only image files are allowed'));
+            cb(new Error('Only image and video files are allowed'));
         }
     }
 });
 
-app.post('/api/feedback', upload.array('screenshots', 10), catchAsync(async (req, res, next) => {
+app.post('/api/feedback', upload.fields([{ name: 'screenshots', maxCount: 10 }, { name: 'videos', maxCount: 5 }]), catchAsync(async (req, res, next) => {
     const { deckId, slideIndex, instruction } = req.body;
 
     if (!deckId || slideIndex === undefined || !instruction) {
@@ -142,15 +146,22 @@ app.post('/api/feedback', upload.array('screenshots', 10), catchAsync(async (req
     };
 
     // Add screenshot paths if files were uploaded
-    if (req.files && req.files.length > 0) {
-        newFeedback.screenshots = req.files.map(f => f.filename);
+    if (req.files && req.files['screenshots']) {
+        newFeedback.screenshots = req.files['screenshots'].map(f => f.filename);
+    }
+
+    // Add video paths if videos were uploaded
+    if (req.files && req.files['videos']) {
+        newFeedback.videos = req.files['videos'].map(f => f.filename);
     }
 
     feedback.push(newFeedback);
 
     fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedback, null, 2));
 
-    console.log(`Feedback received for ${deckId} slide ${slideIndex}: ${instruction} (${req.files ? req.files.length : 0} screenshots)`);
+    const sCount = req.files && req.files['screenshots'] ? req.files['screenshots'].length : 0;
+    const vCount = req.files && req.files['videos'] ? req.files['videos'].length : 0;
+    console.log(`Feedback received for ${deckId} slide ${slideIndex}: ${instruction} (${sCount} screenshots, ${vCount} videos)`);
     res.status(201).json(newFeedback);
 }));
 
@@ -200,6 +211,10 @@ app.delete('/api/feedback/:id', catchAsync(async (req, res, next) => {
 
     if (item.screenshots && Array.isArray(item.screenshots)) {
         item.screenshots.forEach(deleteFile);
+    }
+
+    if (item.videos && Array.isArray(item.videos)) {
+        item.videos.forEach(deleteFile);
     } else if (item.screenshot) {
         deleteFile(item.screenshot);
     }
@@ -247,6 +262,10 @@ app.delete('/api/feedback/:deckId/:slideIndex', catchAsync(async (req, res, next
     itemsToDelete.forEach(item => {
         if (item.screenshots && Array.isArray(item.screenshots)) {
             item.screenshots.forEach(deleteFile);
+        }
+
+        if (item.videos && Array.isArray(item.videos)) {
+            item.videos.forEach(deleteFile);
         } else if (item.screenshot) {
             deleteFile(item.screenshot);
         }

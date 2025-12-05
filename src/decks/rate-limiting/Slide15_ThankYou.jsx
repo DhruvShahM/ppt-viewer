@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Github, Twitter, Linkedin } from 'lucide-react';
+import { ThumbsUp, Share2, Bell } from 'lucide-react';
 
 const Slide15_ThankYou = () => {
     return (
@@ -48,22 +48,22 @@ const Slide15_ThankYou = () => {
 
                 <div className="flex gap-8 justify-center">
                     {[
-                        { icon: Github, link: "#", label: "GitHub" },
-                        { icon: Twitter, link: "#", label: "Twitter" },
-                        { icon: Linkedin, link: "#", label: "LinkedIn" }
-                    ].map((social, index) => (
-                        <motion.a
+                        { icon: ThumbsUp, link: "#", label: "Like", color: "text-blue-400" },
+                        { icon: Share2, link: "#", label: "Share", color: "text-green-400" },
+                        { icon: Bell, link: "#", label: "Subscribe", color: "text-red-400" }
+                    ].map((action, index) => (
+                        <motion.button
                             key={index}
-                            href={social.link}
-                            className="p-4 bg-slate-800 rounded-full hover:bg-slate-700 transition-colors border border-slate-700"
-                            whileHover={{ scale: 1.1, rotate: 5 }}
-                            whileTap={{ scale: 0.9 }}
+                            className="flex items-center gap-3 px-8 py-4 bg-slate-800 rounded-full hover:bg-slate-700 transition-colors border border-slate-700"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.5 + index * 0.1 }}
                         >
-                            <social.icon size={32} className="text-blue-400" />
-                        </motion.a>
+                            <action.icon size={24} className={action.color} />
+                            <span className="text-xl font-semibold">{action.label}</span>
+                        </motion.button>
                     ))}
                 </div>
             </motion.div>
