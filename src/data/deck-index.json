@@ -221,19 +221,6 @@
     "restoredAt": "2025-12-05T13:48:32.044Z"
   },
   {
-    "id": "test-archive-deck",
-    "title": "Test Archive Deck",
-    "repoId": "test",
-    "repoTitle": "Test",
-    "description": "Deck for testing archival.",
-    "icon": "Zap",
-    "color": "gray",
-    "status": "active",
-    "path": "src/decks/test-archive-deck",
-    "version": 1,
-    "hasLargeAssets": false
-  },
-  {
     "id": "dummy-15",
     "title": "Dummy Deck 15",
     "description": "Description for Dummy Deck 15",
