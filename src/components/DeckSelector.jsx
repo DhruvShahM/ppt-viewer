@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, FileDown, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw } from 'lucide-react';
+import { Play, FileDown, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 
 import { REPOSITORIES } from '../data/repositories';
@@ -18,7 +18,7 @@ const ICON_MAP = {
     Heart
 };
 
-const DeckCard = ({ title, description, icon, onClick, color, isEditMode, repositories, currentRepoId, onMove, isSelectionMode, isSelected, onToggleSelect, onDelete }) => {
+const DeckCard = ({ title, description, icon, onClick, color, isEditMode, repositories, currentRepoId, onMove, isSelectionMode, isSelected, onToggleSelect, onDelete, onArchive, isArchiving }) => {
     // Resolve icon component from string name or use default
     const IconComponent = ICON_MAP[icon] || Layers;
 
@@ -74,16 +74,29 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
                         </select>
                     </div>
                     {isEditMode && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete();
-                            }}
-                            className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded border border-red-500/20 transition-colors"
-                            title="Delete Deck"
-                        >
-                            <Trash2 size={16} />
-                        </button>
+                        <>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onArchive();
+                                }}
+                                disabled={isArchiving}
+                                className="p-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded border border-purple-500/20 transition-colors disabled:opacity-50"
+                                title="Archive Deck"
+                            >
+                                {isArchiving ? <Loader2 size={16} className="animate-spin" /> : <Archive size={16} />}
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDelete();
+                                }}
+                                className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded border border-red-500/20 transition-colors"
+                                title="Delete Deck"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </>
                     )}
                 </div>
             )}
@@ -91,11 +104,12 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
     );
 };
 
-const DeckSelector = ({ onSelectDeck }) => {
+const DeckSelector = ({ onSelectDeck, onViewArchives }) => {
     const [isExporting, setIsExporting] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedDecks, setSelectedDecks] = useState(new Set());
+    const [archivingDeck, setArchivingDeck] = useState(null);
 
     const [searchQuery, setSearchQuery] = useState("");
     const [isSortedAsc, setIsSortedAsc] = useState(false);
@@ -281,6 +295,37 @@ const DeckSelector = ({ onSelectDeck }) => {
     };
 
 
+    const handleArchiveDeck = async (deckId) => {
+        if (!confirm(`Archive deck "${deckId}"? It will be moved to the archive repository.`)) {
+            return;
+        }
+
+        setArchivingDeck(deckId);
+
+        try {
+            const response = await fetch('http://localhost:3001/api/archive', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deckId }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert(`Deck "${deckId}" archived successfully!`);
+                window.location.reload();
+            } else {
+                alert(`Archive failed: ${data.message}`);
+            }
+        } catch (error) {
+            console.error('Archive failed:', error);
+            alert(`Archive failed: ${error.message}`);
+        } finally {
+            setArchivingDeck(null);
+        }
+    };
+
+
     const handleDeleteDeck = async (deckId) => {
         if (!confirm(`PERMANENTLY DELETE this deck? This action cannot be undone.`)) return;
 
@@ -447,6 +492,17 @@ const DeckSelector = ({ onSelectDeck }) => {
                         {isEditMode ? 'Done Editing' : 'Edit Structure'}
                     </button>
 
+                    {/* View Archives Button */}
+                    {onViewArchives && (
+                        <button
+                            onClick={onViewArchives}
+                            className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all whitespace-nowrap"
+                        >
+                            <Archive size={20} />
+                            View Archives
+                        </button>
+                    )}
+
 
 
                     {isSelectionMode && selectedDecks.size > 0 && (
@@ -514,11 +570,14 @@ const DeckSelector = ({ onSelectDeck }) => {
                                             onClick={() => onSelectDeck(deck.id)}
                                             isEditMode={isEditMode}
                                             repositories={repositories}
+                                            currentRepoId={repo.id}
                                             onMove={(targetRepoId) => handleMoveDeck(repo.id, deck.id, targetRepoId)}
                                             isSelectionMode={isSelectionMode}
                                             isSelected={selectedDecks.has(deck.id)}
                                             onToggleSelect={() => toggleSelection(deck.id)}
                                             onDelete={() => handleDeleteDeck(deck.id)}
+                                            onArchive={() => handleArchiveDeck(deck.id)}
+                                            isArchiving={archivingDeck === deck.id}
                                         />
                                     ))}
                                 </AnimatePresence>

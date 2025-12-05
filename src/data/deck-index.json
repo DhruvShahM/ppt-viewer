@@ -8,7 +8,9 @@
     "icon": "Layers",
     "color": "blue",
     "status": "active",
-    "path": "src/decks/concurrency"
+    "path": "src/decks/concurrency",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "goroutines",
@@ -19,7 +21,9 @@
     "icon": "Cpu",
     "color": "purple",
     "status": "active",
-    "path": "src/decks/goroutines"
+    "path": "src/decks/goroutines",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "interview",
@@ -29,7 +33,9 @@
     "description": "Pointers, Interfaces, Methods, and Type Safety.",
     "icon": "Sparkles",
     "color": "green",
-    "status": "active"
+    "status": "active",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "concurrency-interview",
@@ -40,7 +46,9 @@
     "icon": "Zap",
     "color": "orange",
     "status": "active",
-    "path": "src/decks/concurrency-interview"
+    "path": "src/decks/concurrency-interview",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "concurrency-guide",
@@ -51,7 +59,9 @@
     "icon": "Zap",
     "color": "orange",
     "status": "active",
-    "path": "src/decks/concurrency-guide"
+    "path": "src/decks/concurrency-guide",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "hindi-concurrency",
@@ -62,7 +72,9 @@
     "icon": "Layers",
     "color": "red",
     "status": "active",
-    "path": "src/decks/hindi-concurrency"
+    "path": "src/decks/hindi-concurrency",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "anime-golang",
@@ -72,7 +84,9 @@
     "description": "Learn concurrency with a cute Anime Gopher! 🐹✨",
     "icon": "Sparkles",
     "color": "pink",
-    "status": "active"
+    "status": "active",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "load-balancer",
@@ -83,7 +97,9 @@
     "icon": "Network",
     "color": "cyan",
     "status": "active",
-    "path": "src/decks/load-balancer"
+    "path": "src/decks/load-balancer",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "rate-limiting",
@@ -94,7 +110,9 @@
     "icon": "Zap",
     "color": "blue",
     "status": "active",
-    "path": "src/decks/rate-limiting"
+    "path": "src/decks/rate-limiting",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-1",
@@ -104,7 +122,9 @@
     "description": "Auto-generated dummy deck 1 for testing.",
     "icon": "Zap",
     "color": "gray",
-    "status": "active"
+    "status": "active",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-2",
@@ -115,7 +135,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-2"
+    "path": "src/decks/dummy-2",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-3",
@@ -126,7 +148,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-3"
+    "path": "src/decks/dummy-3",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-4",
@@ -137,7 +161,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-4"
+    "path": "src/decks/dummy-4",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-5",
@@ -148,7 +174,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-5"
+    "path": "src/decks/dummy-5",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-6",
@@ -159,7 +187,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-6"
+    "path": "src/decks/dummy-6",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-7",
@@ -170,7 +200,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-7"
+    "path": "src/decks/dummy-7",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-8",
@@ -181,7 +213,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-8"
+    "path": "src/decks/dummy-8",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-9",
@@ -192,7 +226,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-9"
+    "path": "src/decks/dummy-9",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-10",
@@ -203,7 +239,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-10"
+    "path": "src/decks/dummy-10",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-11",
@@ -214,7 +252,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-11"
+    "path": "src/decks/dummy-11",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-12",
@@ -225,7 +265,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-12"
+    "path": "src/decks/dummy-12",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-13",
@@ -236,7 +278,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-13"
+    "path": "src/decks/dummy-13",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-14",
@@ -247,7 +291,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-14"
+    "path": "src/decks/dummy-14",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-15",
@@ -258,7 +304,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-15"
+    "path": "src/decks/dummy-15",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-16",
@@ -269,7 +317,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-16"
+    "path": "src/decks/dummy-16",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-17",
@@ -280,7 +330,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-17"
+    "path": "src/decks/dummy-17",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-18",
@@ -291,7 +343,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-18"
+    "path": "src/decks/dummy-18",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-19",
@@ -302,7 +356,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-19"
+    "path": "src/decks/dummy-19",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "dummy-20",
@@ -313,7 +369,9 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/dummy-20"
+    "path": "src/decks/dummy-20",
+    "version": 1,
+    "hasLargeAssets": false
   },
   {
     "id": "test-archive-deck",
@@ -324,6 +382,8 @@
     "icon": "Zap",
     "color": "gray",
     "status": "active",
-    "path": "src/decks/test-archive-deck"
+    "path": "src/decks/test-archive-deck",
+    "version": 1,
+    "hasLargeAssets": false
   }
 ]
