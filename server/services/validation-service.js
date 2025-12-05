@@ -50,7 +50,7 @@ class ValidationService {
 
             // 4. Check for uncommitted changes
             try {
-                const status = execSync('git status --porcelain', {
+                const status = execSync('git status --porcelain -uno', {
                     cwd: config.mainRepo,
                     encoding: 'utf8',
                 }).trim();
@@ -177,7 +177,7 @@ class ValidationService {
 
             // 5. Check for uncommitted changes
             try {
-                const status = execSync('git status --porcelain', {
+                const status = execSync('git status --porcelain -uno', {
                     cwd: config.mainRepo,
                     encoding: 'utf8',
                 }).trim();
