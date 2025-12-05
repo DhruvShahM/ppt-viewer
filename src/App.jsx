@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import DeckSelector from './components/DeckSelector';
 import PresentationViewer from './components/PresentationViewer';
+import ArchiveViewer from './components/ArchiveViewer';
 import { getDeck } from './data/decks';
 import { Loader2 } from 'lucide-react';
 
 function App() {
+    const [currentView, setCurrentView] = useState('selector'); // 'selector', 'presentation', 'archive'
     const [currentDeckId, setCurrentDeckId] = useState(() => {
         return localStorage.getItem('lastDeckId') || null;
     });
@@ -36,11 +38,21 @@ function App() {
 
     const handleDeckSelect = (deckId) => {
         setCurrentDeckId(deckId);
+        setCurrentView('presentation');
         if (deckId) {
             localStorage.setItem('lastDeckId', deckId);
         } else {
             localStorage.removeItem('lastDeckId');
         }
+    };
+
+    const handleBackToSelector = () => {
+        setCurrentView('selector');
+        setCurrentDeckId(null);
+    };
+
+    const handleViewArchives = () => {
+        setCurrentView('archive');
     };
     const [showVideo, setShowVideo] = useState(true);
     // Dynamically import all mp4 files from src/assets/backgrounds
@@ -102,11 +114,11 @@ function App() {
                 <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[120px]" />
             </div>
 
-            {currentDeckId && currentSlides ? (
+            {currentView === 'presentation' && currentDeckId && currentSlides ? (
                 <PresentationViewer
                     slides={currentSlides}
                     deckId={currentDeckId}
-                    onBack={() => handleDeckSelect(null)}
+                    onBack={handleBackToSelector}
                     showVideo={showVideo}
                     toggleVideo={() => setShowVideo(!showVideo)}
                     videos={videos}
@@ -115,8 +127,10 @@ function App() {
                     onGradientSelect={setCurrentGradient}
                     currentGradient={currentGradient}
                 />
+            ) : currentView === 'archive' ? (
+                <ArchiveViewer onBack={handleBackToSelector} />
             ) : (
-                <DeckSelector onSelectDeck={handleDeckSelect} />
+                <DeckSelector onSelectDeck={handleDeckSelect} onViewArchives={handleViewArchives} />
             )}
         </div>
     );
