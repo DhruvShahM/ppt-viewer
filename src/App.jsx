@@ -6,13 +6,12 @@ import { getDeck } from './data/decks';
 import { Loader2 } from 'lucide-react';
 
 function App() {
-    const [currentView, setCurrentView] = useState('selector'); // 'selector', 'presentation'
     const [currentDeckId, setCurrentDeckId] = useState(() => {
         return localStorage.getItem('lastDeckId') || null;
     });
 
     const [currentSlides, setCurrentSlides] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(() => !!localStorage.getItem('lastDeckId'));
 
     useEffect(() => {
         const loadDeck = async () => {
@@ -38,7 +37,6 @@ function App() {
 
     const handleDeckSelect = (deckId) => {
         setCurrentDeckId(deckId);
-        setCurrentView('presentation');
         if (deckId) {
             localStorage.setItem('lastDeckId', deckId);
         } else {
@@ -47,8 +45,8 @@ function App() {
     };
 
     const handleBackToSelector = () => {
-        setCurrentView('selector');
         setCurrentDeckId(null);
+        localStorage.removeItem('lastDeckId');
     };
 
 
@@ -123,7 +121,7 @@ function App() {
                 <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[120px]" />
             </div>
 
-            {currentView === 'presentation' && currentDeckId && currentSlides ? (
+            {currentDeckId && currentSlides ? (
                 <PresentationViewer
                     slides={currentSlides}
                     deckId={currentDeckId}

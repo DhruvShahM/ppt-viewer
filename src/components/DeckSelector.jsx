@@ -1,11 +1,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, FileDown, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw } from 'lucide-react';
+import { Play, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef } from 'react';
 
 import { REPOSITORIES } from '../data/repositories';
 import deckIndex from '../data/deck-index.json';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+
 import { createRoot } from 'react-dom/client';
 import Slide from './Slide';
 
@@ -124,7 +123,7 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
 };
 
 const DeckSelector = ({ onSelectDeck }) => {
-    const [isExporting, setIsExporting] = useState(false);
+
     const [viewMode, setViewMode] = useState('active'); // 'active' | 'archived'
     const [isEditMode, setIsEditMode] = useState(false);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -571,86 +570,7 @@ const DeckSelector = ({ onSelectDeck }) => {
 
 
 
-    const handleExportAll = async () => {
-        if (isExporting) return;
-        setIsExporting(true);
 
-        try {
-            const pdf = new jsPDF('l', 'px', [1920, 1080]);
-            const container = document.createElement('div');
-            container.style.position = 'absolute';
-            container.style.top = '-9999px';
-            container.style.left = '-9999px';
-            container.style.width = '1920px';
-            container.style.height = '1080px';
-            document.body.appendChild(container);
-
-            let pageAdded = false;
-
-            // Load all decks dynamically
-            const { getAllDecks } = await import('../data/decks');
-            const allDecks = await getAllDecks();
-
-            // Iterate through all decks
-            for (const repo of repositories) {
-                for (const deck of repo.decks) {
-                    // Find the component from allDecks map
-                    const slides = allDecks[deck.id];
-
-                    if (!slides) continue;
-
-                    // Iterate through all slides in the deck
-                    for (let i = 0; i < slides.length; i++) {
-                        const SlideComponent = slides[i];
-
-                        // Render slide into container
-                        const root = createRoot(container);
-
-                        await new Promise(resolve => {
-                            root.render(
-                                <div className="w-[1920px] h-[1080px] bg-slate-950 text-white relative overflow-hidden font-sans">
-                                    <Slide isActive={true} noAnimation={true}>
-                                        <SlideComponent />
-                                    </Slide>
-                                </div>
-                            );
-                            // Give it a moment to render
-                            setTimeout(resolve, 100);
-                        });
-
-                        // Capture
-                        const canvas = await html2canvas(container, {
-                            scale: 1, // 1920x1080 is already large
-                            useCORS: true,
-                            logging: false,
-                            width: 1920,
-                            height: 1080
-                        });
-
-                        const imgData = canvas.toDataURL('image/png');
-
-                        if (pageAdded) {
-                            pdf.addPage([1920, 1080], 'l');
-                        }
-                        pdf.addImage(imgData, 'PNG', 0, 0, 1920, 1080);
-                        pageAdded = true;
-
-                        // Cleanup root for next iteration
-                        root.unmount();
-                    }
-                }
-            }
-
-            pdf.save('complete-presentation.pdf');
-            document.body.removeChild(container);
-
-        } catch (error) {
-            console.error("Export failed:", error);
-            alert("Failed to export all slides.");
-        } finally {
-            setIsExporting(false);
-        }
-    };
 
 
 
@@ -935,17 +855,7 @@ const DeckSelector = ({ onSelectDeck }) => {
                 )
             }
 
-            {/* Export All Button */}
-            <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleExportAll}
-                disabled={isExporting}
-                className="absolute bottom-8 right-8 flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                {isExporting ? <Loader2 className="animate-spin" size={20} /> : <FileDown size={20} />}
-                {isExporting ? 'Exporting...' : 'Export Entire PPT'}
-            </motion.button>
+
         </div >
     );
 };
