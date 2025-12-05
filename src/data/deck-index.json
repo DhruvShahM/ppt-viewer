@@ -7,13 +7,13 @@
     "description": "The complete guide to Goroutines, Channels, Select, and Sync patterns.",
     "icon": "Layers",
     "color": "blue",
-    "status": "archived",
+    "status": "active",
     "path": "src/decks/concurrency",
-    "version": 2,
+    "version": 3,
     "hasLargeAssets": false,
     "archivedAt": "2025-12-05T05:16:53.137Z",
     "checksum": "1e887adc8fe8c4d084ec4e715688e564d0622a06a85de84d6e2732613827f97a",
-    "backupPath": "backups\\2025-12-05T05-16-52-190Z-concurrency.zip.enc"
+    "restoredAt": "2025-12-05T05:17:42.955Z"
   },
   {
     "id": "goroutines",
@@ -114,18 +114,6 @@
     "color": "blue",
     "status": "active",
     "path": "src/decks/rate-limiting",
-    "version": 1,
-    "hasLargeAssets": false
-  },
-  {
-    "id": "dummy-1",
-    "title": "Dummy Deck 1",
-    "repoId": "stress-test",
-    "repoTitle": "Stress Test",
-    "description": "Auto-generated dummy deck 1 for testing.",
-    "icon": "Zap",
-    "color": "gray",
-    "status": "active",
     "version": 1,
     "hasLargeAssets": false
   },
