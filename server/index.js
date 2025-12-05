@@ -299,6 +299,70 @@ app.post('/api/delete', catchAsync(async (req, res, next) => {
     runDelete();
 }));
 
+app.post('/api/archive', catchAsync(async (req, res, next) => {
+    const { deckIds } = req.body;
+
+    if (!deckIds || !Array.isArray(deckIds) || deckIds.length === 0) {
+        return next(new AppError('Invalid deckIds', 400));
+    }
+
+    console.log(`Archiving decks: ${deckIds.join(', ')}`);
+
+    const runArchive = async () => {
+        try {
+            await new Promise((resolve, reject) => {
+                exec(`node scripts/archive-restore-deck.js archive ${deckIds.join(',')}`, { cwd: path.join(__dirname, '..') }, (error, stdout, stderr) => {
+                    if (error) {
+                        console.error(`Error archiving:`, error);
+                        console.error(stderr);
+                    } else {
+                        console.log(`Archive output:`, stdout);
+                    }
+                    resolve();
+                });
+            });
+            res.json({ success: true });
+        } catch (error) {
+            console.error('Archive process failed:', error);
+            return next(new AppError('Archive process failed', 500));
+        }
+    };
+
+    runArchive();
+}));
+
+app.post('/api/restore', catchAsync(async (req, res, next) => {
+    const { deckIds } = req.body;
+
+    if (!deckIds || !Array.isArray(deckIds) || deckIds.length === 0) {
+        return next(new AppError('Invalid deckIds', 400));
+    }
+
+    console.log(`Restoring decks: ${deckIds.join(', ')}`);
+
+    const runRestore = async () => {
+        try {
+            await new Promise((resolve, reject) => {
+                exec(`node scripts/archive-restore-deck.js restore ${deckIds.join(',')}`, { cwd: path.join(__dirname, '..') }, (error, stdout, stderr) => {
+                    if (error) {
+                        console.error(`Error restoring:`, error);
+                        console.error(stderr);
+                    } else {
+                        console.log(`Restore output:`, stdout);
+                    }
+                    resolve();
+                });
+            });
+            res.json({ success: true });
+        } catch (error) {
+            console.error('Restore process failed:', error);
+            return next(new AppError('Restore process failed', 500));
+        }
+    };
+
+    runRestore();
+}));
+
 
 
 

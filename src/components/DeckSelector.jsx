@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, FileDown, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw } from 'lucide-react';
+import { Play, FileDown, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef } from 'react';
 
 import { REPOSITORIES } from '../data/repositories';
@@ -18,7 +18,7 @@ const ICON_MAP = {
     Heart
 };
 
-const DeckCard = ({ title, description, icon, onClick, color, isEditMode, repositories, currentRepoId, onMove, isSelectionMode, isSelected, onToggleSelect, onDelete }) => {
+const DeckCard = ({ title, description, icon, onClick, color, isEditMode, repositories, currentRepoId, onMove, isSelectionMode, isSelected, onToggleSelect, onDelete, onArchive, onRestore, status }) => {
     // Resolve icon component from string name or use default
     const IconComponent = ICON_MAP[icon] || Layers;
 
@@ -31,7 +31,7 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
             whileHover={!isEditMode ? { scale: 1.05 } : {}}
             whileTap={!isEditMode && !isSelectionMode ? { scale: 0.95 } : {}}
             onClick={!isEditMode && !isSelectionMode ? onClick : (isSelectionMode ? onToggleSelect : undefined)}
-            className={`flex flex-col items-start p-8 rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/0 ${!isEditMode ? `hover:border-${color}-500/50` : 'border-white/20'} transition-all group text-left w-full h-full relative overflow-hidden cursor-pointer`}
+            className={`flex flex-col items-start p-8 rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/0 ${!isEditMode && status !== 'archived' ? `hover:border-${color}-500/50` : 'border-white/20'} transition-all group text-left w-full h-full relative overflow-hidden cursor-pointer ${status === 'archived' ? 'opacity-70 grayscale' : ''}`}
         >
             <div className={`absolute top-0 right-0 w-32 h-32 bg-${color}-500/10 rounded-full blur-3xl -mr-16 -mt-16 transition-all ${!isEditMode ? `group-hover:bg-${color}-500/20` : ''}`} />
 
@@ -55,6 +55,11 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
                 <div className="flex items-center gap-2 text-sm font-medium text-white/60 group-hover:text-white transition-colors">
                     <Play size={16} fill="currentColor" />
                     START PRESENTATION
+                </div>
+            ) : status === 'archived' && !isSelectionMode ? (
+                <div className="flex items-center gap-2 text-sm font-medium text-white/60">
+                    <Archive size={16} />
+                    ARCHIVED
                 </div>
             ) : (
                 <div className="w-full mt-auto pt-4 border-t border-white/10 flex items-end gap-2">
@@ -86,6 +91,30 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
                             >
                                 <Trash2 size={16} />
                             </button>
+
+                            {status === 'archived' ? (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onRestore();
+                                    }}
+                                    className="p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded border border-blue-500/20 transition-colors"
+                                    title="Restore Deck"
+                                >
+                                    <RotateCcw size={16} />
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onArchive();
+                                    }}
+                                    className="p-2 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 rounded border border-orange-500/20 transition-colors"
+                                    title="Archive Deck"
+                                >
+                                    <Archive size={16} />
+                                </button>
+                            )}
                         </>
                     )}
                 </div>
@@ -96,6 +125,7 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
 
 const DeckSelector = ({ onSelectDeck }) => {
     const [isExporting, setIsExporting] = useState(false);
+    const [viewMode, setViewMode] = useState('active'); // 'active' | 'archived'
     const [isEditMode, setIsEditMode] = useState(false);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedDecks, setSelectedDecks] = useState(new Set());
@@ -141,8 +171,10 @@ const DeckSelector = ({ onSelectDeck }) => {
         let processed = repositories.map(repo => ({
             ...repo,
             decks: repo.decks.filter(deck =>
-                deck.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                repo.title.toLowerCase().includes(searchQuery.toLowerCase())
+                (deck.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    repo.title.toLowerCase().includes(searchQuery.toLowerCase())) &&
+                ((viewMode === 'active' && deck.status !== 'archived') ||
+                    (viewMode === 'archived' && deck.status === 'archived'))
             )
         })).filter(repo =>
             repo.decks.length > 0 ||
@@ -161,7 +193,7 @@ const DeckSelector = ({ onSelectDeck }) => {
         }
 
         return processed;
-    }, [repositories, searchQuery, isSortedAsc]);
+    }, [repositories, searchQuery, isSortedAsc, viewMode]);
 
     // Flatten decks for global view
     const allDecks = useMemo(() => {
@@ -331,7 +363,65 @@ const DeckSelector = ({ onSelectDeck }) => {
 
 
 
-    const [isDeleting, setIsDeleting] = useState(false);
+
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handleArchiveSelected = async () => {
+        if (selectedDecks.size === 0) return;
+        if (!confirm(`Archive ${selectedDecks.size} decks?`)) return;
+
+        setIsProcessing(true);
+        try {
+            const response = await fetch('/api/archive', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deckIds: Array.from(selectedDecks) })
+            });
+
+            if (response.ok) {
+                alert('Decks archived successfully!');
+                setIsSelectionMode(false);
+                setSelectedDecks(new Set());
+                window.location.reload();
+            } else {
+                alert('Failed to archive decks');
+            }
+        } catch (error) {
+            console.error('Archive failed:', error);
+            alert('Failed to archive decks');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleRestoreSelected = async () => {
+        if (selectedDecks.size === 0) return;
+        if (!confirm(`Restore ${selectedDecks.size} decks?`)) return;
+
+        setIsProcessing(true);
+        try {
+            const response = await fetch('/api/restore', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deckIds: Array.from(selectedDecks) })
+            });
+
+            if (response.ok) {
+                alert('Decks restored successfully!');
+                setIsSelectionMode(false);
+                setSelectedDecks(new Set());
+                window.location.reload();
+            } else {
+                alert('Failed to restore decks');
+            }
+        } catch (error) {
+            console.error('Restore failed:', error);
+            alert('Failed to restore decks');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
 
     const handleDeleteSelected = async () => {
         if (selectedDecks.size === 0) return;
@@ -387,6 +477,56 @@ const DeckSelector = ({ onSelectDeck }) => {
             alert('Failed to delete deck');
         } finally {
             setIsDeleting(false);
+        }
+    };
+
+    const handleArchiveDeck = async (deckId) => {
+        if (!confirm(`Archive this deck?`)) return;
+
+        setIsProcessing(true);
+        try {
+            const response = await fetch('/api/archive', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deckIds: [deckId] })
+            });
+
+            if (response.ok) {
+                alert('Deck archived successfully!');
+                window.location.reload();
+            } else {
+                alert('Failed to archive deck');
+            }
+        } catch (error) {
+            console.error('Archive failed:', error);
+            alert('Failed to archive deck');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleRestoreDeck = async (deckId) => {
+        if (!confirm(`Restore this deck?`)) return;
+
+        setIsProcessing(true);
+        try {
+            const response = await fetch('/api/restore', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deckIds: [deckId] })
+            });
+
+            if (response.ok) {
+                alert('Deck restored successfully!');
+                window.location.reload();
+            } else {
+                alert('Failed to restore deck');
+            }
+        } catch (error) {
+            console.error('Restore failed:', error);
+            alert('Failed to restore deck');
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -545,6 +685,40 @@ const DeckSelector = ({ onSelectDeck }) => {
                         {isEditMode ? 'Done Editing' : 'Edit Structure'}
                     </button>
 
+                    {/* Archive Toggle */}
+                    {/* Archive Toggle */}
+                    <button
+                        onClick={() => {
+                            setViewMode(viewMode === 'active' ? 'archived' : 'active');
+                            setIsSelectionMode(false);
+                            setSelectedDecks(new Set());
+                        }}
+                        className={`p-3 rounded-xl border transition-all flex items-center gap-2 ${viewMode === 'archived'
+                            ? 'bg-orange-500/20 border-orange-500 text-orange-400'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
+                            }`}
+                        title={viewMode === 'active' ? "View Archived" : "View Active"}
+                    >
+                        <Archive size={20} />
+                    </button>
+
+                    {/* Selection Mode Toggle */}
+                    <button
+                        onClick={() => {
+                            setIsSelectionMode(!isSelectionMode);
+                            if (isSelectionMode) setSelectedDecks(new Set());
+                        }}
+                        className={`p-3 rounded-xl border transition-all flex items-center gap-2 ${isSelectionMode
+                            ? 'bg-green-500/20 border-green-500 text-green-400'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
+                            }`}
+                        title="Toggle Selection Mode"
+                    >
+                        <CheckSquare size={20} />
+                    </button>
+
+
+
                     {/* View Archives Button */}
 
 
@@ -555,17 +729,26 @@ const DeckSelector = ({ onSelectDeck }) => {
 
 
                             <button
+                                onClick={viewMode === 'active' ? handleArchiveSelected : handleRestoreSelected}
+                                disabled={isProcessing}
+                                className="px-4 py-3 rounded-xl bg-blue-500 text-white font-bold hover:bg-blue-600 transition-all flex items-center gap-2"
+                            >
+                                {isProcessing ? <Loader2 className="animate-spin" /> : (viewMode === 'active' ? <Archive size={20} /> : <RotateCcw size={20} />)}
+                                {viewMode === 'active' ? `Archive (${selectedDecks.size})` : `Restore (${selectedDecks.size})`}
+                            </button>
+
+                            <button
                                 onClick={handleDeleteSelected}
-                                disabled={isDeleting}
+                                disabled={isProcessing}
                                 className="px-4 py-3 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-all flex items-center gap-2"
                             >
-                                {isDeleting ? <Loader2 className="animate-spin" /> : <Trash2 size={20} />}
+                                {isProcessing ? <Loader2 className="animate-spin" /> : <Trash2 size={20} />}
                                 Delete ({selectedDecks.size})
                             </button>
                         </>
                     )}
                 </div>
-            </motion.div>
+            </motion.div >
 
             <div className={`w-full max-w-7xl max-h-[60vh] overflow-y-auto pr-4 pb-4 custom-scrollbar min-h-[400px] ${!isEditMode ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 content-start' : 'space-y-12'}`}>
                 <AnimatePresence mode="wait">
@@ -586,6 +769,9 @@ const DeckSelector = ({ onSelectDeck }) => {
                             isSelected={selectedDecks.has(deck.id)}
                             onToggleSelect={() => toggleSelection(deck.id)}
                             onDelete={() => { }}
+                            onArchive={() => handleArchiveDeck(deck.id)}
+                            onRestore={() => handleRestoreDeck(deck.id)}
+                            status={deck.status}
                         />
                     ))}
 
@@ -636,6 +822,9 @@ const DeckSelector = ({ onSelectDeck }) => {
                                             isSelected={selectedDecks.has(deck.id)}
                                             onToggleSelect={() => toggleSelection(deck.id)}
                                             onDelete={() => handleDeleteDeck(deck.id)}
+                                            onArchive={() => handleArchiveDeck(deck.id)}
+                                            onRestore={() => handleRestoreDeck(deck.id)}
+                                            status={deck.status}
                                         />
                                     ))}
                                 </AnimatePresence>
@@ -666,44 +855,46 @@ const DeckSelector = ({ onSelectDeck }) => {
             </div>
 
             {/* Pagination Controls */}
-            {totalPages > 1 && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-center gap-4 mt-8"
-                >
-                    <button
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="p-3 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-white/5 transition-all"
+            {
+                totalPages > 1 && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center justify-center gap-4 mt-8"
                     >
-                        <ChevronLeft size={20} />
-                    </button>
+                        <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="p-3 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-white/5 transition-all"
+                        >
+                            <ChevronLeft size={20} />
+                        </button>
 
-                    <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl p-1">
-                        {Array.from({ length: totalPages }).map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => handlePageChange(i + 1)}
-                                className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all ${currentPage === i + 1
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                    }`}
-                            >
-                                {i + 1}
-                            </button>
-                        ))}
-                    </div>
+                        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl p-1">
+                            {Array.from({ length: totalPages }).map((_, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => handlePageChange(i + 1)}
+                                    className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all ${currentPage === i + 1
+                                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                        }`}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                        </div>
 
-                    <button
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="p-3 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-white/5 transition-all"
-                    >
-                        <ChevronRight size={20} />
-                    </button>
-                </motion.div>
-            )}
+                        <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className="p-3 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-white/5 transition-all"
+                        >
+                            <ChevronRight size={20} />
+                        </button>
+                    </motion.div>
+                )
+            }
 
             {/* Export All Button */}
             <motion.button
@@ -716,7 +907,7 @@ const DeckSelector = ({ onSelectDeck }) => {
                 {isExporting ? <Loader2 className="animate-spin" size={20} /> : <FileDown size={20} />}
                 {isExporting ? 'Exporting...' : 'Export Entire PPT'}
             </motion.button>
-        </div>
+        </div >
     );
 };
 
