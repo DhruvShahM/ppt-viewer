@@ -99,8 +99,18 @@ class RestoreService {
 
             console.log('Metadata updated successfully');
 
-            // Step 7: Audit logging
-            console.log('\nStep 7: Recording audit log...');
+            // Step 7: Commit metadata changes
+            console.log('\nStep 7: Committing metadata changes...');
+            try {
+                gitOperations.execGit('git add src/data/deck-index.json');
+                gitOperations.execGit(`git commit -m "Restore ${deckId}: update metadata"`);
+                console.log('Metadata changes committed');
+            } catch (error) {
+                console.warn('Could not commit metadata changes:', error.message);
+            }
+
+            // Step 8: Audit logging
+            console.log('\nStep 8: Recording audit log...');
             auditLogger.logRestore(deckId, {
                 mainCommit: gitResult.mainCommit,
                 targetPath: targetDeckPath,

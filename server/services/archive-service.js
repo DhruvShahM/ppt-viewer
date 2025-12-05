@@ -76,8 +76,18 @@ class ArchiveService {
             });
             console.log('Metadata updated successfully');
 
-            // Step 6: Audit logging
-            console.log('\nStep 6: Recording audit log...');
+            // Step 6: Commit metadata changes
+            console.log('\nStep 6: Committing metadata changes...');
+            try {
+                gitOperations.execGit('git add src/data/deck-index.json');
+                gitOperations.execGit(`git commit -m "Archive ${deckId}: update metadata"`);
+                console.log('Metadata changes committed');
+            } catch (error) {
+                console.warn('Could not commit metadata changes:', error.message);
+            }
+
+            // Step 7: Audit logging
+            console.log('\nStep 7: Recording audit log...');
             auditLogger.logArchive(deckId, {
                 backupPath,
                 archiveCommit: gitResult.archiveCommit,
