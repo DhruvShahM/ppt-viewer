@@ -52,6 +52,21 @@ class GitOperations {
     }
 
     /**
+     * Check if there are staged changes to commit
+     * @param {string} cwd - Working directory
+     * @returns {boolean} True if there are staged changes
+     */
+    hasChangesToCommit(cwd = this.mainRepo) {
+        try {
+            const status = this.execGit('git diff --cached --name-only', cwd);
+            return status.length > 0;
+        } catch (error) {
+            console.warn(`Could not check staged changes: ${error.message}`);
+            return false;
+        }
+    }
+
+    /**
      * Check if there are uncommitted changes
      * @param {string} cwd - Working directory
      * @returns {boolean} True if there are uncommitted changes
@@ -210,6 +225,13 @@ class GitOperations {
             // Ensure archive repo exists
             this.initializeArchiveRepo();
 
+            // Validate source paths exist
+            if (!fs.existsSync(deckPath)) {
+                throw new Error(`Deck path does not exist: ${deckPath}`);
+            }
+
+            console.log(`Archiving deck ${deckId} from ${deckPath}`);
+
             // Copy deck to archive repo
             const archiveDeckPath = path.join(this.archiveRepo, 'decks', deckId);
             this.copyToArchive(deckId, deckPath, archiveDeckPath);
@@ -218,28 +240,47 @@ class GitOperations {
             if (slidesPath && fs.existsSync(slidesPath)) {
                 const archiveSlidesPath = path.join(this.archiveRepo, 'slides', deckId);
                 this.copyToArchive(deckId, slidesPath, archiveSlidesPath);
+                console.log(`Copied slides from ${slidesPath}`);
             }
 
             // Commit to archive repo
             this.execGit('git add .', this.archiveRepo);
-            this.execGit(`git commit -m "Archive deck: ${deckId}"`, this.archiveRepo);
-            result.archiveCommit = this.execGit('git rev-parse HEAD', this.archiveRepo);
 
-            console.log(`Deck ${deckId} copied to archive repo (commit: ${result.archiveCommit})`);
+            // Check if there are changes to commit
+            if (this.hasChangesToCommit(this.archiveRepo)) {
+                this.execGit(`git commit -m "Archive deck: ${deckId}"`, this.archiveRepo);
+                result.archiveCommit = this.execGit('git rev-parse HEAD', this.archiveRepo);
+                console.log(`Deck ${deckId} copied to archive repo (commit: ${result.archiveCommit})`);
+            } else {
+                console.log(`No changes to commit in archive repo for deck ${deckId}`);
+                result.archiveCommit = this.execGit('git rev-parse HEAD', this.archiveRepo);
+            }
 
             // Remove from main repo
             const relativeDeckPath = path.relative(this.mainRepo, deckPath);
-            this.execGit(`git rm -r "${relativeDeckPath}"`, this.mainRepo);
+
+            // Verify the path exists before trying to remove it
+            if (!fs.existsSync(deckPath)) {
+                throw new Error(`Cannot remove deck: path does not exist: ${deckPath}`);
+            }
+
+            console.log(`Removing deck from main repo: ${relativeDeckPath}`);
+            this.execGit(`git rm -rf "${relativeDeckPath}"`, this.mainRepo);
 
             if (slidesPath && fs.existsSync(slidesPath)) {
                 const relativeSlidesPath = path.relative(this.mainRepo, slidesPath);
-                this.execGit(`git rm -r "${relativeSlidesPath}"`, this.mainRepo);
+                console.log(`Removing slides from main repo: ${relativeSlidesPath}`);
+                this.execGit(`git rm -rf "${relativeSlidesPath}"`, this.mainRepo);
             }
 
-            this.execGit(`git commit -m "Archive deck: ${deckId}"`, this.mainRepo);
-            result.mainCommit = this.execGit('git rev-parse HEAD', this.mainRepo);
-
-            console.log(`Deck ${deckId} removed from main repo (commit: ${result.mainCommit})`);
+            // Check if there are changes to commit
+            if (this.hasChangesToCommit(this.mainRepo)) {
+                this.execGit(`git commit -m "Archive deck: ${deckId}"`, this.mainRepo);
+                result.mainCommit = this.execGit('git rev-parse HEAD', this.mainRepo);
+                console.log(`Deck ${deckId} removed from main repo (commit: ${result.mainCommit})`);
+            } else {
+                throw new Error(`No changes staged for commit after git rm. This may indicate the files were not tracked by git.`);
+            }
 
             return result;
         } catch (error) {
