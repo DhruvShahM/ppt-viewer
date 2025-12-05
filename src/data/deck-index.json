@@ -168,11 +168,12 @@
     "description": "Auto-generated dummy deck 12 for testing.",
     "icon": "Zap",
     "color": "gray",
-    "status": "archived",
+    "status": "active",
     "path": "src/decks/dummy-12",
     "version": 1,
     "hasLargeAssets": false,
-    "archivedAt": "2025-12-05T14:01:24.540Z"
+    "archivedAt": "2025-12-05T14:01:24.540Z",
+    "restoredAt": "2025-12-05T14:01:45.887Z"
   },
   {
     "id": "dummy-13",
