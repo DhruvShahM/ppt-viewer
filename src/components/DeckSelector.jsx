@@ -379,10 +379,19 @@ const DeckSelector = ({ onSelectDeck }) => {
             });
 
             if (response.ok) {
+                // Update local state instead of reloading
+                const archivedIds = new Set(selectedDecks);
+
+                setRepositories(prevRepos => prevRepos.map(repo => ({
+                    ...repo,
+                    decks: repo.decks.map(deck =>
+                        archivedIds.has(deck.id) ? { ...deck, status: 'archived' } : deck
+                    )
+                })));
+
                 alert('Decks archived successfully!');
                 setIsSelectionMode(false);
                 setSelectedDecks(new Set());
-                window.location.reload();
             } else {
                 alert('Failed to archive decks');
             }
@@ -407,10 +416,19 @@ const DeckSelector = ({ onSelectDeck }) => {
             });
 
             if (response.ok) {
+                // Update local state instead of reloading
+                const restoredIds = new Set(selectedDecks);
+
+                setRepositories(prevRepos => prevRepos.map(repo => ({
+                    ...repo,
+                    decks: repo.decks.map(deck =>
+                        restoredIds.has(deck.id) ? { ...deck, status: 'active' } : deck
+                    )
+                })));
+
                 alert('Decks restored successfully!');
                 setIsSelectionMode(false);
                 setSelectedDecks(new Set());
-                window.location.reload();
             } else {
                 alert('Failed to restore decks');
             }
@@ -436,10 +454,17 @@ const DeckSelector = ({ onSelectDeck }) => {
             });
 
             if (response.ok) {
+                // Update local state instead of reloading
+                const deletedIds = new Set(selectedDecks);
+
+                setRepositories(prevRepos => prevRepos.map(repo => ({
+                    ...repo,
+                    decks: repo.decks.filter(deck => !deletedIds.has(deck.id))
+                })));
+
                 alert('Decks deleted successfully!');
                 setIsSelectionMode(false);
                 setSelectedDecks(new Set());
-                window.location.reload();
             } else {
                 alert('Failed to delete decks');
             }
@@ -467,8 +492,11 @@ const DeckSelector = ({ onSelectDeck }) => {
             });
 
             if (response.ok) {
+                setRepositories(prevRepos => prevRepos.map(repo => ({
+                    ...repo,
+                    decks: repo.decks.filter(d => d.id !== deckId)
+                })));
                 alert('Deck deleted successfully!');
-                window.location.reload();
             } else {
                 alert('Failed to delete deck');
             }
@@ -492,8 +520,13 @@ const DeckSelector = ({ onSelectDeck }) => {
             });
 
             if (response.ok) {
+                setRepositories(prevRepos => prevRepos.map(repo => ({
+                    ...repo,
+                    decks: repo.decks.map(deck =>
+                        deck.id === deckId ? { ...deck, status: 'archived' } : deck
+                    )
+                })));
                 alert('Deck archived successfully!');
-                window.location.reload();
             } else {
                 alert('Failed to archive deck');
             }
@@ -517,8 +550,13 @@ const DeckSelector = ({ onSelectDeck }) => {
             });
 
             if (response.ok) {
+                setRepositories(prevRepos => prevRepos.map(repo => ({
+                    ...repo,
+                    decks: repo.decks.map(deck =>
+                        deck.id === deckId ? { ...deck, status: 'active' } : deck
+                    )
+                })));
                 alert('Deck restored successfully!');
-                window.location.reload();
             } else {
                 alert('Failed to restore deck');
             }
