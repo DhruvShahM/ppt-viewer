@@ -1,0 +1,43 @@
+Starting verification for File System Archive/Restore...
+Updating existing dummy deck in metadata...
+Metadata before archive: {
+  "id": "dummy-1",
+  "title": "Dummy Deck",
+  "description": "For testing",
+  "status": "active",
+  "path": "src/decks/dummy-1"
+}
+
+--- Test 1: Archive Operation ---
+SUCCESS: Archive operation reported success.
+SUCCESS: Deck folder moved to archive.
+SUCCESS: Deck folder removed from source.
+Metadata after archive: {
+  "id": "dummy-1",
+  "title": "Dummy Deck",
+  "description": "For testing",
+  "status": "archived",
+  "path": "src/decks/dummy-1",
+  "archivedAt": "2025-12-05T08:54:56.010Z",
+  "checksum": "fa954c8001c11f03ecdfbc93165edbe6573c4664515a94934ff7a597195d234b",
+  "hasLargeAssets": false,
+  "version": 1,
+  "backupPath": "backups\\2025-12-05T08-54-55-802Z-dummy-1.zip.enc"
+}
+
+--- Test 2: Restore Operation ---
+SUCCESS: Restore operation reported success.
+SUCCESS: Deck folder moved back to source.
+SUCCESS: Deck folder removed from archive.
+Metadata after restore: {
+  "id": "dummy-1",
+  "title": "Dummy Deck",
+  "description": "For testing",
+  "status": "active",
+  "path": "src/decks/dummy-1",
+  "archivedAt": "2025-12-05T08:54:56.010Z",
+  "checksum": "fa954c8001c11f03ecdfbc93165edbe6573c4664515a94934ff7a597195d234b",
+  "hasLargeAssets": false,
+  "version": 2,
+  "restoredAt": "2025-12-05T08:54:56.049Z"
+}

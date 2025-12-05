@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import DeckSelector from './components/DeckSelector';
 import PresentationViewer from './components/PresentationViewer';
-import ArchiveViewer from './components/ArchiveViewer';
+
 import { getDeck } from './data/decks';
 import { Loader2 } from 'lucide-react';
 
 function App() {
-    const [currentView, setCurrentView] = useState('selector'); // 'selector', 'presentation', 'archive'
+    const [currentView, setCurrentView] = useState('selector'); // 'selector', 'presentation'
     const [currentDeckId, setCurrentDeckId] = useState(() => {
         return localStorage.getItem('lastDeckId') || null;
     });
@@ -51,9 +51,7 @@ function App() {
         setCurrentDeckId(null);
     };
 
-    const handleViewArchives = () => {
-        setCurrentView('archive');
-    };
+
     const [showVideo, setShowVideo] = useState(true);
     // Dynamically import all mp4 files from src/assets/backgrounds
     const videoModules = import.meta.glob('/src/assets/backgrounds/*.mp4', { eager: true, query: '?url', import: 'default' });
@@ -127,10 +125,8 @@ function App() {
                     onGradientSelect={setCurrentGradient}
                     currentGradient={currentGradient}
                 />
-            ) : currentView === 'archive' ? (
-                <ArchiveViewer onBack={handleBackToSelector} />
             ) : (
-                <DeckSelector onSelectDeck={handleDeckSelect} onViewArchives={handleViewArchives} />
+                <DeckSelector onSelectDeck={handleDeckSelect} />
             )}
         </div>
     );

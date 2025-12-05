@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const config = require('../config/archive-config');
 
 /**
  * Metadata Management Utilities
@@ -9,7 +8,7 @@ const config = require('../config/archive-config');
 
 class MetadataManager {
     constructor() {
-        this.metadataFile = config.metadataFile;
+        this.metadataFile = path.join(__dirname, '../../src/data/deck-index.json');
     }
 
     /**
@@ -26,11 +25,6 @@ class MetadataManager {
 
             const content = fs.readFileSync(this.metadataFile, 'utf8');
             const data = JSON.parse(content);
-
-            const duration = Date.now() - startTime;
-            if (duration > config.performanceThresholds.metadataOperationMs) {
-                console.warn(`Metadata read took ${duration}ms (threshold: ${config.performanceThresholds.metadataOperationMs}ms)`);
-            }
 
             return data;
         } catch (error) {
@@ -55,11 +49,6 @@ class MetadataManager {
 
             fs.writeFileSync(tempFile, content, 'utf8');
             fs.renameSync(tempFile, this.metadataFile);
-
-            const duration = Date.now() - startTime;
-            if (duration > config.performanceThresholds.metadataOperationMs) {
-                console.warn(`Metadata write took ${duration}ms (threshold: ${config.performanceThresholds.metadataOperationMs}ms)`);
-            }
 
             return true;
         } catch (error) {

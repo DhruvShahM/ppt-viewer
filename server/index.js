@@ -8,12 +8,7 @@ const AppError = require('./utils/AppError');
 const catchAsync = require('./utils/catchAsync');
 const globalErrorHandler = require('./controllers/errorController');
 
-// Archive system services
-const archiveService = require('./services/archive-service');
-const restoreService = require('./services/restore-service');
 const metadataManager = require('./utils/metadata');
-const auditLogger = require('./services/audit-logger');
-
 
 const app = express();
 const PORT = 3001;
@@ -304,107 +299,9 @@ app.post('/api/delete', catchAsync(async (req, res, next) => {
     runDelete();
 }));
 
-// Archive system endpoints
 
-// POST /api/archive - Archive a deck
-app.post('/api/archive', catchAsync(async (req, res, next) => {
-    const { deckId } = req.body;
 
-    if (!deckId) {
-        return next(new AppError('Deck ID is required', 400));
-    }
 
-    console.log(`Archive request received for deck: ${deckId}`);
-
-    const result = await archiveService.archive(deckId);
-
-    if (result.success) {
-        res.status(200).json({
-            success: true,
-            message: `Deck ${deckId} archived successfully`,
-            data: result,
-        });
-    } else {
-        res.status(400).json({
-            success: false,
-            message: result.error || 'Archive operation failed',
-            errors: result.errors,
-            warnings: result.warnings,
-        });
-    }
-}));
-
-// POST /api/restore - Restore an archived deck
-app.post('/api/restore', catchAsync(async (req, res, next) => {
-    const { deckId } = req.body;
-
-    if (!deckId) {
-        return next(new AppError('Deck ID is required', 400));
-    }
-
-    console.log(`Restore request received for deck: ${deckId}`);
-
-    const result = await restoreService.restore(deckId);
-
-    if (result.success) {
-        res.status(200).json({
-            success: true,
-            message: `Deck ${deckId} restored successfully`,
-            data: result,
-        });
-    } else {
-        res.status(400).json({
-            success: false,
-            message: result.error || 'Restore operation failed',
-            errors: result.errors,
-            warnings: result.warnings,
-        });
-    }
-}));
-
-// GET /api/decks/status/:status - Get decks by status
-app.get('/api/decks/status/:status', catchAsync(async (req, res, next) => {
-    const { status } = req.params;
-
-    if (!['active', 'archived'].includes(status)) {
-        return next(new AppError('Invalid status. Must be "active" or "archived"', 400));
-    }
-
-    const decks = metadataManager.getDecksByStatus(status);
-
-    res.json({
-        success: true,
-        count: decks.length,
-        decks,
-    });
-}));
-
-// GET /api/audit-log - Get all audit logs
-app.get('/api/audit-log', catchAsync(async (req, res, next) => {
-    const { limit = 100 } = req.query;
-
-    const logs = auditLogger.getAllLogs(parseInt(limit));
-
-    res.json({
-        success: true,
-        count: logs.length,
-        logs,
-    });
-}));
-
-// GET /api/audit-log/:deckId - Get audit logs for specific deck
-app.get('/api/audit-log/:deckId', catchAsync(async (req, res, next) => {
-    const { deckId } = req.params;
-
-    const logs = auditLogger.queryByDeck(deckId);
-
-    res.json({
-        success: true,
-        deckId,
-        count: logs.length,
-        logs,
-    });
-}));
 
 // Initialize metadata schema on server start
 try {

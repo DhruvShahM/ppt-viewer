@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 const metadataManager = require('../utils/metadata');
 const checksumUtil = require('../utils/checksum');
 const config = require('../config/archive-config');
@@ -161,22 +160,7 @@ class ValidationService {
             }
 
 
-            // 5. Check for uncommitted changes (converted to warning since we now stash)
-            try {
-                const status = execSync('git status --porcelain', {
-                    cwd: config.mainRepo,
-                    encoding: 'utf8',
-                }).trim();
-
-                if (status) {
-                    warnings.push('Working directory has uncommitted changes. They will be automatically stashed during restore.');
-                }
-            } catch (error) {
-                warnings.push(`Could not check git status: ${error.message}`);
-            }
-
-
-            // 6. Verify checksum if available
+            // 5. Verify checksum if available
             if (deck.checksum && info.archiveDeckPath) {
                 try {
                     const archiveDecksBase = path.join(config.archiveRepo, 'decks');
