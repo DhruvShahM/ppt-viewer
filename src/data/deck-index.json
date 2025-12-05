@@ -80,11 +80,12 @@
     "description": "Goroutines, Channels, और GMP Scheduler हिंदी में।",
     "icon": "Layers",
     "color": "red",
-    "status": "archived",
+    "status": "active",
     "path": "src/decks/hindi-concurrency",
     "version": 1,
     "hasLargeAssets": false,
-    "archivedAt": "2025-12-05T14:31:55.606Z"
+    "archivedAt": "2025-12-05T14:31:55.606Z",
+    "restoredAt": "2025-12-05T14:32:25.188Z"
   },
   {
     "id": "anime-golang",
