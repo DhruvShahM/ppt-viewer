@@ -16,7 +16,13 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const [showCursor, setShowCursor] = useState(true);
     const [activeTool, setActiveTool] = useState('none');
     const [activeColor, setActiveColor] = useState('#ef4444');
+
     const [clearTrigger, setClearTrigger] = useState(0);
+
+    // Smart Navigation State
+    const [previewSlide, setPreviewSlide] = useState(null);
+    const [previewPos, setPreviewPos] = useState(0);
+    const progressBarRef = useRef(null);
 
     const COLORS = [
         { name: 'Red', value: '#ef4444' },
@@ -387,42 +393,109 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                     </button>
                 )}
 
-                <div className="text-white text-sm font-medium bg-black/50 border border-white/20 px-4 py-2 rounded-full backdrop-blur-sm self-center tabular-nums">
-                    {currentSlide + 1} / {totalSlides}
-                </div>
-
-            </div>
-
-            {/* Navigation Arrows (Bottom Left) */}
-            {!isPresenting && (
-                <div
-                    onMouseEnter={handleMouseEnterControls}
-                    onMouseLeave={handleMouseLeaveControls}
-                    className="absolute bottom-8 left-8 flex gap-4 z-50 transition-opacity duration-500"
-                >
+                {/* Smart Navigation & Counter */}
+                <div className="flex items-center gap-1 bg-black/50 border border-white/20 p-1 pl-4 rounded-full backdrop-blur-sm self-center">
+                    <div className="text-white text-sm font-medium tabular-nums mr-2">
+                        {currentSlide + 1} / {totalSlides}
+                    </div>
+                    <div className="h-4 w-px bg-white/20 mx-1" />
                     <button
                         onClick={prevSlide}
                         disabled={currentSlide === 0}
-                        className="p-3 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all backdrop-blur-sm"
+                        className="p-1.5 rounded-full hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
+                        title="Previous Slide"
                     >
-                        <ChevronLeft size={24} />
+                        <ChevronLeft size={16} />
                     </button>
                     <button
                         onClick={nextSlide}
                         disabled={currentSlide === totalSlides - 1}
-                        className="p-3 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all backdrop-blur-sm"
+                        className="p-1.5 rounded-full hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
+                        title="Next Slide"
                     >
-                        <ChevronRight size={24} />
+                        <ChevronRight size={16} />
                     </button>
                 </div>
-            )}
 
-            {/* Progress Bar */}
+            </div>
+
+
+
+            {/* Smart Scrubber / Timeline */}
             <div
-                className={`absolute bottom-0 left-0 h-1 bg-go-blue transition-all duration-500 ${isPresenting && !showControls ? 'opacity-0' : 'opacity-100'
-                    }`}
-                style={{ width: `${((currentSlide + 1) / totalSlides) * 100}%` }}
-            />
+                className={`absolute bottom-0 left-0 w-full z-50 transition-all duration-500 group/scrubber ${isPresenting && !showControls ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}
+                onMouseLeave={() => setPreviewSlide(null)}
+            >
+                {/* Hover Hit Area & Progress Bar */}
+                <div
+                    ref={progressBarRef}
+                    className="relative w-full h-2 cursor-pointer bg-white/10 hover:h-4 transition-all duration-200"
+                    onMouseMove={(e) => {
+                        if (!progressBarRef.current) return;
+                        const rect = progressBarRef.current.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const width = rect.width;
+                        const percentage = Math.max(0, Math.min(1, x / width));
+                        const slideIndex = Math.min(totalSlides - 1, Math.floor(percentage * totalSlides));
+
+                        setPreviewSlide(slideIndex);
+                        setPreviewPos(x);
+                    }}
+                    onClick={(e) => {
+                        if (!progressBarRef.current) return;
+                        const rect = progressBarRef.current.getBoundingClientRect();
+                        const percentage = (e.clientX - rect.left) / rect.width;
+                        const slideIndex = Math.min(totalSlides - 1, Math.floor(percentage * totalSlides));
+
+                        // Save annotations before jumping
+                        saveCurrentAnnotations();
+                        setCurrentSlide(slideIndex);
+                    }}
+                >
+                    {/* Progress Fill */}
+                    <div
+                        className="absolute top-0 left-0 h-full bg-go-blue transition-all duration-100 ease-out"
+                        style={{ width: `${((currentSlide + 1) / totalSlides) * 100}%` }}
+                    />
+
+                    {/* Hover Indicator */}
+                    {previewSlide !== null && (
+                        <div
+                            className="absolute top-0 h-full w-1 bg-white/50"
+                            style={{ left: previewPos }}
+                        />
+                    )}
+                </div>
+
+                {/* Thumbnail Preview Tooltip */}
+                {previewSlide !== null && slides[previewSlide] && (
+                    <div
+                        className="absolute bottom-6 -translate-x-1/2 pointer-events-none transition-all duration-75 origin-bottom"
+                        style={{ left: previewPos }}
+                    >
+                        <div className="bg-slate-900 border border-white/20 rounded-lg p-1 shadow-2xl relative">
+                            {/* Scaled Preview Container - Maintains Aspect Ratio */}
+                            <div className="w-[240px] h-[135px] bg-slate-950 rounded overflow-hidden relative">
+                                <div className="absolute inset-0 w-[1920px] h-[1080px] origin-top-left scale-[0.125]">
+                                    <Slide isActive={true} noAnimation={true}>
+                                        {(() => {
+                                            const PreviewComponent = slides[previewSlide];
+                                            return <PreviewComponent />;
+                                        })()}
+                                    </Slide>
+                                </div>
+                            </div>
+
+                            {/* Slide Number Label */}
+                            <div className="absolute top-2 right-2 bg-black/70 text-white text-xs font-bold px-2 py-1 rounded backdrop-blur-md">
+                                {previewSlide + 1}
+                            </div>
+                        </div>
+                        {/* Arrow */}
+                        <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-slate-900 mx-auto mt-[-1px]" />
+                    </div>
+                )}
+            </div>
 
             {/* Design Feedback Loop - Moved to Toolbar */}
         </div >
