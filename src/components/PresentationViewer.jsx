@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Slide from './Slide';
 import AnnotationLayer from './AnnotationLayer';
-import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock } from 'lucide-react';
 import DesignFeedback from './DesignFeedback';
 
 
@@ -16,6 +16,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const [showCursor, setShowCursor] = useState(true);
     const [activeTool, setActiveTool] = useState('none');
     const [activeColor, setActiveColor] = useState('#ef4444');
+    const [isLocked, setIsLocked] = useState(false);
 
     const [clearTrigger, setClearTrigger] = useState(0);
 
@@ -203,7 +204,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
             />
 
             {/* Annotation Toolbar (Only in Presentation Mode) */}
-            {isPresenting && (
+            {isPresenting && !isLocked && (
                 <div
                     onMouseEnter={handleMouseEnterControls}
                     onMouseLeave={handleMouseLeaveControls}
@@ -285,9 +286,31 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                     >
                         <Trash2 size={20} />
                     </button>
+                    <div className="w-px h-8 bg-white/20 mx-1 self-center" />
+                    <button
+                        onClick={() => {
+                            setIsLocked(true);
+                            setActiveTool('none');
+                        }}
+                        className="p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
+                        title="Lock Toolbar"
+                    >
+                        <Lock size={20} />
+                    </button>
 
 
                 </div>
+            )}
+
+            {/* Unlock Button */}
+            {isPresenting && isLocked && (
+                <button
+                    onClick={() => setIsLocked(false)}
+                    className={`absolute bottom-8 left-8 p-3 rounded-full bg-black/20 hover:bg-black/50 text-white/50 hover:text-white transition-all backdrop-blur-sm z-50 ${!showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                    title="Unlock Toolbar"
+                >
+                    <Unlock size={20} />
+                </button>
             )}
 
             {/* Navigation Controls */}
