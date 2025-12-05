@@ -7,13 +7,13 @@
     "description": "The complete guide to Goroutines, Channels, Select, and Sync patterns.",
     "icon": "Layers",
     "color": "blue",
-    "status": "archived",
+    "status": "active",
     "path": "src/decks/concurrency",
     "version": 3,
     "hasLargeAssets": false,
     "archivedAt": "2025-12-05T14:31:54.208Z",
     "checksum": "1e887adc8fe8c4d084ec4e715688e564d0622a06a85de84d6e2732613827f97a",
-    "restoredAt": "2025-12-05T14:05:54.995Z"
+    "restoredAt": "2025-12-05T14:32:23.800Z"
   },
   {
     "id": "goroutines",
