@@ -367,6 +367,10 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                     </button>
                 )}
 
+                <div className="text-white text-sm font-medium bg-black/50 border border-white/20 px-4 py-2 rounded-full backdrop-blur-sm self-center tabular-nums">
+                    {currentSlide + 1} / {totalSlides}
+                </div>
+
             </div>
 
             {/* Navigation Arrows (Bottom Left) */}
