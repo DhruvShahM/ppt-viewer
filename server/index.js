@@ -8,6 +8,13 @@ const AppError = require('./utils/AppError');
 const catchAsync = require('./utils/catchAsync');
 const globalErrorHandler = require('./controllers/errorController');
 
+// Archive system services
+const archiveService = require('./services/archive-service');
+const restoreService = require('./services/restore-service');
+const metadataManager = require('./utils/metadata');
+const auditLogger = require('./services/audit-logger');
+
+
 const app = express();
 const PORT = 3001;
 
@@ -27,8 +34,7 @@ if (!fs.existsSync(SCREENSHOTS_DIR)) {
     fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 }
 
-const ARCHIVES_DIR = path.join(__dirname, '..', 'archives');
-app.use('/archives', express.static(ARCHIVES_DIR));
+
 
 // Cleanup screenshots for completed feedback
 const cleanupScreenshots = () => {
@@ -263,71 +269,151 @@ app.delete('/api/feedback/:deckId/:slideIndex', catchAsync(async (req, res, next
 
 const { exec } = require('child_process');
 
+
+
+app.post('/api/delete', catchAsync(async (req, res, next) => {
+    const { deckIds } = req.body;
+
+    if (!deckIds || !Array.isArray(deckIds) || deckIds.length === 0) {
+        return next(new AppError('Invalid deckIds', 400));
+    }
+
+    console.log(`Deleting decks: ${deckIds.join(', ')}`);
+
+    const runDelete = async () => {
+        try {
+            for (const id of deckIds) {
+                await new Promise((resolve, reject) => {
+                    exec(`node scripts/delete-deck.js ${id}`, { cwd: path.join(__dirname, '..') }, (error, stdout, stderr) => {
+                        if (error) {
+                            console.error(`Error deleting ${id}:`, error);
+                        } else {
+                            console.log(`Deleted ${id}:`, stdout);
+                        }
+                        resolve();
+                    });
+                });
+            }
+            res.json({ success: true });
+        } catch (error) {
+            console.error('Delete process failed:', error);
+            return next(new AppError('Delete process failed', 500));
+        }
+    };
+
+    runDelete();
+}));
+
+// Archive system endpoints
+
+// POST /api/archive - Archive a deck
 app.post('/api/archive', catchAsync(async (req, res, next) => {
-    const { deckIds } = req.body;
+    const { deckId } = req.body;
 
-    if (!deckIds || !Array.isArray(deckIds) || deckIds.length === 0) {
-        return next(new AppError('Invalid deckIds', 400));
+    if (!deckId) {
+        return next(new AppError('Deck ID is required', 400));
     }
 
-    console.log(`Archiving decks: ${deckIds.join(', ')}`);
+    console.log(`Archive request received for deck: ${deckId}`);
 
-    const runArchive = async () => {
-        try {
-            for (const id of deckIds) {
-                await new Promise((resolve, reject) => {
-                    exec(`node scripts/archive-decks.js ${id}`, { cwd: path.join(__dirname, '..') }, (error, stdout, stderr) => {
-                        if (error) {
-                            console.error(`Error archiving ${id}:`, error);
-                        } else {
-                            console.log(`Archived ${id}:`, stdout);
-                        }
-                        resolve();
-                    });
-                });
-            }
-            res.json({ success: true });
-        } catch (error) {
-            console.error('Archive process failed:', error);
-            return next(new AppError('Archive process failed', 500));
-        }
-    };
+    const result = await archiveService.archive(deckId);
 
-    runArchive();
+    if (result.success) {
+        res.status(200).json({
+            success: true,
+            message: `Deck ${deckId} archived successfully`,
+            data: result,
+        });
+    } else {
+        res.status(400).json({
+            success: false,
+            message: result.error || 'Archive operation failed',
+            errors: result.errors,
+            warnings: result.warnings,
+        });
+    }
 }));
 
+// POST /api/restore - Restore an archived deck
 app.post('/api/restore', catchAsync(async (req, res, next) => {
-    const { deckIds } = req.body;
+    const { deckId } = req.body;
 
-    if (!deckIds || !Array.isArray(deckIds) || deckIds.length === 0) {
-        return next(new AppError('Invalid deckIds', 400));
+    if (!deckId) {
+        return next(new AppError('Deck ID is required', 400));
     }
 
-    console.log(`Restoring decks: ${deckIds.join(', ')}`);
+    console.log(`Restore request received for deck: ${deckId}`);
 
-    const runRestore = async () => {
-        try {
-            for (const id of deckIds) {
-                await new Promise((resolve, reject) => {
-                    exec(`node scripts/restore-deck.js ${id}`, { cwd: path.join(__dirname, '..') }, (error, stdout, stderr) => {
-                        if (error) {
-                            console.error(`Error restoring ${id}:`, error);
-                        } else {
-                            console.log(`Restored ${id}:`, stdout);
-                        }
-                        resolve();
-                    });
-                });
-            }
-            res.json({ success: true });
-        } catch (error) {
-            console.error('Restore process failed:', error);
-            return next(new AppError('Restore process failed', 500));
-        }
-    };
+    const result = await restoreService.restore(deckId);
 
-    runRestore();
+    if (result.success) {
+        res.status(200).json({
+            success: true,
+            message: `Deck ${deckId} restored successfully`,
+            data: result,
+        });
+    } else {
+        res.status(400).json({
+            success: false,
+            message: result.error || 'Restore operation failed',
+            errors: result.errors,
+            warnings: result.warnings,
+        });
+    }
 }));
+
+// GET /api/decks/status/:status - Get decks by status
+app.get('/api/decks/status/:status', catchAsync(async (req, res, next) => {
+    const { status } = req.params;
+
+    if (!['active', 'archived'].includes(status)) {
+        return next(new AppError('Invalid status. Must be "active" or "archived"', 400));
+    }
+
+    const decks = metadataManager.getDecksByStatus(status);
+
+    res.json({
+        success: true,
+        count: decks.length,
+        decks,
+    });
+}));
+
+// GET /api/audit-log - Get all audit logs
+app.get('/api/audit-log', catchAsync(async (req, res, next) => {
+    const { limit = 100 } = req.query;
+
+    const logs = auditLogger.getAllLogs(parseInt(limit));
+
+    res.json({
+        success: true,
+        count: logs.length,
+        logs,
+    });
+}));
+
+// GET /api/audit-log/:deckId - Get audit logs for specific deck
+app.get('/api/audit-log/:deckId', catchAsync(async (req, res, next) => {
+    const { deckId } = req.params;
+
+    const logs = auditLogger.queryByDeck(deckId);
+
+    res.json({
+        success: true,
+        deckId,
+        count: logs.length,
+        logs,
+    });
+}));
+
+// Initialize metadata schema on server start
+try {
+    metadataManager.migrateMetadataSchema();
+    console.log('Metadata schema initialized');
+} catch (error) {
+    console.error('Failed to initialize metadata schema:', error.message);
+}
+
 
 app.all('*', (req, res, next) => {
     next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
