@@ -114,11 +114,12 @@
     "description": "In-depth Explained: Algorithms, Token Bucket, and Distributed Systems.",
     "icon": "Zap",
     "color": "blue",
-    "status": "archived",
+    "status": "active",
     "path": "src/decks/rate-limiting",
     "version": 1,
     "hasLargeAssets": false,
-    "archivedAt": "2025-12-05T13:52:03.932Z"
+    "archivedAt": "2025-12-05T13:52:03.932Z",
+    "restoredAt": "2025-12-05T13:53:50.001Z"
   },
   {
     "id": "dummy-9",
