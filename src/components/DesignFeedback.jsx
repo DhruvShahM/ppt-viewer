@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquarePlus, Send, X, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { MessageSquarePlus, Send, X, Image as ImageIcon, Trash2, Video, StopCircle, Play } from 'lucide-react';
 
 const DesignFeedback = ({ deckId, slideIndex }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -9,7 +9,14 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
     const [showForm, setShowForm] = useState(false);
     const [screenshots, setScreenshots] = useState([]);
     const [screenshotPreviews, setScreenshotPreviews] = useState([]);
+    const [videos, setVideos] = useState([]);
+    const [videoPreviews, setVideoPreviews] = useState([]);
+    const [isRecording, setIsRecording] = useState(false);
+    const mediaRecorderRef = useRef(null);
+    const chunksRef = useRef([]);
+
     const fileInputRef = useRef(null);
+    const videoInputRef = useRef(null);
     const textareaRef = useRef(null);
 
     useEffect(() => {
@@ -93,9 +100,86 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
         setScreenshotPreviews(prev => [...prev, ...newPreviews]);
     };
 
+    const handleVideoFiles = (files) => {
+        const newVideos = [];
+        const newPreviews = [];
+
+        Array.from(files).forEach(file => {
+            if (!file) return;
+
+            if (!file.type.startsWith('video/')) {
+                alert('Please select a video file');
+                return;
+            }
+
+            // 50MB limit logic checks can be added here if needed, server has 50MB limit
+
+            newVideos.push(file);
+            newPreviews.push(URL.createObjectURL(file));
+        });
+
+        setVideos(prev => [...prev, ...newVideos]);
+        setVideoPreviews(prev => [...prev, ...newPreviews]);
+    };
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({
+                video: { cursor: "always" },
+                audio: false
+            });
+
+            const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            mediaRecorderRef.current = mediaRecorder;
+            chunksRef.current = [];
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    chunksRef.current.push(e.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+                const file = new File([blob], `screen-recording-${Date.now()}.webm`, { type: 'video/webm' });
+                handleVideoFiles([file]);
+
+                // Stop all tracks
+                stream.getTracks().forEach(track => track.stop());
+                setIsRecording(false);
+            };
+
+            mediaRecorder.start();
+            setIsRecording(true);
+
+            // Stop recording when user stops sharing via browser UI
+            stream.getVideoTracks()[0].onended = () => {
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+                    stopRecording();
+                }
+            };
+
+        } catch (err) {
+            console.error("Error starting screen recording:", err);
+            setIsRecording(false);
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop();
+        }
+    };
+
     const handleFileInputChange = (e) => {
         if (e.target.files?.length) {
             handleScreenshotFiles(e.target.files);
+        }
+    };
+
+    const handleVideoInputChange = (e) => {
+        if (e.target.files?.length) {
+            handleVideoFiles(e.target.files);
         }
     };
 
@@ -107,12 +191,21 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
         }
     };
 
+    const removeVideo = (index) => {
+        setVideos(prev => prev.filter((_, i) => i !== index));
+        setVideoPreviews(prev => prev.filter((_, i) => i !== index));
+        if (videoInputRef.current) {
+            videoInputRef.current.value = '';
+        }
+    };
+
     const clearAllScreenshots = () => {
         setScreenshots([]);
         setScreenshotPreviews([]);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
+        setVideos([]);
+        setVideoPreviews([]);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        if (videoInputRef.current) videoInputRef.current.value = '';
     };
 
     const handleDelete = async (id) => {
@@ -171,6 +264,12 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                 });
             }
 
+            if (videos.length > 0) {
+                videos.forEach(file => {
+                    formData.append('videos', file);
+                });
+            }
+
             const response = await fetch('/api/feedback', {
                 method: 'POST',
                 body: formData,
@@ -182,27 +281,13 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                 clearAllScreenshots();
 
                 // Refresh pending feedback immediately
-                const newFeedbackList = await response.json();
-                // The API returns the single new feedback, but we need to fetch all pending again or just append
-                // Ideally we fetch again to be safe, but for now let's just re-fetch
-                // Actually, let's just rely on the poller or manually trigger a fetch
-                // But to be responsive, let's append if we can, or just wait for the poll.
-                // Better: trigger a fetch immediately.
+                const newFeedback = await response.json();
+                setPendingFeedbacks(prev => [...prev, newFeedback]);
 
-                // For now, let's just set showForm to false to go back to list
                 setShowForm(false);
-
-                // We'll let the poller update the list, or we can force a fetch here
-                // fetchFeedback(); // We can't easily call it here without extracting it or using a ref/callback
-                // But since we have the poller, it should update shortly. 
-                // To make it instant, let's duplicate the fetch logic or move it out.
-                // Let's just rely on the poller for simplicity as it runs every 5s, 
-                // but maybe we can trigger it. 
-                // Actually, let's just set status to success and close form.
 
                 setTimeout(() => {
                     setStatus('idle');
-                    // setIsOpen(false); // Don't close, go to list
                 }, 2000);
             } else {
                 setStatus('error');
@@ -267,6 +352,20 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                                                     alt={`Feedback screenshot ${idx + 1}`}
                                                     className="w-full rounded border border-yellow-500/20 cursor-pointer hover:opacity-80 transition-opacity"
                                                     onClick={() => window.open(`/api/screenshots/${src}`, '_blank')}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Show videos if present */}
+                                    {feedback.videos && feedback.videos.length > 0 && (
+                                        <div className="mt-2 grid grid-cols-1 gap-2">
+                                            {feedback.videos.map((src, idx) => (
+                                                <video
+                                                    key={idx}
+                                                    src={`/api/screenshots/${src}`}
+                                                    controls
+                                                    className="w-full rounded border border-yellow-500/20"
                                                 />
                                             ))}
                                         </div>
@@ -350,8 +449,30 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                                 </div>
                             )}
 
-                            {/* Screenshot Upload Button */}
-                            <div className="mb-3">
+                            {/* Video Previews */}
+                            {videoPreviews.length > 0 && (
+                                <div className="mb-3 grid grid-cols-2 gap-2">
+                                    {videoPreviews.map((preview, idx) => (
+                                        <div key={idx} className="relative group">
+                                            <video
+                                                src={preview}
+                                                className="w-full h-24 object-cover rounded border border-slate-700"
+                                                controls
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => removeVideo(idx)}
+                                                className="absolute top-1 right-1 bg-red-500/80 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-all z-10"
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Upload Buttons */}
+                            <div className="mb-3 flex gap-2">
                                 <input
                                     ref={fileInputRef}
                                     type="file"
@@ -363,10 +484,39 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                                 <button
                                     type="button"
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="w-full py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-slate-400 hover:text-white hover:border-purple-500 transition-colors flex items-center justify-center gap-2"
+                                    className="flex-1 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-xs text-slate-400 hover:text-white hover:border-purple-500 transition-colors flex items-center justify-center gap-1"
                                 >
-                                    <ImageIcon size={16} />
-                                    {screenshotPreviews.length > 0 ? 'Add More Screenshots' : 'Upload Screenshots (or paste)'}
+                                    <ImageIcon size={14} />
+                                    Img
+                                </button>
+
+                                <input
+                                    ref={videoInputRef}
+                                    type="file"
+                                    accept="video/*"
+                                    multiple
+                                    onChange={handleVideoInputChange}
+                                    className="hidden"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => videoInputRef.current?.click()}
+                                    className="flex-1 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-xs text-slate-400 hover:text-white hover:border-purple-500 transition-colors flex items-center justify-center gap-1"
+                                >
+                                    <Video size={14} />
+                                    Vid
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={isRecording ? stopRecording : startRecording}
+                                    className={`flex-1 py-2 border rounded-lg text-xs transition-colors flex items-center justify-center gap-1 ${isRecording
+                                        ? 'bg-red-500/20 border-red-500 text-red-500 hover:bg-red-500/30'
+                                        : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:text-white hover:border-red-500'
+                                        }`}
+                                >
+                                    {isRecording ? <StopCircle size={14} /> : <Video size={14} />}
+                                    {isRecording ? 'Stop' : 'Rec'}
                                 </button>
                             </div>
 
@@ -404,7 +554,7 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                         </form>
                     )}
                     <div className="mt-2 text-[10px] text-slate-500 text-center">
-                        Feedback for: {deckId} / Slide {slideIndex + 1}
+                        Feedback for: {deckId} / Slide {slideIndex}
                     </div>
                 </div>
             )}

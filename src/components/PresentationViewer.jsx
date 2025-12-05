@@ -402,7 +402,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                         >
                             <Home size={24} />
                         </button>
-                        <DesignFeedback deckId={deckId} slideIndex={currentSlide} />
+                        <DesignFeedback deckId={deckId} slideIndex={currentSlide + 1} />
                     </>
                 )}
 

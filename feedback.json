@@ -3,7 +3,7 @@
     "id": 1764662519533,
     "timestamp": "2025-12-02T08:01:59.533Z",
     "deckId": "anime-golang",
-    "slideIndex": 5,
+    "slideIndex": 6,
     "instruction": "make sure that css should be aligned with the deck slide",
     "status": "completed"
   },
@@ -11,7 +11,7 @@
     "id": 1764662812953,
     "timestamp": "2025-12-02T08:06:52.953Z",
     "deckId": "anime-golang",
-    "slideIndex": 5,
+    "slideIndex": 6,
     "instruction": "hey code block css issue fixed here\n",
     "status": "completed"
   },
@@ -19,7 +19,7 @@
     "id": 1764663591345,
     "timestamp": "2025-12-02T08:19:51.345Z",
     "deckId": "anime-golang",
-    "slideIndex": 5,
+    "slideIndex": 6,
     "instruction": "make the code block fit within the container",
     "status": "completed"
   },
@@ -27,7 +27,7 @@
     "id": 1764664524586,
     "timestamp": "2025-12-02T08:35:24.586Z",
     "deckId": "goroutines",
-    "slideIndex": 1,
+    "slideIndex": 2,
     "instruction": "Test feedback instruction",
     "status": "completed"
   },
@@ -35,7 +35,7 @@
     "id": 1764664535251,
     "timestamp": "2025-12-02T08:35:35.251Z",
     "deckId": "anime-golang",
-    "slideIndex": 5,
+    "slideIndex": 6,
     "instruction": "please code fit horizonatlly if the space is not there then wrap the code\n",
     "status": "completed"
   },
@@ -43,7 +43,7 @@
     "id": 1764665639644,
     "timestamp": "2025-12-02T08:53:59.644Z",
     "deckId": "anime-golang",
-    "slideIndex": 9,
+    "slideIndex": 10,
     "instruction": "please add the like, share and subscribe button in this slide\n",
     "status": "completed"
   },
@@ -51,7 +51,7 @@
     "id": 1764737622072,
     "timestamp": "2025-12-03T04:53:42.072Z",
     "deckId": "goroutines",
-    "slideIndex": 4,
+    "slideIndex": 5,
     "instruction": "fix these css related issue\r\n",
     "status": "completed",
     "screenshot": "1764737622065-image.png"
@@ -60,7 +60,7 @@
     "id": 1764738568165,
     "timestamp": "2025-12-03T05:09:28.165Z",
     "deckId": "goroutines",
-    "slideIndex": 4,
+    "slideIndex": 5,
     "instruction": "Add one more slide after this lide \"how runtime package work\"",
     "status": "completed"
   },
@@ -68,7 +68,7 @@
     "id": 1764738931407,
     "timestamp": "2025-12-03T05:15:31.407Z",
     "deckId": "goroutines",
-    "slideIndex": 5,
+    "slideIndex": 6,
     "instruction": "add second point here",
     "status": "completed",
     "screenshot": "1764738931404-image.png"
@@ -77,7 +77,7 @@
     "id": 1764739041526,
     "timestamp": "2025-12-03T05:17:21.526Z",
     "deckId": "goroutines",
-    "slideIndex": 5,
+    "slideIndex": 6,
     "instruction": "add some text here",
     "status": "completed",
     "screenshot": "1764739041520-image.png"
@@ -86,7 +86,7 @@
     "id": 1764739276965,
     "timestamp": "2025-12-03T05:21:16.965Z",
     "deckId": "goroutines",
-    "slideIndex": 5,
+    "slideIndex": 6,
     "instruction": "match the text style from the above text",
     "status": "completed",
     "screenshot": "1764739276957-image.png"
@@ -95,7 +95,7 @@
     "id": 1764752952848,
     "timestamp": "2025-12-03T09:09:12.848Z",
     "deckId": "concurrency-interview",
-    "slideIndex": 17,
+    "slideIndex": 18,
     "instruction": "Like , share and susbscribe button add in the youtube ending page after this slide",
     "status": "completed"
   },
@@ -103,7 +103,7 @@
     "id": 1764754181624,
     "timestamp": "2025-12-03T09:29:41.624Z",
     "deckId": "interview",
-    "slideIndex": 6,
+    "slideIndex": 7,
     "instruction": "Demo testing\r\n",
     "status": "completed"
   },
@@ -111,7 +111,7 @@
     "id": 1764754193828,
     "timestamp": "2025-12-03T09:29:53.828Z",
     "deckId": "interview",
-    "slideIndex": 6,
+    "slideIndex": 7,
     "instruction": "Demo testing 2\r\n",
     "status": "completed"
   },
@@ -119,7 +119,7 @@
     "id": 1764754206018,
     "timestamp": "2025-12-03T09:30:06.018Z",
     "deckId": "interview",
-    "slideIndex": 6,
+    "slideIndex": 7,
     "instruction": "3",
     "status": "completed"
   },
@@ -127,7 +127,7 @@
     "id": 1764754329799,
     "timestamp": "2025-12-03T09:32:09.799Z",
     "deckId": "interview",
-    "slideIndex": 6,
+    "slideIndex": 7,
     "instruction": "4",
     "status": "completed"
   },
@@ -135,7 +135,7 @@
     "id": 1764754375951,
     "timestamp": "2025-12-03T09:32:55.951Z",
     "deckId": "interview",
-    "slideIndex": 6,
+    "slideIndex": 7,
     "instruction": "5",
     "status": "completed"
   },
@@ -143,7 +143,7 @@
     "id": 1764755113659,
     "timestamp": "2025-12-03T09:45:13.659Z",
     "deckId": "load-balancer",
-    "slideIndex": 4,
+    "slideIndex": 5,
     "instruction": "animation css related transation issue please fixed here",
     "status": "completed",
     "screenshots": [
@@ -154,7 +154,7 @@
     "id": 1764755192066,
     "timestamp": "2025-12-03T09:46:32.066Z",
     "deckId": "load-balancer",
-    "slideIndex": 4,
+    "slideIndex": 5,
     "instruction": "here container color change here",
     "status": "completed",
     "screenshots": [
@@ -165,7 +165,7 @@
     "id": 1764755562632,
     "timestamp": "2025-12-03T09:52:42.633Z",
     "deckId": "load-balancer",
-    "slideIndex": 5,
+    "slideIndex": 6,
     "instruction": "change the color of this tile",
     "status": "completed",
     "screenshots": [
@@ -176,7 +176,7 @@
     "id": 1764755611155,
     "timestamp": "2025-12-03T09:53:31.155Z",
     "deckId": "load-balancer",
-    "slideIndex": 6,
+    "slideIndex": 7,
     "instruction": "change the color of this tile",
     "status": "completed",
     "screenshots": [
@@ -187,7 +187,7 @@
     "id": 1764768856702,
     "timestamp": "2025-12-03T13:34:16.702Z",
     "deckId": "goroutines",
-    "slideIndex": 4,
+    "slideIndex": 5,
     "instruction": "please alignment properly on the UI side so that consistent element display",
     "status": "completed",
     "screenshots": [
@@ -198,7 +198,7 @@
     "id": 1764946175702,
     "timestamp": "2025-12-05T14:49:35.702Z",
     "deckId": "concurrency",
-    "slideIndex": 6,
+    "slideIndex": 7,
     "instruction": "Add one more point here",
     "status": "completed",
     "screenshots": [
@@ -209,7 +209,7 @@
     "id": 1764946518433,
     "timestamp": "2025-12-05T14:55:18.433Z",
     "deckId": "concurrency",
-    "slideIndex": 6,
+    "slideIndex": 7,
     "instruction": "add the text here",
     "status": "completed",
     "screenshots": [
@@ -220,7 +220,7 @@
     "id": 1764947104132,
     "timestamp": "2025-12-05T15:05:04.132Z",
     "deckId": "concurrency",
-    "slideIndex": 6,
+    "slideIndex": 7,
     "instruction": "place the text here",
     "status": "completed",
     "screenshots": [
@@ -231,7 +231,7 @@
     "id": 1764947626767,
     "timestamp": "2025-12-05T15:13:46.767Z",
     "deckId": "concurrency",
-    "slideIndex": 6,
+    "slideIndex": 7,
     "instruction": "please add the text here that i've shown the screenshot\r\n",
     "status": "completed",
     "screenshots": [
@@ -242,7 +242,7 @@
     "id": 1764951293736,
     "timestamp": "2025-12-05T16:14:53.736Z",
     "deckId": "rate-limiting",
-    "slideIndex": 4,
+    "slideIndex": 5,
     "instruction": "fixed animation tranisition smooth and consistent",
     "status": "completed",
     "screenshots": [
@@ -253,7 +253,7 @@
     "id": 1764951346851,
     "timestamp": "2025-12-05T16:15:46.851Z",
     "deckId": "rate-limiting",
-    "slideIndex": 8,
+    "slideIndex": 9,
     "instruction": "fixed these thing here that is going outside",
     "status": "completed",
     "screenshots": [
@@ -264,11 +264,55 @@
     "id": 1764951563726,
     "timestamp": "2025-12-05T16:19:23.726Z",
     "deckId": "rate-limiting",
-    "slideIndex": 14,
+    "slideIndex": 15,
     "instruction": "like, share and subscribe button instead of the this social media button",
     "status": "completed",
     "screenshots": [
       "1764951563720-115308610-image.png"
+    ]
+  },
+  {
+    "id": 1764952853493,
+    "timestamp": "2025-12-05T16:40:53.493Z",
+    "deckId": "rate-limiting",
+    "slideIndex": 9,
+    "instruction": "this is going outside the container boundries so please fix these animation issue",
+    "status": "completed",
+    "videos": [
+      "1764952853453-124852988-screen-recording-1764952833148.webm"
+    ]
+  },
+  {
+    "id": 1764954140200,
+    "timestamp": "2025-12-05T17:02:20.200Z",
+    "deckId": "rate-limiting",
+    "slideIndex": 9,
+    "instruction": "please fix these issue where constatnt output text is overflow with the busted input text",
+    "status": "completed",
+    "videos": [
+      "1764954140166-83895400-screen-recording-1764954138968.webm"
+    ]
+  },
+  {
+    "id": 1764954926238,
+    "timestamp": "2025-12-05T17:15:26.238Z",
+    "deckId": "rate-limiting",
+    "slideIndex": 9,
+    "instruction": "please check these issue that is metioned in the video",
+    "status": "completed",
+    "videos": [
+      "1764954926211-763969157-screen-recording-1764954905817.webm"
+    ]
+  },
+  {
+    "id": 1764955779131,
+    "timestamp": "2025-12-05T17:29:39.131Z",
+    "deckId": "rate-limiting",
+    "slideIndex": 9,
+    "instruction": "this will overflow the text so please fix these changes",
+    "status": "completed",
+    "screenshots": [
+      "1764955779128-868701939-image.png"
     ]
   }
 ]

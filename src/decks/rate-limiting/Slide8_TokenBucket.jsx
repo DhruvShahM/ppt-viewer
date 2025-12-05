@@ -67,7 +67,7 @@ const Slide8_TokenBucket = () => {
                 </div>
 
                 {/* Right: Animation */}
-                <div className="flex flex-col items-center justify-center bg-slate-800/30 rounded-2xl p-8 border border-slate-700 relative h-[400px]">
+                <div className="flex flex-col items-center justify-center bg-slate-800/30 rounded-2xl p-8 border border-slate-700 relative h-[400px] overflow-hidden">
 
                     {/* Bucket Container */}
                     <div className="flex flex-col items-center gap-2">
@@ -89,15 +89,16 @@ const Slide8_TokenBucket = () => {
                     </div>
 
                     {/* Incoming Requests */}
-                    <div className="absolute right-10 top-1/2 -translate-y-1/2 flex flex-col gap-2">
-                        <AnimatePresence>
+                    <div className="absolute right-10 top-1/2 -translate-y-1/2 flex flex-col gap-2 max-h-[300px] overflow-hidden p-2">
+                        <AnimatePresence mode='popLayout'>
                             {requests.filter(r => r.processed).map((req) => (
                                 <motion.div
                                     key={req.id}
+                                    layout
                                     initial={{ x: 100, opacity: 0 }}
                                     animate={{ x: 0, opacity: 1 }}
                                     exit={{ x: -50, opacity: 0 }}
-                                    className={`px-4 py-2 rounded-lg font-bold ${req.status === 'allowed' ? 'bg-green-500' : 'bg-red-500'}`}
+                                    className={`px-4 py-2 rounded-lg font-bold whitespace-nowrap shadow-lg ${req.status === 'allowed' ? 'bg-green-500' : 'bg-red-500'}`}
                                 >
                                     {req.status === 'allowed' ? 'Allowed' : 'Denied'}
                                 </motion.div>

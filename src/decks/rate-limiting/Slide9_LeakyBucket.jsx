@@ -28,7 +28,7 @@ const Slide9_LeakyBucket = () => {
             setBucket(prev => {
                 if (prev.length > 0) {
                     const [first, ...rest] = prev;
-                    setProcessed(p => [...p, { id: first, time: Date.now() }]);
+                    setProcessed(p => [...p, { id: first, time: Date.now() }].slice(-3));
                     return rest;
                 }
                 return prev;
@@ -41,12 +41,7 @@ const Slide9_LeakyBucket = () => {
         };
     }, []);
 
-    // Cleanup processed
-    useEffect(() => {
-        if (processed.length > 5) {
-            setProcessed(prev => prev.slice(1));
-        }
-    }, [processed]);
+
 
     return (
         <div className="h-full w-full flex flex-col items-center justify-center bg-slate-900 text-white p-8">
@@ -69,7 +64,7 @@ const Slide9_LeakyBucket = () => {
                 </div>
 
                 {/* Right: Animation */}
-                <div className="flex flex-col items-center justify-center bg-slate-800/30 rounded-2xl p-8 border border-slate-700 relative h-[450px]">
+                <div className="flex flex-col items-center justify-start pt-24 bg-slate-800/30 rounded-2xl p-8 border border-slate-700 relative h-[500px] overflow-hidden">
 
                     {/* Input Flow */}
                     <div className="absolute top-4 text-gray-400 text-sm">Bursty Input</div>
@@ -82,7 +77,7 @@ const Slide9_LeakyBucket = () => {
                     </motion.div>
 
                     {/* Bucket */}
-                    <div className="relative w-40 h-48 border-4 border-slate-500 border-t-0 rounded-b-xl bg-slate-900/50 flex flex-col-reverse items-center p-2 gap-1 overflow-hidden mt-12">
+                    <div className="relative w-40 h-48 border-4 border-slate-500 border-t-0 rounded-b-xl bg-slate-900/50 flex flex-col-reverse items-center p-2 gap-1 overflow-hidden mt-8">
                         {/* Water Level */}
                         <motion.div
                             className="absolute bottom-0 left-0 right-0 bg-cyan-500/30"

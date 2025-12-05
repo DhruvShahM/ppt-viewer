@@ -77,11 +77,22 @@ const cleanupFeedback = () => {
         const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
         let feedback = JSON.parse(fileContent);
 
-        if (feedback.length > 30) {
-            const count = feedback.length - 30;
-            feedback = feedback.slice(-30);
+        // Separate pending and completed
+        const pending = feedback.filter(f => f.status === 'pending');
+        const completed = feedback.filter(f => f.status !== 'pending');
+
+        // Keep last 50 completed items
+        const MAX_HISTORY = 50;
+
+        if (completed.length > MAX_HISTORY) {
+            const count = completed.length - MAX_HISTORY;
+            const keptCompleted = completed.slice(-MAX_HISTORY);
+
+            // Recombine and sort by ID (which is timestamp) to maintain order
+            feedback = [...pending, ...keptCompleted].sort((a, b) => a.id - b.id);
+
             fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedback, null, 2));
-            console.log(`Removed ${count} old feedback entries`);
+            console.log(`Removed ${count} old completed feedback entries`);
         }
     } catch (error) {
         console.error('Error cleaning up feedback:', error);
