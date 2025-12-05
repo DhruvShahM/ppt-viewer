@@ -27,8 +27,7 @@ if (!fs.existsSync(SCREENSHOTS_DIR)) {
     fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 }
 
-const ARCHIVES_DIR = path.join(__dirname, '..', 'archives');
-app.use('/archives', express.static(ARCHIVES_DIR));
+
 
 // Cleanup screenshots for completed feedback
 const cleanupScreenshots = () => {
@@ -263,24 +262,26 @@ app.delete('/api/feedback/:deckId/:slideIndex', catchAsync(async (req, res, next
 
 const { exec } = require('child_process');
 
-app.post('/api/archive', catchAsync(async (req, res, next) => {
+
+
+app.post('/api/delete', catchAsync(async (req, res, next) => {
     const { deckIds } = req.body;
 
     if (!deckIds || !Array.isArray(deckIds) || deckIds.length === 0) {
         return next(new AppError('Invalid deckIds', 400));
     }
 
-    console.log(`Archiving decks: ${deckIds.join(', ')}`);
+    console.log(`Deleting decks: ${deckIds.join(', ')}`);
 
-    const runArchive = async () => {
+    const runDelete = async () => {
         try {
             for (const id of deckIds) {
                 await new Promise((resolve, reject) => {
-                    exec(`node scripts/archive-decks.js ${id}`, { cwd: path.join(__dirname, '..') }, (error, stdout, stderr) => {
+                    exec(`node scripts/delete-deck.js ${id}`, { cwd: path.join(__dirname, '..') }, (error, stdout, stderr) => {
                         if (error) {
-                            console.error(`Error archiving ${id}:`, error);
+                            console.error(`Error deleting ${id}:`, error);
                         } else {
-                            console.log(`Archived ${id}:`, stdout);
+                            console.log(`Deleted ${id}:`, stdout);
                         }
                         resolve();
                     });
@@ -288,45 +289,12 @@ app.post('/api/archive', catchAsync(async (req, res, next) => {
             }
             res.json({ success: true });
         } catch (error) {
-            console.error('Archive process failed:', error);
-            return next(new AppError('Archive process failed', 500));
+            console.error('Delete process failed:', error);
+            return next(new AppError('Delete process failed', 500));
         }
     };
 
-    runArchive();
-}));
-
-app.post('/api/restore', catchAsync(async (req, res, next) => {
-    const { deckIds } = req.body;
-
-    if (!deckIds || !Array.isArray(deckIds) || deckIds.length === 0) {
-        return next(new AppError('Invalid deckIds', 400));
-    }
-
-    console.log(`Restoring decks: ${deckIds.join(', ')}`);
-
-    const runRestore = async () => {
-        try {
-            for (const id of deckIds) {
-                await new Promise((resolve, reject) => {
-                    exec(`node scripts/restore-deck.js ${id}`, { cwd: path.join(__dirname, '..') }, (error, stdout, stderr) => {
-                        if (error) {
-                            console.error(`Error restoring ${id}:`, error);
-                        } else {
-                            console.log(`Restored ${id}:`, stdout);
-                        }
-                        resolve();
-                    });
-                });
-            }
-            res.json({ success: true });
-        } catch (error) {
-            console.error('Restore process failed:', error);
-            return next(new AppError('Restore process failed', 500));
-        }
-    };
-
-    runRestore();
+    runDelete();
 }));
 
 app.all('*', (req, res, next) => {

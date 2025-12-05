@@ -44,7 +44,7 @@ function App() {
     };
     const [showVideo, setShowVideo] = useState(true);
     // Dynamically import all mp4 files from src/assets/backgrounds
-    const videoModules = import.meta.glob('/src/assets/backgrounds/*.mp4', { eager: true, as: 'url' });
+    const videoModules = import.meta.glob('/src/assets/backgrounds/*.mp4', { eager: true, query: '?url', import: 'default' });
 
     const videos = Object.entries(videoModules).map(([path, src], index) => {
         // Extract filename from path for the name

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, FileDown, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, Archive, CheckSquare, Square, RefreshCcw } from 'lucide-react';
+import { Play, FileDown, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 
 import { REPOSITORIES } from '../data/repositories';
@@ -18,12 +18,12 @@ const ICON_MAP = {
     Heart
 };
 
-const DeckCard = ({ title, description, icon, onClick, color, isEditMode, repositories, currentRepoId, onMove, isSelectionMode, isSelected, onToggleSelect, isArchived }) => {
+const DeckCard = ({ title, description, icon, onClick, color, isEditMode, repositories, currentRepoId, onMove, isSelectionMode, isSelected, onToggleSelect, onDelete }) => {
     // Resolve icon component from string name or use default
     const IconComponent = ICON_MAP[icon] || Layers;
 
     return (
-        <motion.button
+        <motion.div
             layout
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -31,7 +31,7 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
             whileHover={!isEditMode ? { scale: 1.05 } : {}}
             whileTap={!isEditMode && !isSelectionMode ? { scale: 0.95 } : {}}
             onClick={!isEditMode && !isSelectionMode ? onClick : (isSelectionMode ? onToggleSelect : undefined)}
-            className={`flex flex-col items-start p-8 rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/0 ${!isEditMode ? `hover:border-${color}-500/50` : 'border-white/20'} transition-all group text-left w-full h-full relative overflow-hidden`}
+            className={`flex flex-col items-start p-8 rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/0 ${!isEditMode ? `hover:border-${color}-500/50` : 'border-white/20'} transition-all group text-left w-full h-full relative overflow-hidden cursor-pointer`}
         >
             <div className={`absolute top-0 right-0 w-32 h-32 bg-${color}-500/10 rounded-full blur-3xl -mr-16 -mt-16 transition-all ${!isEditMode ? `group-hover:bg-${color}-500/20` : ''}`} />
 
@@ -39,12 +39,7 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
                 <div className={`p-4 rounded-xl bg-${color}-500/20 text-${color}-400 ${!isEditMode && !isSelectionMode ? 'group-hover:scale-110' : ''} transition-transform duration-300`}>
                     <IconComponent size={32} />
                 </div>
-                {isArchived && (
-                    <div className="px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500/50 text-orange-400 text-xs font-bold uppercase tracking-wider h-fit flex items-center gap-1">
-                        <Archive size={12} />
-                        Archived
-                    </div>
-                )}
+
             </div>
 
             {isSelectionMode && (
@@ -59,26 +54,40 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
             {!isEditMode && !isSelectionMode ? (
                 <div className="flex items-center gap-2 text-sm font-medium text-white/60 group-hover:text-white transition-colors">
                     <Play size={16} fill="currentColor" />
-                    {isArchived ? 'VIEW ARCHIVE' : 'START PRESENTATION'}
+                    START PRESENTATION
                 </div>
             ) : (
-                <div className="w-full mt-auto pt-4 border-t border-white/10">
-                    <label className="text-xs text-gray-500 mb-1 block">Move to:</label>
-                    <select
-                        className="w-full bg-black/40 border border-white/20 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-blue-500"
-                        value={currentRepoId}
-                        onChange={(e) => onMove(e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {repositories.map(repo => (
-                            <option key={repo.id} value={repo.id}>
-                                {repo.title}
-                            </option>
-                        ))}
-                    </select>
+                <div className="w-full mt-auto pt-4 border-t border-white/10 flex items-end gap-2">
+                    <div className="flex-grow">
+                        <label className="text-xs text-gray-500 mb-1 block">Move to:</label>
+                        <select
+                            className="w-full bg-black/40 border border-white/20 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-blue-500"
+                            value={currentRepoId}
+                            onChange={(e) => onMove(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {repositories.map(repo => (
+                                <option key={repo.id} value={repo.id}>
+                                    {repo.title}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    {isEditMode && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete();
+                            }}
+                            className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded border border-red-500/20 transition-colors"
+                            title="Delete Deck"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    )}
                 </div>
             )}
-        </motion.button>
+        </motion.div>
     );
 };
 
@@ -87,67 +96,44 @@ const DeckSelector = ({ onSelectDeck }) => {
     const [isEditMode, setIsEditMode] = useState(false);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedDecks, setSelectedDecks] = useState(new Set());
-    const [isArchiving, setIsArchiving] = useState(false);
-    const [isRestoring, setIsRestoring] = useState(false);
+
     const [searchQuery, setSearchQuery] = useState("");
     const [isSortedAsc, setIsSortedAsc] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 1;
 
     const [repositories, setRepositories] = useState(() => {
-        const saved = localStorage.getItem('deck_repositories');
-        return saved ? JSON.parse(saved) : REPOSITORIES;
+        const repoMap = new Map();
+        deckIndex.forEach(deck => {
+            if (!repoMap.has(deck.repoId)) {
+                repoMap.set(deck.repoId, {
+                    id: deck.repoId,
+                    title: deck.repoTitle,
+                    decks: []
+                });
+            }
+            repoMap.get(deck.repoId).decks.push(deck);
+        });
+        return Array.from(repoMap.values());
     });
 
-    // Persist to localStorage whenever repositories change
+    // Sync with deckIndex changes (HMR or updates)
     useEffect(() => {
-        localStorage.setItem('deck_repositories', JSON.stringify(repositories));
-    }, [repositories]);
-
-    // Sync new decks from REPOSITORIES (code) to state (localStorage)
-    useEffect(() => {
-        let hasChanges = false;
-        const newRepositories = [...repositories];
-        const currentDeckIds = new Set();
-
-        // Collect all current deck IDs
-        newRepositories.forEach(repo => {
-            repo.decks.forEach(deck => currentDeckIds.add(deck.id));
+        const repoMap = new Map();
+        deckIndex.forEach(deck => {
+            if (!repoMap.has(deck.repoId)) {
+                repoMap.set(deck.repoId, {
+                    id: deck.repoId,
+                    title: deck.repoTitle,
+                    decks: []
+                });
+            }
+            repoMap.get(deck.repoId).decks.push(deck);
         });
+        setRepositories(Array.from(repoMap.values()));
+    }, [deckIndex]);
 
-        // Check for missing decks
-        REPOSITORIES.forEach(defaultRepo => {
-            defaultRepo.decks.forEach(defaultDeck => {
-                if (!currentDeckIds.has(defaultDeck.id)) {
-                    // Deck is missing, find where to add it
-                    const targetRepoIndex = newRepositories.findIndex(r => r.id === defaultRepo.id);
 
-                    if (targetRepoIndex !== -1) {
-                        // Add to existing repo
-                        newRepositories[targetRepoIndex] = {
-                            ...newRepositories[targetRepoIndex],
-                            decks: [...newRepositories[targetRepoIndex].decks, defaultDeck]
-                        };
-                        hasChanges = true;
-                    } else {
-                        // Repo doesn't exist either, add the whole repo (or just the deck in a new repo?)
-                        // Simpler to just add the repo if it's missing, but we need to be careful about partials.
-                        // For now, if repo is missing, we assume the user deleted it or it's new.
-                        // Let's add the repo with just this deck if the repo is missing.
-                        newRepositories.push({
-                            ...defaultRepo,
-                            decks: [defaultDeck]
-                        });
-                        hasChanges = true;
-                    }
-                }
-            });
-        });
-
-        if (hasChanges) {
-            setRepositories(newRepositories);
-        }
-    }, []); // Run once on mount
 
     // Filter and Sort Logic
     const processedRepositories = useMemo(() => {
@@ -262,72 +248,65 @@ const DeckSelector = ({ onSelectDeck }) => {
 
 
 
-    const handleArchiveSelected = async () => {
-        if (selectedDecks.size === 0) return;
-        if (!confirm(`Archive ${selectedDecks.size} decks? They will become read-only.`)) return;
 
-        setIsArchiving(true);
+
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDeleteSelected = async () => {
+        if (selectedDecks.size === 0) return;
+        if (!confirm(`PERMANENTLY DELETE ${selectedDecks.size} decks? This action cannot be undone.`)) return;
+
+        setIsDeleting(true);
         try {
-            const response = await fetch('/api/archive', {
+            const response = await fetch('/api/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ deckIds: Array.from(selectedDecks) })
             });
 
             if (response.ok) {
-                alert('Decks archived successfully!');
+                alert('Decks deleted successfully!');
                 setIsSelectionMode(false);
                 setSelectedDecks(new Set());
                 window.location.reload();
             } else {
-                alert('Failed to archive decks');
+                alert('Failed to delete decks');
             }
         } catch (error) {
-            console.error('Archive failed:', error);
-            alert('Failed to archive decks');
+            console.error('Delete failed:', error);
+            alert('Failed to delete decks');
         } finally {
-            setIsArchiving(false);
+            setIsDeleting(false);
         }
     };
 
-    const handleRestoreSelected = async () => {
-        if (selectedDecks.size === 0) return;
-        if (!confirm(`Restore ${selectedDecks.size} decks? They will become editable again.`)) return;
 
-        setIsRestoring(true);
+    const handleDeleteDeck = async (deckId) => {
+        if (!confirm(`PERMANENTLY DELETE this deck? This action cannot be undone.`)) return;
+
+        setIsDeleting(true);
         try {
-            const response = await fetch('/api/restore', {
+            const response = await fetch('/api/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ deckIds: Array.from(selectedDecks) })
+                body: JSON.stringify({ deckIds: [deckId] })
             });
 
             if (response.ok) {
-                alert('Decks restored successfully!');
-                setIsSelectionMode(false);
-                setSelectedDecks(new Set());
+                alert('Deck deleted successfully!');
                 window.location.reload();
             } else {
-                alert('Failed to restore decks');
+                alert('Failed to delete deck');
             }
         } catch (error) {
-            console.error('Restore failed:', error);
-            alert('Failed to restore decks');
+            console.error('Delete failed:', error);
+            alert('Failed to delete deck');
         } finally {
-            setIsRestoring(false);
+            setIsDeleting(false);
         }
     };
 
-    // Helper to check if any selected deck is archived
-    const hasArchivedSelected = useMemo(() => {
-        for (const deckId of selectedDecks) {
-            const deck = deckIndex.find(d => d.id === deckId);
-            if (deck && deck.status === 'archived') {
-                return true;
-            }
-        }
-        return false;
-    }, [selectedDecks]);
+
 
     const handleExportAll = async () => {
         if (isExporting) return;
@@ -468,42 +447,21 @@ const DeckSelector = ({ onSelectDeck }) => {
                         {isEditMode ? 'Done Editing' : 'Edit Structure'}
                     </button>
 
-                    {/* Archive Mode Button */}
-                    <button
-                        onClick={() => {
-                            setIsSelectionMode(!isSelectionMode);
-                            setIsEditMode(false);
-                            setSelectedDecks(new Set());
-                        }}
-                        className={`px-4 py-3 rounded-xl border transition-all whitespace-nowrap flex items-center gap-2 ${isSelectionMode
-                            ? 'bg-orange-500/20 border-orange-500 text-orange-400'
-                            : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
-                            }`}
-                    >
-                        <Archive size={20} />
-                        {isSelectionMode ? 'Cancel Selection' : 'Archive'}
-                    </button>
+
 
                     {isSelectionMode && selectedDecks.size > 0 && (
-                        hasArchivedSelected ? (
+                        <>
+
+
                             <button
-                                onClick={handleRestoreSelected}
-                                disabled={isRestoring}
-                                className="px-4 py-3 rounded-xl bg-green-500 text-white font-bold hover:bg-green-600 transition-all flex items-center gap-2"
+                                onClick={handleDeleteSelected}
+                                disabled={isDeleting}
+                                className="px-4 py-3 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-all flex items-center gap-2"
                             >
-                                {isRestoring ? <Loader2 className="animate-spin" /> : <RefreshCcw size={20} />}
-                                Restore ({selectedDecks.size})
+                                {isDeleting ? <Loader2 className="animate-spin" /> : <Trash2 size={20} />}
+                                Delete ({selectedDecks.size})
                             </button>
-                        ) : (
-                            <button
-                                onClick={handleArchiveSelected}
-                                disabled={isArchiving}
-                                className="px-4 py-3 rounded-xl bg-orange-500 text-white font-bold hover:bg-orange-600 transition-all flex items-center gap-2"
-                            >
-                                {isArchiving ? <Loader2 className="animate-spin" /> : <Archive size={20} />}
-                                Archive ({selectedDecks.size})
-                            </button>
-                        )
+                        </>
                     )}
                 </div>
             </motion.div>
@@ -560,7 +518,7 @@ const DeckSelector = ({ onSelectDeck }) => {
                                             isSelectionMode={isSelectionMode}
                                             isSelected={selectedDecks.has(deck.id)}
                                             onToggleSelect={() => toggleSelection(deck.id)}
-                                            isArchived={deckIndex.find(d => d.id === deck.id)?.status === 'archived'}
+                                            onDelete={() => handleDeleteDeck(deck.id)}
                                         />
                                     ))}
                                 </AnimatePresence>

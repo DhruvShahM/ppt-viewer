@@ -29,9 +29,7 @@
     "description": "Pointers, Interfaces, Methods, and Type Safety.",
     "icon": "Sparkles",
     "color": "green",
-    "status": "archived",
-    "archivePath": "archives/interview/archive.html",
-    "originalPath": "src/decks/interview"
+    "status": "active"
   },
   {
     "id": "concurrency-interview",
@@ -74,9 +72,7 @@
     "description": "Learn concurrency with a cute Anime Gopher! 🐹✨",
     "icon": "Sparkles",
     "color": "pink",
-    "status": "archived",
-    "archivePath": "archives/anime-golang/archive.html",
-    "originalPath": "src/decks/anime-golang"
+    "status": "active"
   },
   {
     "id": "load-balancer",
@@ -108,9 +104,7 @@
     "description": "Auto-generated dummy deck 1 for testing.",
     "icon": "Zap",
     "color": "gray",
-    "status": "archived",
-    "archivePath": "archives/dummy-1/archive.html",
-    "originalPath": "src/decks/dummy-1"
+    "status": "active"
   },
   {
     "id": "dummy-2",
@@ -320,5 +314,16 @@
     "color": "gray",
     "status": "active",
     "path": "src/decks/dummy-20"
+  },
+  {
+    "id": "test-archive-deck",
+    "title": "Test Archive Deck",
+    "repoId": "test",
+    "repoTitle": "Test",
+    "description": "Deck for testing archival.",
+    "icon": "Zap",
+    "color": "gray",
+    "status": "active",
+    "path": "src/decks/test-archive-deck"
   }
 ]

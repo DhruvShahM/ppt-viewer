@@ -92,7 +92,7 @@ async function archiveDeck(deckId) {
         console.log(`Running git archive for ${deckId}...`);
         await new Promise((resolve, reject) => {
             // We need to pass the relative path to the source directory
-            const relativeSourcePath = deck.path || `src/decks/${deckId}`;
+            const relativeSourcePath = deck.originalPath || `src/decks/${deckId}`;
 
             // Use exec from child_process (imported implicitly via build? no, need to import it)
             // Actually, we are in an async function, let's just use exec
