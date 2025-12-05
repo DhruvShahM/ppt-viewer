@@ -64,10 +64,11 @@
     "description": "The complete guide: From Basics to Advanced Patterns & Tools.",
     "icon": "Zap",
     "color": "orange",
-    "status": "active",
+    "status": "archived",
     "path": "src/decks/concurrency-guide",
     "version": 1,
-    "hasLargeAssets": false
+    "hasLargeAssets": false,
+    "archivedAt": "2025-12-05T14:31:55.292Z"
   },
   {
     "id": "hindi-concurrency",
