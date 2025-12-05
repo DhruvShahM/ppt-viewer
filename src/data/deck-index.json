@@ -124,13 +124,13 @@
     "description": "Auto-generated dummy deck 1 for testing.",
     "icon": "Zap",
     "color": "gray",
-    "status": "archived",
+    "status": "active",
     "path": "src/decks/dummy-1",
-    "version": 2,
+    "version": 3,
     "hasLargeAssets": false,
     "archivedAt": "2025-12-05T03:29:16.676Z",
     "checksum": "1ebfdbf95152e3b3f078460bc4b0cfe0b87aabbc21d8bee8fba02257318477b0",
-    "backupPath": "backups\\2025-12-05T03-29-14-936Z-dummy-1.zip.enc"
+    "restoredAt": "2025-12-05T04:32:07.782Z"
   },
   {
     "id": "dummy-2",
