@@ -219,14 +219,5 @@
     "hasLargeAssets": false,
     "archivedAt": "2025-12-05T13:48:03.176Z",
     "restoredAt": "2025-12-05T13:48:32.044Z"
-  },
-  {
-    "id": "dummy-15",
-    "title": "Dummy Deck 15",
-    "description": "Description for Dummy Deck 15",
-    "status": "active",
-    "path": "src/decks/dummy-15",
-    "version": 1,
-    "hasLargeAssets": false
   }
 ]
