@@ -99,10 +99,11 @@
     "description": "In-depth Explained: Algorithms, Health Checks, and Failover.",
     "icon": "Network",
     "color": "cyan",
-    "status": "active",
+    "status": "archived",
     "path": "src/decks/load-balancer",
     "version": 1,
-    "hasLargeAssets": false
+    "hasLargeAssets": false,
+    "archivedAt": "2025-12-05T13:52:03.518Z"
   },
   {
     "id": "rate-limiting",
