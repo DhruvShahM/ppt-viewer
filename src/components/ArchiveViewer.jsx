@@ -53,7 +53,14 @@ const ArchiveViewer = ({ onBack }) => {
             const data = await response.json();
 
             if (data.success) {
-                showNotification('success', `Deck "${deckId}" restored successfully!`);
+                // Show notification with refresh action
+                showNotification('success', `Deck "${deckId}" restored successfully! Please refresh the page to load the deck content.`, {
+                    action: {
+                        label: 'Refresh Now',
+                        onClick: () => window.location.reload()
+                    },
+                    duration: 15000 // Show for 15 seconds
+                });
                 // Remove from archived list
                 setArchivedDecks(decks => decks.filter(d => d.id !== deckId));
             } else {
@@ -67,9 +74,10 @@ const ArchiveViewer = ({ onBack }) => {
     };
 
     // Show notification
-    const showNotification = (type, message) => {
-        setNotification({ type, message });
-        setTimeout(() => setNotification(null), 5000);
+    const showNotification = (type, message, options = {}) => {
+        const duration = options.duration || 5000;
+        setNotification({ type, message, action: options.action });
+        setTimeout(() => setNotification(null), duration);
     };
 
     // Filter decks
@@ -164,13 +172,25 @@ const ArchiveViewer = ({ onBack }) => {
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
-                        className={`fixed top-8 right-8 z-50 px-6 py-4 rounded-xl border flex items-center gap-3 ${notification.type === 'success'
-                                ? 'bg-green-500/20 border-green-500 text-green-400'
-                                : 'bg-red-500/20 border-red-500 text-red-400'
+                        className={`fixed top-8 right-8 z-50 px-6 py-4 rounded-xl border flex items-start gap-3 max-w-md ${notification.type === 'success'
+                            ? 'bg-green-500/20 border-green-500 text-green-400'
+                            : 'bg-red-500/20 border-red-500 text-red-400'
                             }`}
                     >
-                        {notification.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-                        <span className="font-medium">{notification.message}</span>
+                        <div className="flex-shrink-0 mt-0.5">
+                            {notification.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+                        </div>
+                        <div className="flex-1 flex flex-col gap-3">
+                            <span className="font-medium text-sm leading-relaxed">{notification.message}</span>
+                            {notification.action && (
+                                <button
+                                    onClick={notification.action.onClick}
+                                    className="self-start px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-current transition-all font-semibold text-sm"
+                                >
+                                    {notification.action.label}
+                                </button>
+                            )}
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

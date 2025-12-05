@@ -15,6 +15,8 @@ export const getDeck = async (id) => {
 
     if (!loader) {
         console.error(`Deck not found: ${id} at path ${path}`);
+        console.warn('💡 If this deck was recently restored from archive, please refresh the page to reload the module graph.');
+        console.warn('   Vite\'s import.meta.glob() creates a static import map at build time.');
         return null;
     }
 
