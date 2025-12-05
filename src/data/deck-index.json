@@ -312,6 +312,7 @@
   {
     "id": "dummy-15",
     "title": "Dummy Deck 15",
+    "description": "Description for Dummy Deck 15",
     "status": "active",
     "path": "src/decks/dummy-15"
   }
