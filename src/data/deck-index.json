@@ -200,11 +200,12 @@
     "description": "Auto-generated dummy deck 18 for testing.",
     "icon": "Zap",
     "color": "gray",
-    "status": "archived",
+    "status": "active",
     "path": "src/decks/dummy-18",
     "version": 1,
     "hasLargeAssets": false,
-    "archivedAt": "2025-12-05T14:30:45.903Z"
+    "archivedAt": "2025-12-05T14:30:45.903Z",
+    "restoredAt": "2025-12-05T14:31:12.728Z"
   },
   {
     "id": "dummy-19",
