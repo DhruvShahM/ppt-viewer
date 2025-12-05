@@ -193,5 +193,49 @@
     "screenshots": [
       "1764768856677-576390084-image.png"
     ]
+  },
+  {
+    "id": 1764946175702,
+    "timestamp": "2025-12-05T14:49:35.702Z",
+    "deckId": "concurrency",
+    "slideIndex": 6,
+    "instruction": "Add one more point here",
+    "status": "completed",
+    "screenshots": [
+      "1764946175688-289525036-image.png"
+    ]
+  },
+  {
+    "id": 1764946518433,
+    "timestamp": "2025-12-05T14:55:18.433Z",
+    "deckId": "concurrency",
+    "slideIndex": 6,
+    "instruction": "add the text here",
+    "status": "completed",
+    "screenshots": [
+      "1764946518426-892763114-image.png"
+    ]
+  },
+  {
+    "id": 1764947104132,
+    "timestamp": "2025-12-05T15:05:04.132Z",
+    "deckId": "concurrency",
+    "slideIndex": 6,
+    "instruction": "place the text here",
+    "status": "completed",
+    "screenshots": [
+      "1764947104119-149854008-image.png"
+    ]
+  },
+  {
+    "id": 1764947626767,
+    "timestamp": "2025-12-05T15:13:46.767Z",
+    "deckId": "concurrency",
+    "slideIndex": 6,
+    "instruction": "please add the text here that i've shown the screenshot\r\n",
+    "status": "completed",
+    "screenshots": [
+      "1764947626762-337540214-image.png"
+    ]
   }
 ]
