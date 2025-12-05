@@ -228,17 +228,5 @@
     "path": "src/decks/dummy-15",
     "version": 1,
     "hasLargeAssets": false
-  },
-  {
-    "id": "dummy-1",
-    "title": "Dummy Deck",
-    "description": "For testing",
-    "status": "active",
-    "path": "src/decks/dummy-1",
-    "archivedAt": "2025-12-05T14:27:42.959Z",
-    "checksum": "fa954c8001c11f03ecdfbc93165edbe6573c4664515a94934ff7a597195d234b",
-    "hasLargeAssets": false,
-    "version": 2,
-    "restoredAt": "2025-12-05T14:27:52.257Z"
   }
 ]
