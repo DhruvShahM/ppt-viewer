@@ -119,6 +119,9 @@ const DeckSelector = ({ onSelectDeck, onViewArchives }) => {
     const [repositories, setRepositories] = useState(() => {
         const repoMap = new Map();
         deckIndex.forEach(deck => {
+            // Skip archived decks
+            if (deck.status === 'archived') return;
+
             if (!repoMap.has(deck.repoId)) {
                 repoMap.set(deck.repoId, {
                     id: deck.repoId,
@@ -135,6 +138,9 @@ const DeckSelector = ({ onSelectDeck, onViewArchives }) => {
     useEffect(() => {
         const repoMap = new Map();
         deckIndex.forEach(deck => {
+            // Skip archived decks
+            if (deck.status === 'archived') return;
+
             if (!repoMap.has(deck.repoId)) {
                 repoMap.set(deck.repoId, {
                     id: deck.repoId,

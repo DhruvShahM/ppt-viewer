@@ -20,17 +20,35 @@ class RestoreService {
     async restore(deckId) {
         const startTime = Date.now();
         let preRestoreCommit = null;
+        let hasStashedChanges = false;
 
         try {
             console.log(`\n=== Starting restore process for deck: ${deckId} ===\n`);
 
-            // Step 1: Validation
-            console.log('Step 1: Validating restore conditions...');
+            // Step 1: Stash uncommitted changes
+            console.log('Step 1: Checking for uncommitted changes...');
+            if (gitOperations.hasUncommittedChanges()) {
+                console.log('Uncommitted changes detected. Stashing...');
+                hasStashedChanges = gitOperations.stashChanges('Restore operation stash');
+                console.log('Uncommitted changes stashed successfully');
+            } else {
+                console.log('No uncommitted changes to stash');
+            }
+
+            // Step 2: Validation
+            console.log('\nStep 2: Validating restore conditions...');
             const validation = await validationService.validateRestore(deckId);
 
             if (!validation.valid) {
                 const errorMsg = `Validation failed:\n${validation.errors.join('\n')}`;
                 auditLogger.logFailure('restore', deckId, errorMsg);
+
+                // Restore stashed changes before returning
+                if (hasStashedChanges) {
+                    console.log('Restoring stashed changes...');
+                    gitOperations.popStash();
+                }
+
                 return {
                     success: false,
                     error: errorMsg,
@@ -45,23 +63,23 @@ class RestoreService {
 
             const { deck } = validation.info;
 
-            // Step 2: Save current state for rollback
-            console.log('\nStep 2: Saving current state for rollback...');
+            // Step 3: Save current state for rollback
+            console.log('\nStep 3: Saving current state for rollback...');
             preRestoreCommit = gitOperations.getCurrentCommit();
             console.log(`Current commit: ${preRestoreCommit}`);
 
-            // Step 3: Determine target paths
-            console.log('\nStep 3: Determining target paths...');
+            // Step 4: Determine target paths
+            console.log('\nStep 4: Determining target paths...');
             const targetDeckPath = path.join(config.mainRepo, config.archiveFolders.decks, deckId);
             const targetSlidesPath = path.join(config.mainRepo, config.archiveFolders.slides, deckId);
 
-            // Step 4: Execute Git restore operations
-            console.log('\nStep 4: Executing Git restore operations...');
+            // Step 5: Execute Git restore operations
+            console.log('\nStep 5: Executing Git restore operations...');
             const gitResult = gitOperations.restoreDeck(deckId, targetDeckPath, targetSlidesPath);
             console.log(`Main repo commit: ${gitResult.mainCommit}`);
 
-            // Step 5: Verify checksum
-            console.log('\nStep 5: Verifying checksum...');
+            // Step 6: Verify checksum
+            console.log('\nStep 6: Verifying checksum...');
             if (deck.checksum) {
                 const decksBase = path.join(config.mainRepo, config.archiveFolders.decks);
                 const slidesBase = path.join(config.mainRepo, config.archiveFolders.slides);
@@ -81,8 +99,8 @@ class RestoreService {
                 }
             }
 
-            // Step 6: Update metadata
-            console.log('\nStep 6: Updating metadata...');
+            // Step 7: Update metadata
+            console.log('\nStep 7: Updating metadata...');
             const updatedDeck = metadataManager.updateDeckStatus(deckId, 'active', {
                 restoredAt: new Date().toISOString(),
                 path: `${config.archiveFolders.decks}/${deckId}`,
@@ -99,8 +117,20 @@ class RestoreService {
 
             console.log('Metadata updated successfully');
 
-            // Step 7: Audit logging
-            console.log('\nStep 7: Recording audit log...');
+            // Step 8: Restore stashed changes
+            if (hasStashedChanges) {
+                console.log('\nStep 8: Restoring stashed changes...');
+                try {
+                    gitOperations.popStash();
+                    console.log('Stashed changes restored successfully');
+                } catch (popError) {
+                    console.warn('Failed to restore stashed changes:', popError.message);
+                    console.warn('You may need to manually restore with: git stash pop');
+                }
+            }
+
+            // Step 9: Audit logging
+            console.log('\nStep 9: Recording audit log...');
             auditLogger.logRestore(deckId, {
                 mainCommit: gitResult.mainCommit,
                 targetPath: targetDeckPath,
@@ -119,6 +149,17 @@ class RestoreService {
 
         } catch (error) {
             console.error(`\n=== Restore failed: ${error.message} ===\n`);
+
+            // Restore stashed changes before rollback
+            if (hasStashedChanges) {
+                console.log('Restoring stashed changes before rollback...');
+                try {
+                    gitOperations.popStash();
+                    console.log('Stashed changes restored');
+                } catch (popError) {
+                    console.error('Failed to restore stashed changes:', popError.message);
+                }
+            }
 
             // Attempt rollback
             if (preRestoreCommit) {

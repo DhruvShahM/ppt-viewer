@@ -160,7 +160,8 @@ class ValidationService {
                 errors.push(`Conflicting slides folder already exists in main repo: ${mainSlidesPath}`);
             }
 
-            // 5. Check for uncommitted changes
+
+            // 5. Check for uncommitted changes (converted to warning since we now stash)
             try {
                 const status = execSync('git status --porcelain', {
                     cwd: config.mainRepo,
@@ -168,11 +169,12 @@ class ValidationService {
                 }).trim();
 
                 if (status) {
-                    errors.push('Working directory has uncommitted changes. Please commit or stash changes before restoring.');
+                    warnings.push('Working directory has uncommitted changes. They will be automatically stashed during restore.');
                 }
             } catch (error) {
                 warnings.push(`Could not check git status: ${error.message}`);
             }
+
 
             // 6. Verify checksum if available
             if (deck.checksum && info.archiveDeckPath) {
