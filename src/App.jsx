@@ -85,6 +85,17 @@ function App() {
 
     const [currentGradient, setCurrentGradient] = useState(GRADIENTS[0].value);
 
+    const FONTS = [
+        { name: "Inter", value: "font-sans" },
+        { name: "Roboto", value: "font-roboto" },
+        { name: "Poppins", value: "font-poppins" },
+        { name: "Montserrat", value: "font-montserrat" },
+        { name: "Playfair", value: "font-playfair" },
+        { name: "Merriweather", value: "font-merriweather" },
+    ];
+
+    const [currentFont, setCurrentFont] = useState(FONTS[0].value);
+
     if (isLoading) {
         return (
             <div className="w-screen h-screen flex items-center justify-center bg-slate-950 text-white">
@@ -94,7 +105,7 @@ function App() {
     }
 
     return (
-        <div className={`w-screen h-screen text-white relative overflow-hidden font-sans selection:bg-go-blue selection:text-white select-none ${currentGradient}`}>
+        <div className={`w-screen h-screen text-white relative overflow-hidden selection:bg-go-blue selection:text-white select-none ${currentGradient} ${currentFont}`}>
             {/* Background Elements */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
                 {showVideo && (
@@ -124,6 +135,9 @@ function App() {
                     gradients={GRADIENTS}
                     onGradientSelect={setCurrentGradient}
                     currentGradient={currentGradient}
+                    fonts={FONTS}
+                    currentFont={currentFont}
+                    onFontSelect={setCurrentFont}
                 />
             ) : (
                 <DeckSelector onSelectDeck={handleDeckSelect} />

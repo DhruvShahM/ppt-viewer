@@ -16,6 +16,11 @@ export default {
             fontFamily: {
                 sans: ['Inter', 'sans-serif'],
                 mono: ['Fira Code', 'monospace'],
+                roboto: ['Roboto', 'sans-serif'],
+                poppins: ['Poppins', 'sans-serif'],
+                montserrat: ['Montserrat', 'sans-serif'],
+                playfair: ['Playfair Display', 'serif'],
+                merriweather: ['Merriweather', 'serif'],
             }
         },
     },

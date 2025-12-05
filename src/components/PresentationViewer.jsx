@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Slide from './Slide';
 import AnnotationLayer from './AnnotationLayer';
-import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, FileDown, Video, ArrowUpRight, Upload, Palette, Type, Check } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, FileDown, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive } from 'lucide-react';
 import DesignFeedback from './DesignFeedback';
 
 
-const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient }) => {
+const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient, fonts, currentFont, onFontSelect }) => {
     const [currentSlide, setCurrentSlide] = useState(() => {
         const saved = localStorage.getItem(`lastSlide_${deckId}`);
         return saved ? Math.min(parseInt(saved, 10), slides.length - 1) : 0;
@@ -293,6 +293,26 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
             >
                 {!isPresenting && (
                     <>
+                        <div className="relative group self-center mr-4">
+                            <select
+                                onChange={(e) => onFontSelect && onFontSelect(e.target.value)}
+                                className="appearance-none bg-black/50 text-white pl-10 pr-8 py-2 rounded-full border border-white/20 hover:bg-white/10 focus:outline-none cursor-pointer text-sm font-sans"
+                                value={currentFont}
+                            >
+                                {fonts?.map((f) => (
+                                    <option key={f.name} value={f.value} className="bg-slate-900 text-white">
+                                        {f.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <CaseSensitive size={14} />
+                            </div>
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <ChevronRight size={14} className="rotate-90" />
+                            </div>
+                        </div>
+
                         <div className="relative group self-center mr-4">
                             <select
                                 onChange={(e) => onGradientSelect && onGradientSelect(e.target.value)}
