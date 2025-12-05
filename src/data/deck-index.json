@@ -88,18 +88,6 @@
     "restoredAt": "2025-12-05T14:32:25.188Z"
   },
   {
-    "id": "anime-golang",
-    "title": "Anime Golang Character",
-    "repoId": "go-programming",
-    "repoTitle": "Go Programming",
-    "description": "Learn concurrency with a cute Anime Gopher! 🐹✨",
-    "icon": "Sparkles",
-    "color": "pink",
-    "status": "active",
-    "version": 1,
-    "hasLargeAssets": false
-  },
-  {
     "id": "load-balancer",
     "title": "Load Balancer",
     "repoId": "microservices",
