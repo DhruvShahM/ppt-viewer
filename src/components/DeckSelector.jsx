@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, FileDown, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 
 import { REPOSITORIES } from '../data/repositories';
 import deckIndex from '../data/deck-index.json';
@@ -101,10 +101,20 @@ const DeckSelector = ({ onSelectDeck }) => {
     const [selectedDecks, setSelectedDecks] = useState(new Set());
 
 
-    const [searchQuery, setSearchQuery] = useState("");
-    const [isSortedAsc, setIsSortedAsc] = useState(false);
-    const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 1;
+    const [searchQuery, setSearchQuery] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('search') || "";
+    });
+    const [isSortedAsc, setIsSortedAsc] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('sort') === 'asc';
+    });
+    const [currentPage, setCurrentPage] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        const page = parseInt(params.get('page')) || 1;
+        return page > 0 ? page : 1;
+    });
+    const ITEMS_PER_PAGE = 6;
 
     const [repositories, setRepositories] = useState(() => {
         const repoMap = new Map();
@@ -141,6 +151,36 @@ const DeckSelector = ({ onSelectDeck }) => {
         setRepositories(Array.from(repoMap.values()));
     }, [deckIndex]);
 
+    // Unified URL Updater
+    useEffect(() => {
+        const url = new URL(window.location);
+
+        if (searchQuery) url.searchParams.set('search', searchQuery);
+        else url.searchParams.delete('search');
+
+        if (isSortedAsc) url.searchParams.set('sort', 'asc');
+        else url.searchParams.delete('sort');
+
+        if (currentPage > 1) url.searchParams.set('page', currentPage);
+        else url.searchParams.delete('page');
+
+        window.history.replaceState({}, '', url);
+    }, [searchQuery, isSortedAsc, currentPage]);
+
+    // Handle browser back/forward buttons
+    useEffect(() => {
+        const handlePopState = () => {
+            const params = new URLSearchParams(window.location.search);
+            const page = parseInt(params.get('page')) || 1;
+            setSearchQuery(params.get('search') || "");
+            setIsSortedAsc(params.get('sort') === 'asc');
+            setCurrentPage(page > 0 ? page : 1);
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, []);
+
 
 
     // Filter and Sort Logic
@@ -170,24 +210,46 @@ const DeckSelector = ({ onSelectDeck }) => {
         return processed;
     }, [repositories, searchQuery, isSortedAsc]);
 
+    const prevSearch = useRef(searchQuery);
+    const prevSort = useRef(isSortedAsc);
+
     // Reset page when search/sort changes
     useEffect(() => {
-        setCurrentPage(1);
+        const searchChanged = prevSearch.current !== searchQuery;
+        const sortChanged = prevSort.current !== isSortedAsc;
+
+        if (searchChanged || sortChanged) {
+            setCurrentPage(1);
+            prevSearch.current = searchQuery;
+            prevSort.current = isSortedAsc;
+        }
     }, [searchQuery, isSortedAsc]);
 
-    const totalPages = Math.ceil(processedRepositories.length / ITEMS_PER_PAGE);
+    // Flatten decks for global view
+    const allDecks = useMemo(() => {
+        return processedRepositories.flatMap(repo =>
+            repo.decks.map(deck => ({ ...deck, repoId: repo.id, repoTitle: repo.title }))
+        );
+    }, [processedRepositories]);
 
-    // Adjust current page if it exceeds total pages (e.g. after deletion)
+    const totalPages = Math.ceil((isEditMode ? processedRepositories.length : allDecks.length) / ITEMS_PER_PAGE);
+
+    // Adjust current page if it exceeds total pages
     useEffect(() => {
         if (currentPage > totalPages && totalPages > 0) {
             setCurrentPage(totalPages);
         }
     }, [totalPages, currentPage]);
 
-    const currentRepositories = useMemo(() => {
+    const currentItems = useMemo(() => {
         const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return processedRepositories.slice(start, start + ITEMS_PER_PAGE);
-    }, [processedRepositories, currentPage, ITEMS_PER_PAGE]);
+        if (isEditMode) {
+            return processedRepositories.slice(start, start + ITEMS_PER_PAGE);
+        } else {
+            return allDecks.slice(start, start + ITEMS_PER_PAGE);
+        }
+    }, [processedRepositories, allDecks, currentPage, isEditMode, ITEMS_PER_PAGE]);
+
 
     const handlePageChange = (page) => {
         if (page >= 1 && page <= totalPages) {
@@ -400,6 +462,8 @@ const DeckSelector = ({ onSelectDeck }) => {
         }
     };
 
+
+
     return (
         <div className="w-full h-full flex flex-col items-center justify-center p-12 relative z-10">
             <motion.div
@@ -480,9 +544,30 @@ const DeckSelector = ({ onSelectDeck }) => {
                 </div>
             </motion.div>
 
-            <div className="w-full max-w-7xl max-h-[60vh] overflow-y-auto pr-4 pb-4 custom-scrollbar space-y-12 min-h-[400px]">
+            <div className={`w-full max-w-7xl max-h-[60vh] overflow-y-auto pr-4 pb-4 custom-scrollbar min-h-[400px] ${!isEditMode ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 content-start' : 'space-y-12'}`}>
                 <AnimatePresence mode="wait">
-                    {currentRepositories.map((repo) => (
+                    {/* Default Flat View */}
+                    {!isEditMode && currentItems.map((deck) => (
+                        <DeckCard
+                            key={deck.id}
+                            title={deck.title}
+                            description={deck.description}
+                            icon={deck.icon}
+                            color={deck.color}
+                            onClick={() => onSelectDeck(deck.id)}
+                            isEditMode={false}
+                            repositories={repositories} // Passed but mostly unused in view mode
+                            currentRepoId={deck.repoId}
+                            onMove={() => { }} // Disabled in view mode
+                            isSelectionMode={isSelectionMode}
+                            isSelected={selectedDecks.has(deck.id)}
+                            onToggleSelect={() => toggleSelection(deck.id)}
+                            onDelete={() => { }}
+                        />
+                    ))}
+
+                    {/* Edit Mode Grouped View */}
+                    {isEditMode && currentItems.map((repo) => (
                         <motion.div
                             key={repo.id}
                             layout
@@ -492,28 +577,22 @@ const DeckSelector = ({ onSelectDeck }) => {
                             className="w-full relative group/repo"
                         >
                             <div className="flex items-center gap-4 mb-6 border-b border-white/10 pb-2">
-                                {isEditMode ? (
-                                    <div className="flex-grow flex items-center gap-4">
-                                        <input
-                                            type="text"
-                                            value={repo.title}
-                                            onChange={(e) => handleRenameRepository(repo.id, e.target.value)}
-                                            className="bg-transparent text-2xl font-bold text-white/80 border-b border-blue-500/50 focus:border-blue-500 outline-none px-2 py-1 w-full max-w-md"
-                                            placeholder="Repository Name"
-                                        />
-                                        <button
-                                            onClick={() => handleDeleteRepository(repo.id)}
-                                            className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                            title="Delete Repository"
-                                        >
-                                            <Trash2 size={20} />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <h2 className="text-2xl font-bold text-white/80">
-                                        {repo.title}
-                                    </h2>
-                                )}
+                                <div className="flex-grow flex items-center gap-4">
+                                    <input
+                                        type="text"
+                                        value={repo.title}
+                                        onChange={(e) => handleRenameRepository(repo.id, e.target.value)}
+                                        className="bg-transparent text-2xl font-bold text-white/80 border-b border-blue-500/50 focus:border-blue-500 outline-none px-2 py-1 w-full max-w-md"
+                                        placeholder="Repository Name"
+                                    />
+                                    <button
+                                        onClick={() => handleDeleteRepository(repo.id)}
+                                        className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                        title="Delete Repository"
+                                    >
+                                        <Trash2 size={20} />
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -526,7 +605,7 @@ const DeckSelector = ({ onSelectDeck }) => {
                                             icon={deck.icon}
                                             color={deck.color}
                                             onClick={() => onSelectDeck(deck.id)}
-                                            isEditMode={isEditMode}
+                                            isEditMode={true}
                                             repositories={repositories}
                                             currentRepoId={repo.id}
                                             onMove={(targetRepoId) => handleMoveDeck(repo.id, deck.id, targetRepoId)}
@@ -554,8 +633,9 @@ const DeckSelector = ({ onSelectDeck }) => {
                     </motion.button>
                 )}
 
-                {processedRepositories.length === 0 && searchQuery && (
-                    <div className="text-center py-12 text-gray-500">
+                {/* Empty State */}
+                {currentItems.length === 0 && searchQuery && (
+                    <div className="col-span-full text-center py-12 text-gray-500">
                         <Search size={48} className="mx-auto mb-4 opacity-20" />
                         <p>No decks found matching "{searchQuery}"</p>
                     </div>
