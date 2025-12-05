@@ -131,19 +131,6 @@
     "hasLargeAssets": false
   },
   {
-    "id": "dummy-3",
-    "title": "Dummy Deck 3",
-    "repoId": "stress-test",
-    "repoTitle": "Stress Test",
-    "description": "Auto-generated dummy deck 3 for testing.",
-    "icon": "Zap",
-    "color": "gray",
-    "status": "active",
-    "path": "src/decks/dummy-3",
-    "version": 1,
-    "hasLargeAssets": false
-  },
-  {
     "id": "dummy-4",
     "title": "Dummy Deck 4",
     "repoId": "stress-test",
