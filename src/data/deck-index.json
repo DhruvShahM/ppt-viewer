@@ -48,10 +48,11 @@
     "description": "Goroutines, Channels, Sync, and Context.",
     "icon": "Zap",
     "color": "orange",
-    "status": "active",
+    "status": "archived",
     "path": "src/decks/concurrency-interview",
     "version": 1,
-    "hasLargeAssets": false
+    "hasLargeAssets": false,
+    "archivedAt": "2025-12-05T14:05:39.831Z"
   },
   {
     "id": "concurrency-guide",
