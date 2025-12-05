@@ -134,19 +134,6 @@
     "backupPath": "backups\\2025-12-05T06-20-18-477Z-dummy-6.zip.enc"
   },
   {
-    "id": "dummy-7",
-    "title": "Dummy Deck 7",
-    "repoId": "stress-test",
-    "repoTitle": "Stress Test",
-    "description": "Auto-generated dummy deck 7 for testing.",
-    "icon": "Zap",
-    "color": "gray",
-    "status": "active",
-    "path": "src/decks/dummy-7",
-    "version": 1,
-    "hasLargeAssets": false
-  },
-  {
     "id": "dummy-8",
     "title": "Dummy Deck 8",
     "repoId": "stress-test",
@@ -154,13 +141,14 @@
     "description": "Auto-generated dummy deck 8 for testing.",
     "icon": "Zap",
     "color": "gray",
-    "status": "active",
+    "status": "archived",
     "path": "src/decks/dummy-8",
-    "version": 3,
+    "version": 4,
     "hasLargeAssets": false,
-    "archivedAt": "2025-12-05T05:25:31.703Z",
+    "archivedAt": "2025-12-05T06:21:21.909Z",
     "checksum": "c68245c249dbb0baacdce1a0f99b4a66c7842472df829b18ed523d37bc28e313",
-    "restoredAt": "2025-12-05T06:19:06.773Z"
+    "restoredAt": "2025-12-05T06:19:06.773Z",
+    "backupPath": "backups\\2025-12-05T06-21-21-094Z-dummy-8.zip.enc"
   },
   {
     "id": "dummy-9",
