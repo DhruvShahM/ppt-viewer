@@ -391,18 +391,5 @@
     "path": "src/decks/dummy-20",
     "version": 1,
     "hasLargeAssets": false
-  },
-  {
-    "id": "test-archive-deck",
-    "title": "Test Archive Deck",
-    "repoId": "test",
-    "repoTitle": "Test",
-    "description": "Deck for testing archival.",
-    "icon": "Zap",
-    "color": "gray",
-    "status": "active",
-    "path": "src/decks/test-archive-deck",
-    "version": 1,
-    "hasLargeAssets": false
   }
 ]
