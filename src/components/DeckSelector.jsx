@@ -109,50 +109,87 @@ const DeckSelector = ({ onSelectDeck }) => {
         const params = new URLSearchParams(window.location.search);
         return params.get('sort') === 'asc';
     });
-    const [currentPage, setCurrentPage] = useState(() => {
+    const [viewPage, setViewPage] = useState(() => {
         const params = new URLSearchParams(window.location.search);
         const page = parseInt(params.get('page')) || 1;
         return page > 0 ? page : 1;
     });
+    const [editPage, setEditPage] = useState(1);
     const ITEMS_PER_PAGE = 6;
 
     const [repositories, setRepositories] = useState(() => {
         const repoMap = new Map();
         deckIndex.forEach(deck => {
-
-
-            if (!repoMap.has(deck.repoId)) {
-                repoMap.set(deck.repoId, {
-                    id: deck.repoId,
-                    title: deck.repoTitle,
+            const safeRepoId = deck.repoId || 'uncategorized';
+            if (!repoMap.has(safeRepoId)) {
+                repoMap.set(safeRepoId, {
+                    id: safeRepoId,
+                    title: deck.repoTitle || 'Uncategorized',
                     decks: []
                 });
             }
-            repoMap.get(deck.repoId).decks.push(deck);
+            repoMap.get(safeRepoId).decks.push(deck);
         });
         return Array.from(repoMap.values());
     });
 
-    // Sync with deckIndex changes (HMR or updates)
-    useEffect(() => {
-        const repoMap = new Map();
-        deckIndex.forEach(deck => {
+    // ... (This part was not in the replace block target but we must match the existing file to restart the useEffect if we want to replace it too, but better to stick to the block)
+    // Actually, I should target the useEffect below it too if I want to fix that as well.
 
+    // Filter and Sort Logic
+    const processedRepositories = useMemo(() => {
+        let processed = repositories.map(repo => ({
+            ...repo,
+            decks: repo.decks.filter(deck =>
+                deck.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                repo.title.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+        })).filter(repo =>
+            repo.decks.length > 0 ||
+            repo.title.toLowerCase().includes(searchQuery.toLowerCase())
+        );
 
-            if (!repoMap.has(deck.repoId)) {
-                repoMap.set(deck.repoId, {
-                    id: deck.repoId,
-                    title: deck.repoTitle,
-                    decks: []
-                });
-            }
-            repoMap.get(deck.repoId).decks.push(deck);
-        });
-        setRepositories(Array.from(repoMap.values()));
-    }, [deckIndex]);
+        if (isSortedAsc) {
+            // Sort Repositories A-Z
+            processed.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+
+            // Sort Decks A-Z within Repositories
+            processed = processed.map(repo => ({
+                ...repo,
+                decks: [...repo.decks].sort((a, b) => (a.title || "").localeCompare(b.title || ""))
+            }));
+        }
+
+        return processed;
+    }, [repositories, searchQuery, isSortedAsc]);
+
+    // Flatten decks for global view
+    const allDecks = useMemo(() => {
+        return processedRepositories.flatMap(repo =>
+            repo.decks.map(deck => ({ ...deck, repoId: repo.id, repoTitle: repo.title }))
+        );
+    }, [processedRepositories]);
+
+    // Derived State
+    const currentPage = isEditMode ? editPage : viewPage;
+
+    // Calculate totals for both modes
+    const totalViewPages = Math.ceil(allDecks.length / ITEMS_PER_PAGE);
+    const totalEditPages = Math.ceil(processedRepositories.length / ITEMS_PER_PAGE);
+    const totalPages = isEditMode ? totalEditPages : totalViewPages;
 
     // Unified URL Updater
     useEffect(() => {
+        console.log('DEBUG: URL Update', {
+            isEditMode,
+            viewPage,
+            editPage,
+            currentPage,
+            totalPages,
+            processedReposLength: processedRepositories.length,
+            allDecksLength: allDecks.length
+        });
+
         const url = new URL(window.location);
 
         if (searchQuery) url.searchParams.set('search', searchQuery);
@@ -174,41 +211,19 @@ const DeckSelector = ({ onSelectDeck }) => {
             const page = parseInt(params.get('page')) || 1;
             setSearchQuery(params.get('search') || "");
             setIsSortedAsc(params.get('sort') === 'asc');
-            setCurrentPage(page > 0 ? page : 1);
+
+            // On popstate, we mostly care about viewPage since editMode isn't persisted
+            // But if we were to support editMode param, we'd handle it here.
+            // For now, update corresponding page.
+            if (isEditMode) setEditPage(page > 0 ? page : 1);
+            else setViewPage(page > 0 ? page : 1);
         };
 
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
-    }, []);
+    }, [isEditMode]);
 
 
-
-    // Filter and Sort Logic
-    const processedRepositories = useMemo(() => {
-        let processed = repositories.map(repo => ({
-            ...repo,
-            decks: repo.decks.filter(deck =>
-                deck.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                repo.title.toLowerCase().includes(searchQuery.toLowerCase())
-            )
-        })).filter(repo =>
-            repo.decks.length > 0 ||
-            repo.title.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-
-        if (isSortedAsc) {
-            // Sort Repositories A-Z
-            processed.sort((a, b) => a.title.localeCompare(b.title));
-
-            // Sort Decks A-Z within Repositories
-            processed = processed.map(repo => ({
-                ...repo,
-                decks: [...repo.decks].sort((a, b) => a.title.localeCompare(b.title))
-            }));
-        }
-
-        return processed;
-    }, [repositories, searchQuery, isSortedAsc]);
 
     const prevSearch = useRef(searchQuery);
     const prevSort = useRef(isSortedAsc);
@@ -219,27 +234,22 @@ const DeckSelector = ({ onSelectDeck }) => {
         const sortChanged = prevSort.current !== isSortedAsc;
 
         if (searchChanged || sortChanged) {
-            setCurrentPage(1);
+            setViewPage(1);
+            setEditPage(1);
             prevSearch.current = searchQuery;
             prevSort.current = isSortedAsc;
         }
     }, [searchQuery, isSortedAsc]);
 
-    // Flatten decks for global view
-    const allDecks = useMemo(() => {
-        return processedRepositories.flatMap(repo =>
-            repo.decks.map(deck => ({ ...deck, repoId: repo.id, repoTitle: repo.title }))
-        );
-    }, [processedRepositories]);
-
-    const totalPages = Math.ceil((isEditMode ? processedRepositories.length : allDecks.length) / ITEMS_PER_PAGE);
-
     // Adjust current page if it exceeds total pages
     useEffect(() => {
-        if (currentPage > totalPages && totalPages > 0) {
-            setCurrentPage(totalPages);
+        if (viewPage > totalViewPages && totalViewPages > 0) {
+            setViewPage(totalViewPages);
         }
-    }, [totalPages, currentPage]);
+        if (editPage > totalEditPages && totalEditPages > 0) {
+            setEditPage(totalEditPages);
+        }
+    }, [totalViewPages, totalEditPages, viewPage, editPage]);
 
     const currentItems = useMemo(() => {
         const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -253,7 +263,8 @@ const DeckSelector = ({ onSelectDeck }) => {
 
     const handlePageChange = (page) => {
         if (page >= 1 && page <= totalPages) {
-            setCurrentPage(page);
+            if (isEditMode) setEditPage(page);
+            else setViewPage(page);
         }
     };
 
@@ -513,7 +524,19 @@ const DeckSelector = ({ onSelectDeck }) => {
 
                     {/* Edit Mode Button */}
                     <button
-                        onClick={() => setIsEditMode(!isEditMode)}
+                        onClick={() => {
+                            if (!isEditMode && currentItems.length > 0) {
+                                // Contextual Navigation: Find the repo of the first visible deck
+                                const firstDeck = currentItems[0];
+                                const repoIndex = processedRepositories.findIndex(r => r.id === firstDeck.repoId);
+
+                                if (repoIndex !== -1) {
+                                    const targetPage = Math.floor(repoIndex / ITEMS_PER_PAGE) + 1;
+                                    setEditPage(targetPage);
+                                }
+                            }
+                            setIsEditMode(!isEditMode);
+                        }}
                         className={`px-4 py-3 rounded-xl border transition-all whitespace-nowrap ${isEditMode
                             ? 'bg-purple-500/20 border-purple-500 text-purple-400'
                             : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
