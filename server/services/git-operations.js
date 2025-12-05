@@ -52,6 +52,62 @@ class GitOperations {
     }
 
     /**
+     * Check if there are uncommitted changes
+     * @param {string} cwd - Working directory
+     * @returns {boolean} True if there are uncommitted changes
+     */
+    hasUncommittedChanges(cwd = this.mainRepo) {
+        return !this.isWorkingDirectoryClean(cwd);
+    }
+
+    /**
+     * Stash uncommitted changes
+     * @param {string} message - Stash message
+     * @param {string} cwd - Working directory
+     * @returns {boolean} True if changes were stashed
+     */
+    stashChanges(message = 'Archive operation stash', cwd = this.mainRepo) {
+        try {
+            if (!this.hasUncommittedChanges(cwd)) {
+                console.log('No uncommitted changes to stash');
+                return false;
+            }
+
+            this.execGit(`git stash push -m "${message}"`, cwd);
+            console.log(`Stashed uncommitted changes: ${message}`);
+            return true;
+        } catch (error) {
+            throw new Error(`Failed to stash changes: ${error.message}`);
+        }
+    }
+
+    /**
+     * Pop most recent stash
+     * @param {string} cwd - Working directory
+     * @returns {boolean} True if stash was popped
+     */
+    popStash(cwd = this.mainRepo) {
+        try {
+            // Check if there are any stashes
+            const stashList = this.execGit('git stash list', cwd);
+            if (!stashList) {
+                console.log('No stash to pop');
+                return false;
+            }
+
+            this.execGit('git stash pop', cwd);
+            console.log('Restored stashed changes');
+            return true;
+        } catch (error) {
+            // If pop fails due to conflicts, we should log but not fail
+            console.warn(`Failed to pop stash: ${error.message}`);
+            console.warn('You may need to manually resolve stash conflicts with: git stash pop');
+            return false;
+        }
+    }
+
+
+    /**
      * Initialize archive repository if it doesn't exist
      */
     initializeArchiveRepo() {

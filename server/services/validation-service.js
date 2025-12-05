@@ -48,22 +48,7 @@ class ValidationService {
                 }
             }
 
-            // 4. Check for uncommitted changes
-            try {
-                const status = execSync('git status --porcelain', {
-                    cwd: config.mainRepo,
-                    encoding: 'utf8',
-                }).trim();
-
-                if (status) {
-                    errors.push('Working directory has uncommitted changes. Please commit or stash changes before archiving.');
-                    info.gitStatus = status;
-                }
-            } catch (error) {
-                warnings.push(`Could not check git status: ${error.message}`);
-            }
-
-            // 5. Check if deck files exist
+            // 4. Check if deck files exist
             if (info.deckPath) {
                 const deckFiles = fs.readdirSync(info.deckPath);
                 if (deckFiles.length === 0) {

@@ -21,17 +21,35 @@ class ArchiveService {
         const startTime = Date.now();
         let backupPath = null;
         let preArchiveCommit = null;
+        let hasStashedChanges = false;
 
         try {
             console.log(`\n=== Starting archive process for deck: ${deckId} ===\n`);
 
+            // Step 0: Stash uncommitted changes if any
+            console.log('Step 0: Checking for uncommitted changes...');
+            if (gitOperations.hasUncommittedChanges()) {
+                console.log('Uncommitted changes detected. Stashing...');
+                hasStashedChanges = gitOperations.stashChanges(`Archive ${deckId} - auto-stash`);
+                console.log('Changes stashed successfully');
+            } else {
+                console.log('No uncommitted changes to stash');
+            }
+
             // Step 1: Validation
-            console.log('Step 1: Validating archive conditions...');
+            console.log('\nStep 1: Validating archive conditions...');
             const validation = await validationService.validateArchive(deckId);
 
             if (!validation.valid) {
                 const errorMsg = `Validation failed:\n${validation.errors.join('\n')}`;
                 auditLogger.logFailure('archive', deckId, errorMsg);
+
+                // Restore stashed changes before returning
+                if (hasStashedChanges) {
+                    console.log('Restoring stashed changes due to validation failure...');
+                    gitOperations.popStash();
+                }
+
                 return {
                     success: false,
                     error: errorMsg,
@@ -88,6 +106,13 @@ class ArchiveService {
                 duration: Date.now() - startTime,
             });
 
+            // Step 7: Restore stashed changes
+            if (hasStashedChanges) {
+                console.log('\nStep 7: Restoring stashed changes...');
+                gitOperations.popStash();
+                console.log('Stashed changes restored successfully');
+            }
+
             console.log(`\n=== Archive completed successfully in ${Date.now() - startTime}ms ===\n`);
 
             return {
@@ -104,6 +129,17 @@ class ArchiveService {
 
         } catch (error) {
             console.error(`\n=== Archive failed: ${error.message} ===\n`);
+
+            // Restore stashed changes before rollback
+            if (hasStashedChanges) {
+                console.log('Restoring stashed changes due to error...');
+                try {
+                    gitOperations.popStash();
+                    console.log('Stashed changes restored');
+                } catch (popError) {
+                    console.error('Failed to restore stashed changes:', popError.message);
+                }
+            }
 
             // Attempt rollback
             if (preArchiveCommit) {
