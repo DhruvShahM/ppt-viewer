@@ -118,19 +118,6 @@
     "restoredAt": "2025-12-05T13:53:50.001Z"
   },
   {
-    "id": "dummy-9",
-    "title": "Dummy Deck 9",
-    "repoId": "stress-test",
-    "repoTitle": "Stress Test",
-    "description": "Auto-generated dummy deck 9 for testing.",
-    "icon": "Zap",
-    "color": "gray",
-    "status": "active",
-    "path": "src/decks/dummy-9",
-    "version": 1,
-    "hasLargeAssets": false
-  },
-  {
     "id": "dummy-10",
     "title": "Dummy Deck 10",
     "repoId": "stress-test",
