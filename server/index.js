@@ -397,7 +397,123 @@ app.post('/api/restore', catchAsync(async (req, res, next) => {
 
 
 
-// Initialize metadata schema on server start
+// Configure multer for code uploads
+const codeStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const tempDir = path.join(__dirname, 'temp_uploads');
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+        }
+        cb(null, tempDir);
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`);
+    }
+});
+
+const codeUpload = multer({
+    storage: codeStorage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit per file
+    fileFilter: (req, file, cb) => {
+        if (file.originalname.match(/\.(js|jsx|css|json|md)$/)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only .js, .jsx, .css, .json, and .md files are allowed'));
+        }
+    }
+});
+
+app.post('/api/import-deck', codeUpload.array('files'), catchAsync(async (req, res, next) => {
+    const { deckId, title, description, repoId } = req.body;
+
+    if (!deckId || !title || !req.files || req.files.length === 0) {
+        return next(new AppError('Missing required fields or files', 400));
+    }
+
+    const deckDir = path.join(__dirname, '..', 'src', 'decks', deckId);
+
+    // Check if deck already exists
+    if (fs.existsSync(deckDir)) {
+        return next(new AppError('Deck with this ID already exists', 409));
+    }
+
+    // Create deck directory
+    try {
+        fs.mkdirSync(deckDir, { recursive: true });
+    } catch (err) {
+        return next(new AppError('Failed to create deck directory', 500));
+    }
+
+    // Move files to deck directory
+    const importedFiles = [];
+    try {
+        for (const file of req.files) {
+            const destPath = path.join(deckDir, file.originalname);
+            // Remove the timestamp prefix if we want original names, or just use originalName since multer saves with unique name in temp
+            // We want the original name in the target dir
+            // Wait, Multer filename function above sets the name in temp. 
+            // file.originalname is the original name.
+            // But if users upload Slide1.jsx, we want Slide1.jsx in the destination.
+
+            // Note: req.files contains the file info including 'path' (the temp path)
+            const targetPath = path.join(deckDir, file.originalname); // Use original name
+            fs.renameSync(file.path, targetPath);
+            importedFiles.push(file.originalname);
+        }
+    } catch (err) {
+        // Cleanup on error could go here
+        return next(new AppError('Failed to save files', 500));
+    }
+
+    // Generate deck.js
+    const slideFiles = importedFiles.filter(f => f.endsWith('.jsx') || f.endsWith('.js'));
+    // Sort slides: By default alphabetical, or maybe try to parse numbers?
+    // Let's rely on alphabetical for now, users usually number them like 01_Title.jsx.
+    slideFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+    const imports = slideFiles.map(f => `import ${path.parse(f).name} from './${f}';`).join('\n');
+    const exports = `export default [\n    ${slideFiles.map(f => path.parse(f).name).join(',\n    ')}\n];`;
+
+    const deckJsContent = `${imports}\n\n${exports}\n`;
+    fs.writeFileSync(path.join(deckDir, 'deck.js'), deckJsContent);
+
+
+    // Update deck-index.json
+    // Update deck-index.json
+    const DECK_INDEX_FILE = path.join(__dirname, '..', 'src', 'data', 'deck-index.json');
+    let deckIndex = [];
+    try {
+        if (fs.existsSync(DECK_INDEX_FILE)) {
+            deckIndex = JSON.parse(fs.readFileSync(DECK_INDEX_FILE, 'utf8'));
+        }
+    } catch (e) {
+        console.error("Error reading deck index", e);
+    }
+
+    const newDeck = {
+        id: deckId,
+        title,
+        repoId: repoId || 'uncategorized',
+        repoTitle: 'Imported Decks', // Default if not found? Or look it up.
+        // Actually the repoTitle comes from the Repo ID usually, but here we can just set it or leave it.
+        // The frontend groups by repoId mainly.
+        description: description || '',
+        icon: 'Layers',
+        color: 'blue',
+        status: 'active',
+        path: `src/decks/${deckId}`,
+        version: 1,
+        hasLargeAssets: false,
+        importedAt: new Date().toISOString()
+    };
+
+    deckIndex.push(newDeck);
+    fs.writeFileSync(DECK_INDEX_FILE, JSON.stringify(deckIndex, null, 2));
+
+    console.log(`Deck imported successfully: ${deckId}`);
+    res.status(201).json({ success: true, deck: newDeck });
+
+}));
 try {
     metadataManager.migrateMetadataSchema();
     console.log('Metadata schema initialized');

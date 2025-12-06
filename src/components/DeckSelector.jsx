@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw } from 'lucide-react';
+import { Play, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw, Upload } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef } from 'react';
 
 import { REPOSITORIES } from '../data/repositories';
@@ -129,6 +129,14 @@ const DeckSelector = ({ onSelectDeck }) => {
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedDecks, setSelectedDecks] = useState(new Set());
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [importForm, setImportForm] = useState({
+        deckId: '',
+        title: '',
+        description: '',
+        repoId: '',
+        files: null
+    });
 
 
     const [searchQuery, setSearchQuery] = useState(() => {
@@ -567,6 +575,52 @@ const DeckSelector = ({ onSelectDeck }) => {
             setIsProcessing(false);
         }
     };
+    const handleImportSubmit = async (e) => {
+        e.preventDefault();
+        // Auto-generate ID if empty from title
+        let deckIdToSend = importForm.deckId;
+        if (!deckIdToSend && importForm.title) {
+            deckIdToSend = importForm.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        }
+
+        if (!deckIdToSend || !importForm.files || importForm.files.length === 0) {
+            alert("Please provide at least a Title and choose Files.");
+            return;
+        }
+
+        setIsProcessing(true);
+        const formData = new FormData();
+        formData.append('deckId', deckIdToSend);
+        formData.append('title', importForm.title);
+        formData.append('description', importForm.description);
+        formData.append('repoId', importForm.repoId || 'uncategorized');
+
+        for (let i = 0; i < importForm.files.length; i++) {
+            formData.append('files', importForm.files[i]);
+        }
+
+        try {
+            const response = await fetch('/api/import-deck', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                alert("Deck imported successfully!");
+                setIsImportModalOpen(false);
+                setImportForm({ deckId: '', title: '', description: '', repoId: '', files: null });
+                window.location.reload();
+            } else {
+                const err = await response.json();
+                alert(`Import failed: ${err.message}`);
+            }
+        } catch (error) {
+            console.error("Import error:", error);
+            alert("Import failed");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
 
 
@@ -642,6 +696,16 @@ const DeckSelector = ({ onSelectDeck }) => {
                             }`}
                     >
                         {isEditMode ? 'Done Editing' : 'Edit Structure'}
+                    </button>
+
+                    {/* Import Button */}
+                    <button
+                        onClick={() => setIsImportModalOpen(true)}
+                        className="px-4 py-3 rounded-xl border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white transition-all flex items-center gap-2"
+                        title="Import Deck"
+                    >
+                        <Upload size={20} />
+                        <span className="hidden sm:inline text-sm font-medium">Import</span>
                     </button>
 
                     {/* Archive Toggle */}
@@ -856,6 +920,114 @@ const DeckSelector = ({ onSelectDeck }) => {
             }
 
 
+            {/* Import Modal */}
+            {isImportModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative"
+                    >
+                        <button
+                            onClick={() => setIsImportModalOpen(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                        >
+                            <X size={24} />
+                        </button>
+
+                        <h2 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+                            <Upload className="text-blue-400" /> Import Deck
+                        </h2>
+
+                        <form onSubmit={handleImportSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Deck Title <span className="text-red-500">*</span></label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={importForm.title}
+                                    onChange={e => setImportForm({ ...importForm, title: e.target.value })}
+                                    className="w-full bg-black/50 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                                    placeholder="e.g. Advanced Patterns"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Deck ID (Optional)</label>
+                                <input
+                                    type="text"
+                                    value={importForm.deckId}
+                                    onChange={e => setImportForm({ ...importForm, deckId: e.target.value })}
+                                    className="w-full bg-black/50 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                                    placeholder="advanced-patterns"
+                                />
+                                <p className="text-xs text-gray-600 mt-1">If empty, will be generated from title.</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Description</label>
+                                <textarea
+                                    value={importForm.description}
+                                    onChange={e => setImportForm({ ...importForm, description: e.target.value })}
+                                    className="w-full bg-black/50 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 min-h-[80px]"
+                                    placeholder="Brief description..."
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Target Repository</label>
+                                <select
+                                    value={importForm.repoId}
+                                    onChange={e => setImportForm({ ...importForm, repoId: e.target.value })}
+                                    className="w-full bg-black/50 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                                >
+                                    <option value="">Select Repository...</option>
+                                    {repositories.map(repo => (
+                                        <option key={repo.id} value={repo.id}>{repo.title}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Slide Files (.jsx, .js) <span className="text-red-500">*</span></label>
+                                <div className="border-2 border-dashed border-white/20 rounded-lg p-6 text-center hover:border-blue-500/50 hover:bg-blue-500/5 transition-all text-gray-400 relative">
+                                    <input
+                                        type="file"
+                                        multiple
+                                        accept=".jsx,.js"
+                                        required
+                                        className="w-full h-full opacity-0 absolute inset-0 cursor-pointer z-10"
+                                        onChange={e => setImportForm({ ...importForm, files: e.target.files })}
+                                    />
+                                    <div className="flex flex-col items-center gap-2 pointer-events-none">
+                                        <Upload size={32} className="text-gray-500" />
+                                        <p className="text-sm font-medium">Click to upload files</p>
+                                        <p className="text-xs text-gray-500">{importForm.files ? `${importForm.files.length} files selected` : 'Drag & drop or click'}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsImportModalOpen(false)}
+                                    className="px-4 py-2 rounded-lg hover:bg-white/10 text-white transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isProcessing}
+                                    className="px-6 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-bold transition-all disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    {isProcessing && <Loader2 className="animate-spin" size={16} />}
+                                    Import Deck
+                                </button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </div>
+            )}
         </div >
     );
 };
