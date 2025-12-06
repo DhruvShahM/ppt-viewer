@@ -544,6 +544,85 @@ app.post('/api/import-deck', codeUpload.array('files'), catchAsync(async (req, r
     res.status(201).json({ success: true, deck: newDeck });
 
 }));
+
+const archiver = require('archiver');
+
+app.post('/api/export', catchAsync(async (req, res, next) => {
+    const { deckIds } = req.body;
+
+    if (!deckIds || !Array.isArray(deckIds) || deckIds.length === 0) {
+        return next(new AppError('Invalid deckIds', 400));
+    }
+
+    const DECK_INDEX_FILE = path.join(__dirname, '..', 'src', 'data', 'deck-index.json');
+    let deckIndex = [];
+    if (fs.existsSync(DECK_INDEX_FILE)) {
+        deckIndex = JSON.parse(fs.readFileSync(DECK_INDEX_FILE, 'utf8'));
+    }
+
+    // Helper to generate markdown for a single deck
+    const generateDeckMarkdown = (deckId) => {
+        const deckInfo = deckIndex.find(d => d.id === deckId);
+        const deckTitle = deckInfo ? deckInfo.title : deckId;
+        const deckDir = path.join(__dirname, '..', 'src', 'decks', deckId);
+
+        if (!fs.existsSync(deckDir)) {
+            throw new Error(`Deck directory not found for ${deckId}`);
+        }
+
+        const files = fs.readdirSync(deckDir);
+        const slideFiles = files.filter(f => f.endsWith('.jsx') || f.endsWith('.js'));
+        slideFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+        let markdownContent = `# ${deckTitle}\n\n`;
+
+        slideFiles.forEach(file => {
+            if (file === 'deck.js') return;
+            const content = fs.readFileSync(path.join(deckDir, file), 'utf8');
+            markdownContent += `## ${file}\n\n\`\`\`jsx\n${content}\n\`\`\`\n\n`;
+        });
+
+        return { filename: `${deckTitle}.md`, content: markdownContent };
+    };
+
+    if (deckIds.length === 1) {
+        // Single File Download
+        try {
+            const { filename, content } = generateDeckMarkdown(deckIds[0]);
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            res.setHeader('Content-Type', 'text/markdown');
+            res.send(content);
+        } catch (error) {
+            return next(new AppError(`Export failed: ${error.message}`, 500));
+        }
+    } else {
+        // Zip Download
+        try {
+            const archive = archiver('zip', {
+                zlib: { level: 9 } // Sets the compression level.
+            });
+
+            res.setHeader('Content-Disposition', 'attachment; filename="decks-export.zip"');
+            res.setHeader('Content-Type', 'application/zip');
+
+            archive.pipe(res);
+
+            for (const deckId of deckIds) {
+                try {
+                    const { filename, content } = generateDeckMarkdown(deckId);
+                    archive.append(content, { name: filename });
+                } catch (err) {
+                    console.error(`Skipping deck ${deckId} due to error:`, err);
+                    archive.append(`Error exporting deck ${deckId}: ${err.message}`, { name: `${deckId}-error.txt` });
+                }
+            }
+
+            await archive.finalize();
+        } catch (error) {
+            return next(new AppError('Export zip failed', 500));
+        }
+    }
+}));
 try {
     metadataManager.migrateMetadataSchema();
     console.log('Metadata schema initialized');

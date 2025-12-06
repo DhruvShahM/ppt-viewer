@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw, Upload } from 'lucide-react';
+import { Play, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw, Upload, Download } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef } from 'react';
 
 import { REPOSITORIES } from '../data/repositories';
@@ -17,7 +17,7 @@ const ICON_MAP = {
     Heart
 };
 
-const DeckCard = ({ title, description, icon, onClick, color, isEditMode, repositories, currentRepoId, onMove, isSelectionMode, isSelected, onToggleSelect, onDelete, onArchive, onRestore, status }) => {
+const DeckCard = ({ title, description, icon, onClick, color, isEditMode, repositories, currentRepoId, onMove, isSelectionMode, isSelected, onToggleSelect, onDelete, onArchive, onRestore, onExport, status }) => {
     // Resolve icon component from string name or use default
     const IconComponent = ICON_MAP[icon] || Layers;
 
@@ -49,7 +49,6 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
 
             <h3 className="text-2xl font-bold mb-3">{title}</h3>
             <p className="text-gray-400 mb-8 flex-grow">{description}</p>
-
             {!isEditMode && !isSelectionMode ? (
                 <div className="flex items-center gap-2 text-sm font-medium text-white/60 group-hover:text-white transition-colors">
                     <Play size={16} fill="currentColor" />
@@ -62,24 +61,42 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
                 </div>
             ) : (
                 <div className="w-full mt-auto pt-4 border-t border-white/10 flex items-end gap-2">
-                    <div className="flex-grow">
-                        <label className="text-xs text-gray-500 mb-1 block">Move to:</label>
-                        <select
-                            className="w-full bg-black/40 border border-white/20 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-blue-500"
-                            value={currentRepoId}
-                            onChange={(e) => onMove(e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
+                    {!isEditMode && !isSelectionMode && (
+                        <div className="flex-grow"></div>
+                    )}
+                    {(isEditMode || isSelectionMode) && (
+                        <div className="flex-grow">
+                            <label className="text-xs text-gray-500 mb-1 block">Move to:</label>
+                            <select
+                                className="w-full bg-black/40 border border-white/20 rounded px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-blue-500"
+                                value={currentRepoId}
+                                onChange={(e) => onMove(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {repositories.map(repo => (
+                                    <option key={repo.id} value={repo.id}>
+                                        {repo.title}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    {!isEditMode && !isSelectionMode && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onExport();
+                            }}
+                            className={`p-2 bg-${color}-500/10 hover:bg-${color}-500/20 text-${color}-400 rounded border border-${color}-500/20 transition-colors self-end ml-auto`}
+                            title="Export Deck"
                         >
-                            {repositories.map(repo => (
-                                <option key={repo.id} value={repo.id}>
-                                    {repo.title}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                            <Download size={16} />
+                        </button>
+                    )}
+
                     {isEditMode && (
                         <>
-
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -118,7 +135,7 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
                     )}
                 </div>
             )}
-        </motion.div>
+        </motion.div >
     );
 };
 
@@ -488,6 +505,69 @@ const DeckSelector = ({ onSelectDeck }) => {
 
 
 
+    const handleExportSelected = async () => {
+        if (selectedDecks.size === 0) return;
+
+        setIsProcessing(true);
+        try {
+            const decksToExport = Array.from(selectedDecks);
+            for (const deckId of decksToExport) {
+                await handleExportDeck(deckId);
+                // Small delay to prevent browser blocking multiple downloads
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            setIsSelectionMode(false);
+            setSelectedDecks(new Set());
+            alert("Export process completed!");
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Export failed for some decks');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleExportDeck = async (deckId) => {
+        try {
+            const response = await fetch('/api/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deckIds: [deckId] })
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+
+                // Try to get filename from header
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = `${deckId}.md`;
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                    if (filenameMatch && filenameMatch[1]) {
+                        filename = filenameMatch[1];
+                    }
+                }
+
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                const err = await response.json();
+                alert(`Export failed: ${err.message}`);
+            }
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Export failed');
+        }
+    };
+
+
     const handleDeleteDeck = async (deckId) => {
         if (!confirm(`PERMANENTLY DELETE this deck? This action cannot be undone.`)) return;
 
@@ -749,6 +829,14 @@ const DeckSelector = ({ onSelectDeck }) => {
 
                     {isSelectionMode && selectedDecks.size > 0 && (
                         <>
+                            <button
+                                onClick={handleExportSelected}
+                                disabled={isProcessing}
+                                className="px-4 py-3 rounded-xl bg-purple-500 text-white font-bold hover:bg-purple-600 transition-all flex items-center gap-2"
+                            >
+                                {isProcessing ? <Loader2 className="animate-spin" /> : <Download size={20} />}
+                                Export ({selectedDecks.size})
+                            </button>
 
 
                             <button
@@ -794,6 +882,7 @@ const DeckSelector = ({ onSelectDeck }) => {
                             onDelete={() => { }}
                             onArchive={() => handleArchiveDeck(deck.id)}
                             onRestore={() => handleRestoreDeck(deck.id)}
+                            onExport={() => handleExportDeck(deck.id)}
                             status={deck.status}
                         />
                     ))}
