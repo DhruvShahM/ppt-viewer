@@ -17,6 +17,7 @@
     *   Create continuous loops for diagrams using `transition: { repeat: Infinity }`.
 *   **Icons:** `lucide-react` (e.g., `Zap`, `Server`, `Database`).
 *   **File Format:** Single `.jsx` file.
+*   **Delivery:** If generating multiple slides, please bundle them into a single **ZIP file** for easy download.
 
 ## 2. Component Boilerplate (MUST FOLLOW)
 Use this exact structure for compatibility:

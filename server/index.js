@@ -415,10 +415,10 @@ const codeUpload = multer({
     storage: codeStorage,
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit per file
     fileFilter: (req, file, cb) => {
-        if (file.originalname.match(/\.(js|jsx|css|json|md)$/)) {
+        if (file.originalname.match(/\.(js|jsx|css|json|md|zip)$/)) {
             cb(null, true);
         } else {
-            cb(new Error('Only .js, .jsx, .css, .json, and .md files are allowed'));
+            cb(new Error('Only .js, .jsx, .css, .json, .md, and .zip files are allowed'));
         }
     }
 });
@@ -446,29 +446,62 @@ app.post('/api/import-deck', codeUpload.array('files'), catchAsync(async (req, r
 
     // Move files to deck directory
     const importedFiles = [];
+    const AdmZip = require('adm-zip');
+
     try {
         for (const file of req.files) {
-            const destPath = path.join(deckDir, file.originalname);
-            // Remove the timestamp prefix if we want original names, or just use originalName since multer saves with unique name in temp
-            // We want the original name in the target dir
-            // Wait, Multer filename function above sets the name in temp. 
-            // file.originalname is the original name.
-            // But if users upload Slide1.jsx, we want Slide1.jsx in the destination.
+            if (file.mimetype === 'application/zip' || file.mimetype === 'application/x-zip-compressed' || file.originalname.endsWith('.zip')) {
+                // Handle Zip File
+                try {
+                    const zip = new AdmZip(file.path);
+                    const zipEntries = zip.getEntries();
 
-            // Note: req.files contains the file info including 'path' (the temp path)
-            const targetPath = path.join(deckDir, file.originalname); // Use original name
-            fs.renameSync(file.path, targetPath);
-            importedFiles.push(file.originalname);
+                    zipEntries.forEach(entry => {
+                        if (!entry.isDirectory && (entry.entryName.endsWith('.jsx') || entry.entryName.endsWith('.js'))) {
+                            // Extract to deck directory, flattening the path (taking only filename)
+                            const fileName = path.basename(entry.entryName);
+                            // Avoid hidden files
+                            if (fileName.startsWith('.')) return;
+
+                            const targetPath = path.join(deckDir, fileName);
+
+                            // Check if file is inside a __MACOSX folder or similar junk
+                            if (!entry.entryName.includes('__MACOSX')) {
+                                fs.writeFileSync(targetPath, entry.getData());
+                                importedFiles.push(fileName);
+                            }
+                        }
+                    });
+
+                    // Clean up temp zip file
+                    try { fs.unlinkSync(file.path); } catch (e) { }
+
+                } catch (zipErr) {
+                    console.error("Error extracting zip:", zipErr);
+                }
+
+            } else {
+                // Handle Regular File
+                const targetPath = path.join(deckDir, file.originalname);
+                fs.renameSync(file.path, targetPath);
+                importedFiles.push(file.originalname);
+            }
         }
     } catch (err) {
-        // Cleanup on error could go here
+        console.error("Error processing files:", err);
+        // Clean up deck dir on failure?
         return next(new AppError('Failed to save files', 500));
+    }
+
+    if (importedFiles.length === 0) {
+        // Clean up created directory if no files
+        try { fs.rmdirSync(deckDir, { recursive: true }); } catch (e) { }
+        return next(new AppError('No valid slide files found in upload', 400));
     }
 
     // Generate deck.js
     const slideFiles = importedFiles.filter(f => f.endsWith('.jsx') || f.endsWith('.js'));
-    // Sort slides: By default alphabetical, or maybe try to parse numbers?
-    // Let's rely on alphabetical for now, users usually number them like 01_Title.jsx.
+    // Sort slides: Alphabetical
     slideFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
     const imports = slideFiles.map(f => `import ${path.parse(f).name} from './${f}';`).join('\n');
@@ -478,7 +511,6 @@ app.post('/api/import-deck', codeUpload.array('files'), catchAsync(async (req, r
     fs.writeFileSync(path.join(deckDir, 'deck.js'), deckJsContent);
 
 
-    // Update deck-index.json
     // Update deck-index.json
     const DECK_INDEX_FILE = path.join(__dirname, '..', 'src', 'data', 'deck-index.json');
     let deckIndex = [];
@@ -494,9 +526,7 @@ app.post('/api/import-deck', codeUpload.array('files'), catchAsync(async (req, r
         id: deckId,
         title,
         repoId: repoId || 'uncategorized',
-        repoTitle: 'Imported Decks', // Default if not found? Or look it up.
-        // Actually the repoTitle comes from the Repo ID usually, but here we can just set it or leave it.
-        // The frontend groups by repoId mainly.
+        repoTitle: 'Imported Decks',
         description: description || '',
         icon: 'Layers',
         color: 'blue',
