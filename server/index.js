@@ -11,7 +11,7 @@ const globalErrorHandler = require('./controllers/errorController');
 const metadataManager = require('./utils/metadata');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
@@ -670,7 +670,7 @@ app.post('/api/feedback/download-docx', catchAsync(async (req, res, next) => {
     });
 
     try {
-        const buffer = await generateFeedbackDoc(feedbackItems, DECKS_DIR);
+        const buffer = await generateFeedbackDoc(feedbackItems, DECKS_DIR, SCREENSHOTS_DIR);
 
         const filename = (deckId)
             ? `${deckId}-design-feedback-${Date.now()}.docx`

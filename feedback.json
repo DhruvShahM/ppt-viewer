@@ -316,17 +316,6 @@
     ]
   },
   {
-    "id": 1765030789944,
-    "timestamp": "2025-12-06T14:19:49.944Z",
-    "deckId": "hindi-concurrency",
-    "slideIndex": 9,
-    "instruction": "please add some more text here",
-    "status": "pending",
-    "screenshots": [
-      "1765030789932-328256914-image.png"
-    ]
-  },
-  {
     "id": 1765081562704,
     "timestamp": "2025-12-07T04:26:02.704Z",
     "deckId": "rate-limiting",
@@ -360,25 +349,58 @@
     ]
   },
   {
-    "id": 1765085417257,
-    "timestamp": "2025-12-07T05:30:17.257Z",
-    "deckId": "concurrency",
-    "slideIndex": 10,
-    "instruction": "Please add the animation and motion graphics",
+    "id": 1765100087930,
+    "timestamp": "2025-12-07T09:34:47.930Z",
+    "deckId": "concurrency-guide",
+    "slideIndex": 9,
+    "instruction": "please add the animation here where needed",
     "status": "pending",
     "screenshots": [
-      "1765085417250-582738974-image.png"
+      "1765100087917-185162293-image.png"
     ]
   },
   {
-    "id": 1765085927325,
-    "timestamp": "2025-12-07T05:38:47.325Z",
-    "deckId": "concurrency",
-    "slideIndex": 10,
-    "instruction": "add some more text here",
+    "id": 1765100188039,
+    "timestamp": "2025-12-07T09:36:28.039Z",
+    "deckId": "concurrency-guide",
+    "slideIndex": 12,
+    "instruction": "please add some more point where i added the highlighted red square lines",
     "status": "pending",
     "screenshots": [
-      "1765085927309-750827402-image.png"
+      "1765100188030-923667840-image.png"
+    ]
+  },
+  {
+    "id": 1765100281316,
+    "timestamp": "2025-12-07T09:38:01.316Z",
+    "deckId": "hindi-concurrency",
+    "slideIndex": 4,
+    "instruction": "please add some animation and motion graphics here",
+    "status": "pending",
+    "screenshots": [
+      "1765100281308-808897620-image.png"
+    ]
+  },
+  {
+    "id": 1765101558944,
+    "timestamp": "2025-12-07T09:59:18.944Z",
+    "deckId": "concurrency",
+    "slideIndex": 9,
+    "instruction": "please fix animation related issue in this slide",
+    "status": "pending",
+    "screenshots": [
+      "1765101558933-20333779-image.png"
+    ]
+  },
+  {
+    "id": 1765101598967,
+    "timestamp": "2025-12-07T09:59:58.967Z",
+    "deckId": "concurrency",
+    "slideIndex": 8,
+    "instruction": "please add the animation here",
+    "status": "pending",
+    "screenshots": [
+      "1765101598959-927997827-image.png"
     ]
   }
 ]

@@ -22,7 +22,7 @@ const { imageSize: sizeOf } = require("image-size");
  * @param {string} screenshotsDir - Directory containing screenshot files
  * @returns {Promise<Buffer>}
  */
-const generateFeedbackDoc = async (feedbackItems, decksDir) => {
+const generateFeedbackDoc = async (feedbackItems, decksDir, screenshotsDir) => {
     const children = [];
 
     // Title
@@ -295,6 +295,89 @@ const generateFeedbackDoc = async (feedbackItems, decksDir) => {
                         spacing: { after: 0, before: 0 } // Compact spacing for code
                     })
                 );
+            }
+
+            // --- Embed Screenshots for this Slide Group ---
+            // Collect all screenshots for items in this slide group
+            const screenshotsToEmbed = [];
+            for (const item of items) {
+                if (item.screenshots && Array.isArray(item.screenshots)) {
+                    item.screenshots.forEach(s => screenshotsToEmbed.push({ filename: s, label: `Feedback #${item.id}` }));
+                } else if (item.screenshot) {
+                    screenshotsToEmbed.push({ filename: item.screenshot, label: `Feedback #${item.id}` });
+                }
+            }
+
+            if (screenshotsToEmbed.length > 0) {
+                children.push(
+                    new Paragraph({
+                        text: "Screenshots:",
+                        heading: HeadingLevel.HEADING_3,
+                        spacing: { before: 400, after: 200 }
+                    })
+                );
+
+                for (const { filename, label } of screenshotsToEmbed) {
+                    const imagePath = path.join(screenshotsDir, filename);
+                    if (fs.existsSync(imagePath)) {
+                        try {
+                            const imageBuffer = fs.readFileSync(imagePath);
+                            const dimensions = sizeOf(imageBuffer);
+
+                            // Scale down if too wide (max width ~600px usually fits well on page)
+                            let width = dimensions.width;
+                            let height = dimensions.height;
+                            const MAX_WIDTH = 600;
+
+                            if (width > MAX_WIDTH) {
+                                const ratio = MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                                height = Math.round(height * ratio);
+                            }
+
+                            children.push(
+                                new Paragraph({
+                                    children: [
+                                        new ImageRun({
+                                            data: imageBuffer,
+                                            transformation: {
+                                                width: width,
+                                                height: height
+                                            }
+                                        })
+                                    ],
+                                    alignment: AlignmentType.CENTER,
+                                    spacing: { before: 200, after: 100 }
+                                })
+                            );
+                            children.push(
+                                new Paragraph({
+                                    text: label,
+                                    alignment: AlignmentType.CENTER,
+                                    spacing: { after: 400 }
+                                })
+                            );
+
+                        } catch (err) {
+                            console.error(`Error embedding screenshot ${filename}:`, err);
+                            children.push(
+                                new Paragraph({
+                                    text: `Error loading screenshot: ${filename}`,
+                                    color: "RED",
+                                    spacing: { after: 200 }
+                                })
+                            );
+                        }
+                    } else {
+                        children.push(
+                            new Paragraph({
+                                text: `Screenshot not found: ${filename}`,
+                                color: "RED",
+                                spacing: { after: 200 }
+                            })
+                        );
+                    }
+                }
             }
 
             // Separator
