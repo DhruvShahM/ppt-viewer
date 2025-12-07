@@ -306,7 +306,7 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ deckId }),
+                body: JSON.stringify({ deckId, slideIndex }),
             });
 
             if (response.ok) {

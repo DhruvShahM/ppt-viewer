@@ -1,7 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 
-const postData = JSON.stringify({});
+const postData = JSON.stringify({ deckIds: ['hindi-concurrency'] });
 
 const options = {
     hostname: 'localhost',

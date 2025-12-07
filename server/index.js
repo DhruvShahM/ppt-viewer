@@ -648,10 +648,19 @@ app.post('/api/feedback/download-docx', catchAsync(async (req, res, next) => {
             return next(new AppError('No pending feedback found for selected decks', 404));
         }
     } else if (deckId) {
-        // Single deck
-        feedbackItems = feedback.filter(f => f.deckId === deckId && f.status === 'pending');
-        if (feedbackItems.length === 0) {
-            return next(new AppError('No pending feedback found for this deck', 404));
+        // Single deck - check for slide specificity
+        if (req.body.slideIndex !== undefined) {
+            const index = parseInt(req.body.slideIndex);
+            feedbackItems = feedback.filter(f => f.deckId === deckId && f.slideIndex === index && f.status === 'pending');
+            if (feedbackItems.length === 0) {
+                return next(new AppError('No pending feedback found for this slide', 404));
+            }
+        } else {
+            // Full deck
+            feedbackItems = feedback.filter(f => f.deckId === deckId && f.status === 'pending');
+            if (feedbackItems.length === 0) {
+                return next(new AppError('No pending feedback found for this deck', 404));
+            }
         }
     } else {
         // Global feedback
