@@ -314,5 +314,71 @@
     "screenshots": [
       "1764955779128-868701939-image.png"
     ]
+  },
+  {
+    "id": 1765030789944,
+    "timestamp": "2025-12-06T14:19:49.944Z",
+    "deckId": "hindi-concurrency",
+    "slideIndex": 9,
+    "instruction": "please add some more text here",
+    "status": "pending",
+    "screenshots": [
+      "1765030789932-328256914-image.png"
+    ]
+  },
+  {
+    "id": 1765081562704,
+    "timestamp": "2025-12-07T04:26:02.704Z",
+    "deckId": "rate-limiting",
+    "slideIndex": 5,
+    "instruction": "please fix this animation related issue",
+    "status": "pending",
+    "videos": [
+      "1765081562685-117783774-screen-recording-1765081546730.webm"
+    ]
+  },
+  {
+    "id": 1765082857185,
+    "timestamp": "2025-12-07T04:47:37.185Z",
+    "deckId": "load-balancer",
+    "slideIndex": 3,
+    "instruction": "add the animation and motion graphics here",
+    "status": "pending",
+    "screenshots": [
+      "1765082857171-951639480-image.png"
+    ]
+  },
+  {
+    "id": 1765083640706,
+    "timestamp": "2025-12-07T05:00:40.706Z",
+    "deckId": "load-balancer",
+    "slideIndex": 5,
+    "instruction": "flip page removed and add animation and graphics with the text",
+    "status": "pending",
+    "screenshots": [
+      "1765083640696-53188846-image.png"
+    ]
+  },
+  {
+    "id": 1765085417257,
+    "timestamp": "2025-12-07T05:30:17.257Z",
+    "deckId": "concurrency",
+    "slideIndex": 10,
+    "instruction": "Please add the animation and motion graphics",
+    "status": "pending",
+    "screenshots": [
+      "1765085417250-582738974-image.png"
+    ]
+  },
+  {
+    "id": 1765085927325,
+    "timestamp": "2025-12-07T05:38:47.325Z",
+    "deckId": "concurrency",
+    "slideIndex": 10,
+    "instruction": "add some more text here",
+    "status": "pending",
+    "screenshots": [
+      "1765085927309-750827402-image.png"
+    ]
   }
 ]

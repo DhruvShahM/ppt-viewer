@@ -18,6 +18,7 @@ app.use(express.json());
 
 const FEEDBACK_FILE = path.join(__dirname, '..', 'feedback.json');
 const SCREENSHOTS_DIR = path.join(__dirname, 'screenshots');
+const DECKS_DIR = path.join(__dirname, '..', 'src', 'decks');
 
 // Ensure feedback file exists
 if (!fs.existsSync(FEEDBACK_FILE)) {
@@ -631,6 +632,65 @@ try {
 }
 
 
+const { generateFeedbackDoc } = require('./services/docx-generator.js');
+
+app.post('/api/feedback/download-docx', catchAsync(async (req, res, next) => {
+    const { deckId, deckIds } = req.body;
+
+    const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
+    const feedback = JSON.parse(fileContent);
+    let feedbackItems = [];
+
+    if (deckIds && Array.isArray(deckIds) && deckIds.length > 0) {
+        // Multi-deck selection
+        feedbackItems = feedback.filter(f => deckIds.includes(f.deckId) && f.status === 'pending');
+        if (feedbackItems.length === 0) {
+            return next(new AppError('No pending feedback found for selected decks', 404));
+        }
+    } else if (deckId) {
+        // Single deck
+        feedbackItems = feedback.filter(f => f.deckId === deckId && f.status === 'pending');
+        if (feedbackItems.length === 0) {
+            return next(new AppError('No pending feedback found for this deck', 404));
+        }
+    } else {
+        // Global feedback
+
+        feedbackItems = feedback.filter(f => f.status === 'pending');
+        if (feedbackItems.length === 0) {
+            return next(new AppError('No pending feedback found', 404));
+        }
+    }
+
+    // Sort: If global, sort by deckId then slideIndex. If local, deckId is same so sort by slideIndex.
+    feedbackItems.sort((a, b) => {
+        if (a.deckId !== b.deckId) return a.deckId.localeCompare(b.deckId);
+        if (a.slideIndex !== b.slideIndex) return a.slideIndex - b.slideIndex;
+        return new Date(a.timestamp) - new Date(b.timestamp);
+    });
+
+    try {
+        const buffer = await generateFeedbackDoc(feedbackItems, DECKS_DIR);
+
+        const filename = (deckId)
+            ? `${deckId}-design-feedback-${Date.now()}.docx`
+            : (deckIds && deckIds.length > 0)
+                ? `selected-decks-feedback-${Date.now()}.docx`
+                : `global-design-feedback-${Date.now()}.docx`;
+
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        res.setHeader('Content-Length', buffer.length);
+
+        res.send(buffer);
+        console.log(`Generated DOCX for ${deckId || 'ALL DECKS'} with ${feedbackItems.length} items`);
+    } catch (error) {
+        console.error('Error generating DOCX:', error);
+        return next(new AppError('Failed to generate DOCX file', 500));
+    }
+}));
+
+
 app.all('*', (req, res, next) => {
     next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
@@ -640,4 +700,5 @@ app.use(globalErrorHandler);
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
+
 

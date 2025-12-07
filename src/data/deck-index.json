@@ -207,5 +207,33 @@
     "importedAt": "2025-12-06T04:09:00.857Z",
     "archivedAt": "2025-12-06T04:09:30.613Z",
     "restoredAt": "2025-12-06T04:36:56.038Z"
+  },
+  {
+    "id": "Design pattern how works",
+    "title": "Design pattern how works",
+    "repoId": "microservices",
+    "repoTitle": "Imported Decks",
+    "description": "Design pattern how works",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/Design pattern how works",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-06T07:52:35.462Z"
+  },
+  {
+    "id": "Design pattern",
+    "title": "Design pattern",
+    "repoId": "microservices",
+    "repoTitle": "Imported Decks",
+    "description": "Design pattern",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/Design pattern",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-06T07:55:01.027Z"
   }
 ]

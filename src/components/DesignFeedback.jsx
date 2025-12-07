@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquarePlus, Send, X, Image as ImageIcon, Trash2, Video, StopCircle, Play } from 'lucide-react';
+import { MessageSquarePlus, Send, X, Image as ImageIcon, Trash2, Video, StopCircle, Play, Download } from 'lucide-react';
+
 
 const DesignFeedback = ({ deckId, slideIndex }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -298,6 +299,36 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
         }
     };
 
+    const handleDownloadDocx = async () => {
+        try {
+            const response = await fetch('/api/feedback/download-docx', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ deckId }),
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${deckId}-design-feedback-${Date.now()}.docx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                const err = await response.json();
+                alert(`Failed to download DOCX: ${err.message}`);
+            }
+        } catch (error) {
+            console.error('Error downloading DOCX:', error);
+            alert('Error downloading DOCX file');
+        }
+    };
+
     return (
         <div className="relative z-[100]">
             {/* Trigger Button - Only show when closed */}
@@ -386,6 +417,14 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                                     </div>
                                 </div>
                             ))}
+
+                            <button
+                                onClick={handleDownloadDocx}
+                                className="w-full py-2 mb-3 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-400 text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Download size={14} />
+                                Download Feedback (DOCX)
+                            </button>
 
                             <button
                                 onClick={() => setShowForm(true)}

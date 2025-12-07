@@ -567,6 +567,38 @@ const DeckSelector = ({ onSelectDeck }) => {
         }
     };
 
+    const handleDownloadFeedbackSelected = async () => {
+        if (selectedDecks.size === 0) return;
+
+        setIsProcessing(true);
+        try {
+            const response = await fetch('/api/feedback/download-docx', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deckIds: Array.from(selectedDecks) })
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `selected-decks-feedback-${Date.now()}.docx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                const err = await response.json();
+                alert(`Download failed: ${err.message}`);
+            }
+        } catch (error) {
+            console.error('Download failed:', error);
+            alert('Download failed');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
     const handleDeleteDeck = async (deckId) => {
         if (!confirm(`PERMANENTLY DELETE this deck? This action cannot be undone.`)) return;
@@ -721,7 +753,7 @@ const DeckSelector = ({ onSelectDeck }) => {
                 <p className="text-xl text-gray-400 mb-8">Select a deck to begin</p>
 
                 {/* Controls Bar */}
-                <div className="flex items-center justify-center gap-4 w-full max-w-2xl mx-auto">
+                <div className="flex items-center justify-center gap-4 w-full max-w-2xl mx-auto flex-wrap">
                     {/* Search Input */}
                     <div className="relative flex-grow group">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-400 transition-colors" size={20} />
@@ -805,6 +837,45 @@ const DeckSelector = ({ onSelectDeck }) => {
                         <Archive size={20} />
                     </button>
 
+                    {/* Global Feedback Download */}
+                    <button
+                        onClick={async () => {
+                            try {
+                                setIsProcessing(true);
+                                const response = await fetch('/api/feedback/download-docx', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({}) // Empty body for global fetch
+                                });
+
+                                if (response.ok) {
+                                    const blob = await response.blob();
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `global-design-feedback-${Date.now()}.docx`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    document.body.removeChild(a);
+                                } else {
+                                    const err = await response.json();
+                                    alert(`Download failed: ${err.message}`);
+                                }
+                            } catch (error) {
+                                console.error('Download failed:', error);
+                                alert('Download failed');
+                            } finally {
+                                setIsProcessing(false);
+                            }
+                        }}
+                        className="px-4 py-3 rounded-xl border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white transition-all flex items-center gap-2"
+                        title="Download Global Pending Feedback"
+                    >
+                        <Download size={20} />
+                        <span className="hidden sm:inline text-sm font-medium">Feedback</span>
+                    </button>
+
                     {/* Selection Mode Toggle */}
                     <button
                         onClick={() => {
@@ -836,6 +907,16 @@ const DeckSelector = ({ onSelectDeck }) => {
                             >
                                 {isProcessing ? <Loader2 className="animate-spin" /> : <Download size={20} />}
                                 Export ({selectedDecks.size})
+                            </button>
+
+                            <button
+                                onClick={handleDownloadFeedbackSelected}
+                                disabled={isProcessing}
+                                className="px-4 py-3 rounded-xl bg-purple-500 text-white font-bold hover:bg-purple-600 transition-all flex items-center gap-2"
+                                title="Download Feedback for Selected Decks"
+                            >
+                                {isProcessing ? <Loader2 className="animate-spin" /> : <Download size={20} />}
+                                Feedback ({selectedDecks.size})
                             </button>
 
 
