@@ -402,9 +402,13 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                         >
                             <Home size={24} />
                         </button>
-                        <DesignFeedback deckId={deckId} slideIndex={currentSlide + 1} />
                     </>
                 )}
+
+                {/* Design Feedback - Always mounted to preserve state/recording, hidden when presenting if desired */}
+                <div className={isPresenting ? 'hidden' : 'block'}>
+                    <DesignFeedback deckId={deckId} slideIndex={currentSlide + 1} />
+                </div>
 
                 {isPresenting && (
                     <button

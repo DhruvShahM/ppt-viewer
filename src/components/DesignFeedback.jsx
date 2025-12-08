@@ -123,6 +123,21 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
         setVideoPreviews(prev => [...prev, ...newPreviews]);
     };
 
+    const getSupportedMimeType = () => {
+        const types = [
+            'video/webm;codecs=vp9',
+            'video/webm;codecs=vp8',
+            'video/webm',
+            'video/mp4'
+        ];
+        for (const type of types) {
+            if (MediaRecorder.isTypeSupported(type)) {
+                return type;
+            }
+        }
+        return '';
+    };
+
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getDisplayMedia({
@@ -130,7 +145,13 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                 audio: false
             });
 
-            const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            const mimeType = getSupportedMimeType();
+            if (!mimeType) {
+                alert('Screen recording is not supported in this browser.');
+                return;
+            }
+
+            const mediaRecorder = new MediaRecorder(stream, { mimeType });
             mediaRecorderRef.current = mediaRecorder;
             chunksRef.current = [];
 
@@ -141,8 +162,10 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
             };
 
             mediaRecorder.onstop = () => {
-                const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-                const file = new File([blob], `screen-recording-${Date.now()}.webm`, { type: 'video/webm' });
+                const blob = new Blob(chunksRef.current, { type: mimeType });
+                // specific extension based on mimeType
+                const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+                const file = new File([blob], `screen-recording-${Date.now()}.${ext}`, { type: mimeType });
                 handleVideoFiles([file]);
 
                 // Stop all tracks
@@ -150,7 +173,8 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                 setIsRecording(false);
             };
 
-            mediaRecorder.start();
+            // Request data every 1 second to ensure we capture chunks even if it crashes or stops abruptly
+            mediaRecorder.start(1000);
             setIsRecording(true);
 
             // Stop recording when user stops sharing via browser UI
@@ -163,6 +187,11 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
         } catch (err) {
             console.error("Error starting screen recording:", err);
             setIsRecording(false);
+            if (err.name === 'NotAllowedError') {
+                // User cancelled the picker
+            } else {
+                alert('Failed to start screen recording: ' + err.message);
+            }
         }
     };
 
@@ -392,12 +421,21 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                                     {feedback.videos && feedback.videos.length > 0 && (
                                         <div className="mt-2 grid grid-cols-1 gap-2">
                                             {feedback.videos.map((src, idx) => (
-                                                <video
-                                                    key={idx}
-                                                    src={`/api/screenshots/${src}`}
-                                                    controls
-                                                    className="w-full rounded border border-yellow-500/20"
-                                                />
+                                                <div key={idx} className="relative group">
+                                                    <video
+                                                        src={`/api/screenshots/${src}`}
+                                                        controls
+                                                        className="w-full rounded border border-yellow-500/20"
+                                                    />
+                                                    <a
+                                                        href={`/api/screenshots/${src}`}
+                                                        download
+                                                        className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        title="Download Video"
+                                                    >
+                                                        <Download size={14} />
+                                                    </a>
+                                                </div>
                                             ))}
                                         </div>
                                     )}
@@ -498,6 +536,14 @@ const DesignFeedback = ({ deckId, slideIndex }) => {
                                                 className="w-full h-24 object-cover rounded border border-slate-700"
                                                 controls
                                             />
+                                            <a
+                                                href={preview}
+                                                download={`recording-${Date.now()}.webm`}
+                                                className="absolute top-1 left-1 bg-blue-500/80 hover:bg-blue-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-all z-10"
+                                                title="Download Recording"
+                                            >
+                                                <Download size={12} />
+                                            </a>
                                             <button
                                                 type="button"
                                                 onClick={() => removeVideo(idx)}
