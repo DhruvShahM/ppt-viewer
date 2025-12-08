@@ -17,6 +17,21 @@ const path = require("path");
 const { imageSize: sizeOf } = require("image-size");
 
 /**
+ * Removes characters that are invalid in XML 1.0
+ * @param {string} text 
+ * @returns {string}
+ */
+const sanitizeText = (text) => {
+    if (!text) return "";
+    // Remove null bytes and other control characters that are invalid in XML
+    // Keep tab (\x09), line feed (\x0A), carriage return (\x0D)
+    // Range \x20-\x7E is basic printable ASCII
+    // \u00A0-\uFFFF covers most other valid utf8
+    // We explicitly strip low control chars except whitespace
+    return text.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, "");
+};
+
+/**
  * Generates a DOCX buffer from feedback items
  * @param {Array} feedbackItems - List of feedback objects
  * @param {string} screenshotsDir - Directory containing screenshot files
@@ -65,7 +80,7 @@ const generateFeedbackDoc = async (feedbackItems, decksDir, screenshotsDir) => {
             new Paragraph({
                 children: [
                     new TextRun({
-                        text: `Deck: ${deckId}`,
+                        text: sanitizeText(`Deck: ${deckId}`),
                         bold: true,
                         size: 36,
                         color: "2E74B5"
@@ -121,7 +136,7 @@ const generateFeedbackDoc = async (feedbackItems, decksDir, screenshotsDir) => {
                     new Paragraph({
                         children: [
                             new TextRun({
-                                text: `Feedback #${index + 1} - Slide ${item.slideIndex}`,
+                                text: sanitizeText(`Feedback #${index + 1} - Slide ${item.slideIndex}`),
                                 bold: true,
                                 size: 28
                             })
@@ -162,7 +177,7 @@ const generateFeedbackDoc = async (feedbackItems, decksDir, screenshotsDir) => {
                                 children: [new Paragraph({ children: [new TextRun({ text: "Instruction", bold: true })] })],
                             }),
                             new TableCell({
-                                children: [new Paragraph(item.instruction)],
+                                children: [new Paragraph(sanitizeText(item.instruction))],
                             })
                         ]
                     })
@@ -287,7 +302,7 @@ const generateFeedbackDoc = async (feedbackItems, decksDir, screenshotsDir) => {
                     new Paragraph({
                         children: [
                             new TextRun({
-                                text: line,
+                                text: sanitizeText(line),
                                 font: "Courier New",
                                 size: 20
                             })
@@ -324,6 +339,11 @@ const generateFeedbackDoc = async (feedbackItems, decksDir, screenshotsDir) => {
                             const imageBuffer = fs.readFileSync(imagePath);
                             const dimensions = sizeOf(imageBuffer);
 
+                            // Validate dimensions
+                            if (!dimensions || !dimensions.width || !dimensions.height) {
+                                throw new Error(`Invalid image dimensions for ${filename}`);
+                            }
+
                             // Scale down if too wide (max width ~600px usually fits well on page)
                             let width = dimensions.width;
                             let height = dimensions.height;
@@ -332,7 +352,16 @@ const generateFeedbackDoc = async (feedbackItems, decksDir, screenshotsDir) => {
                             if (width > MAX_WIDTH) {
                                 const ratio = MAX_WIDTH / width;
                                 width = MAX_WIDTH;
-                                height = Math.round(height * ratio);
+                                height = height * ratio;
+                            }
+
+                            // Ensure integer dimensions (Word requires integers)
+                            width = Math.round(width);
+                            height = Math.round(height);
+
+                            // Final safety check
+                            if (width <= 0 || height <= 0 || isNaN(width) || isNaN(height)) {
+                                throw new Error(`Invalid calculated dimensions: ${width}x${height}`);
                             }
 
                             children.push(

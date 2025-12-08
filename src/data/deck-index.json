@@ -235,5 +235,20 @@
     "version": 1,
     "hasLargeAssets": false,
     "importedAt": "2025-12-06T07:55:01.027Z"
+  },
+  {
+    "id": "Cap-therom",
+    "title": "Cap therom",
+    "repoId": "microservices",
+    "repoTitle": "Imported Decks",
+    "description": "Cap therom",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "archived",
+    "path": "src/decks/Cap-therom",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-08T03:33:21.978Z",
+    "archivedAt": "2025-12-08T03:37:42.572Z"
   }
 ]
