@@ -511,15 +511,43 @@ const DeckSelector = ({ onSelectDeck }) => {
         setIsProcessing(true);
         try {
             const decksToExport = Array.from(selectedDecks);
-            for (const deckId of decksToExport) {
-                await handleExportDeck(deckId);
-                // Small delay to prevent browser blocking multiple downloads
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
 
-            setIsSelectionMode(false);
-            setSelectedDecks(new Set());
-            alert("Export process completed!");
+            const response = await fetch('/api/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deckIds: decksToExport })
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+
+                // Try to get filename from header
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = decksToExport.length === 1 ? `${decksToExport[0]}.md` : 'decks-export.zip';
+
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                    if (filenameMatch && filenameMatch[1]) {
+                        filename = filenameMatch[1];
+                    }
+                }
+
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                setIsSelectionMode(false);
+                setSelectedDecks(new Set());
+                alert("Export process completed!");
+            } else {
+                const err = await response.json();
+                alert(`Export failed: ${err.message}`);
+            }
         } catch (error) {
             console.error('Export failed:', error);
             alert('Export failed for some decks');
@@ -889,21 +917,18 @@ const DeckSelector = ({ onSelectDeck }) => {
                         title="Toggle Selection Mode"
                     >
                         <CheckSquare size={20} />
+                        <span className="hidden sm:inline text-sm font-medium">Select</span>
                     </button>
 
 
 
-                    {/* View Archives Button */}
 
-
-
-
-                    {isSelectionMode && selectedDecks.size > 0 && (
+                    {isSelectionMode && (
                         <>
                             <button
                                 onClick={handleExportSelected}
-                                disabled={isProcessing}
-                                className="px-4 py-3 rounded-xl bg-purple-500 text-white font-bold hover:bg-purple-600 transition-all flex items-center gap-2"
+                                disabled={isProcessing || selectedDecks.size === 0}
+                                className="px-4 py-3 rounded-xl bg-purple-500 text-white font-bold hover:bg-purple-600 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isProcessing ? <Loader2 className="animate-spin" /> : <Download size={20} />}
                                 Export ({selectedDecks.size})
@@ -911,8 +936,8 @@ const DeckSelector = ({ onSelectDeck }) => {
 
                             <button
                                 onClick={handleDownloadFeedbackSelected}
-                                disabled={isProcessing}
-                                className="px-4 py-3 rounded-xl bg-purple-500 text-white font-bold hover:bg-purple-600 transition-all flex items-center gap-2"
+                                disabled={isProcessing || selectedDecks.size === 0}
+                                className="px-4 py-3 rounded-xl bg-purple-500 text-white font-bold hover:bg-purple-600 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Download Feedback for Selected Decks"
                             >
                                 {isProcessing ? <Loader2 className="animate-spin" /> : <Download size={20} />}
@@ -922,8 +947,8 @@ const DeckSelector = ({ onSelectDeck }) => {
 
                             <button
                                 onClick={viewMode === 'active' ? handleArchiveSelected : handleRestoreSelected}
-                                disabled={isProcessing}
-                                className="px-4 py-3 rounded-xl bg-blue-500 text-white font-bold hover:bg-blue-600 transition-all flex items-center gap-2"
+                                disabled={isProcessing || selectedDecks.size === 0}
+                                className="px-4 py-3 rounded-xl bg-blue-500 text-white font-bold hover:bg-blue-600 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isProcessing ? <Loader2 className="animate-spin" /> : (viewMode === 'active' ? <Archive size={20} /> : <RotateCcw size={20} />)}
                                 {viewMode === 'active' ? `Archive (${selectedDecks.size})` : `Restore (${selectedDecks.size})`}
@@ -931,8 +956,8 @@ const DeckSelector = ({ onSelectDeck }) => {
 
                             <button
                                 onClick={handleDeleteSelected}
-                                disabled={isProcessing}
-                                className="px-4 py-3 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-all flex items-center gap-2"
+                                disabled={isProcessing || selectedDecks.size === 0}
+                                className="px-4 py-3 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isProcessing ? <Loader2 className="animate-spin" /> : <Trash2 size={20} />}
                                 Delete ({selectedDecks.size})
