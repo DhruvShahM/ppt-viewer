@@ -793,25 +793,79 @@ app.post('/api/open-file', catchAsync(async (req, res, next) => {
         return next(new AppError('Deck not found', 404));
     }
 
-    const files = fs.readdirSync(deckDir);
-    // Same logic as export/import to ensure order matches
-    const slideFiles = files.filter(f => (f.endsWith('.jsx') || f.endsWith('.js')) && f !== 'deck.js');
-    slideFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+    const deckJsPath = path.join(deckDir, 'deck.js');
+    let filepath;
+    let filename;
 
-    const filename = slideFiles[slideIndex];
+    // Try parsing deck.js first to get accurate file path
+    if (fs.existsSync(deckJsPath)) {
+        try {
+            const deckContent = fs.readFileSync(deckJsPath, 'utf8');
+            const exportMatch = deckContent.match(/export\s+default\s*\[([\s\S]*?)\]/);
 
-    if (!filename) {
-        return next(new AppError('Slide file not found', 404));
+            if (exportMatch) {
+                const exportBody = exportMatch[1];
+                const cleanBody = exportBody.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+                const componentNames = cleanBody
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0);
+
+                if (slideIndex < componentNames.length) {
+                    const componentName = componentNames[slideIndex];
+                    const safeName = componentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const importRegex = new RegExp(`import\\s+${safeName}\\s+from\\s+['"](.+)['"]`);
+                    const importMatch = deckContent.match(importRegex);
+
+                    if (importMatch) {
+                        const importPath = importMatch[1];
+                        // Resolve path relative to deckDir
+                        let resolvedPath = path.resolve(deckDir, importPath);
+
+                        // Attach extension if missing
+                        if (!resolvedPath.match(/\.(js|jsx)$/)) {
+                            if (fs.existsSync(resolvedPath + '.jsx')) {
+                                resolvedPath += '.jsx';
+                            } else if (fs.existsSync(resolvedPath + '.js')) {
+                                resolvedPath += '.js';
+                            }
+                        }
+
+                        // Verify existence
+                        if (fs.existsSync(resolvedPath)) {
+                            filepath = resolvedPath;
+                            filename = path.basename(resolvedPath);
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Error parsing deck.js:', err);
+        }
     }
 
-    const filepath = path.join(deckDir, filename);
+    // Fallback: directory listing (original logic)
+    if (!filepath) {
+        console.warn('Falling back to directory listing for open-file');
+
+        const files = fs.readdirSync(deckDir);
+        const slideFiles = files.filter(f => (f.endsWith('.jsx') || f.endsWith('.js')) && f !== 'deck.js');
+        slideFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+        filename = slideFiles[slideIndex];
+
+        if (!filename) {
+            return next(new AppError('Slide file not found', 404));
+        }
+
+        filepath = path.join(deckDir, filename);
+    }
 
     console.log(`Opening file: ${filepath}`);
 
     exec(`code "${filepath}"`, (error) => {
         if (error) {
             console.log('VSCode not found or failed, trying Notepad...');
-            // Fallback to Notepad
             exec(`notepad "${filepath}"`, (err2) => {
                 if (err2) {
                     console.error('Failed to open file in Notepad:', err2);

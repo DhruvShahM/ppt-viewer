@@ -307,7 +307,6 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                     <button
                         onClick={() => {
                             setIsLocked(true);
-                            setActiveTool('none');
                         }}
                         className="p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
                         title="Lock Toolbar"

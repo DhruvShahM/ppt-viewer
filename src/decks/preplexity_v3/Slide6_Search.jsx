@@ -77,7 +77,7 @@ const Slide6_Search = () => {
   const currentNode = path[Math.min(currentNodeIndex, path.length - 1)];
 
   return (
-    <div className='w-full h-screen  from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-12 overflow-hidden'>
+    <div className='w-full h-screen from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-12 overflow-hidden'>
       {/* Title */}
       <motion.h1
         initial={{ opacity: 0, y: -40 }}
