@@ -780,6 +780,51 @@ app.post('/api/feedback/download-docx', catchAsync(async (req, res, next) => {
 }));
 
 
+app.patch('/api/decks/:deckId', catchAsync(async (req, res, next) => {
+    const { deckId } = req.params;
+    const updates = req.body;
+
+    if (!updates || Object.keys(updates).length === 0) {
+        return next(new AppError('No updates provided', 400));
+    }
+
+    try {
+        const updatedDeck = metadataManager.updateDeck(deckId, updates);
+        res.json({ success: true, deck: updatedDeck });
+    } catch (error) {
+        return next(new AppError(error.message, 404));
+    }
+}));
+
+app.post('/api/repositories/rename', catchAsync(async (req, res, next) => {
+    const { repoId, newTitle } = req.body;
+
+    if (!repoId || !newTitle) {
+        return next(new AppError('Missing repoId or newTitle', 400));
+    }
+
+    try {
+        const metadata = metadataManager.readMetadata();
+        let updatedCount = 0;
+
+        // Update all decks in this repository
+        metadata.forEach(deck => {
+            if (deck.repoId === repoId) {
+                deck.repoTitle = newTitle;
+                updatedCount++;
+            }
+        });
+
+        if (updatedCount > 0) {
+            metadataManager.writeMetadata(metadata);
+        }
+
+        res.json({ success: true, count: updatedCount });
+    } catch (error) {
+        return next(new AppError('Failed to rename repository', 500));
+    }
+}));
+
 app.post('/api/open-file', catchAsync(async (req, res, next) => {
     const { deckId, slideIndex } = req.body;
 

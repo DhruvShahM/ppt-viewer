@@ -326,9 +326,12 @@ const DeckSelector = ({ onSelectDeck }) => {
     };
 
     const handleAddRepository = () => {
+        const name = prompt("Enter new repository name:", "New Repository");
+        if (!name) return;
+
         const newRepo = {
             id: `repo-${Date.now()}`,
-            title: 'New Repository',
+            title: name,
             decks: []
         };
         setRepositories([...repositories, newRepo]);
@@ -351,7 +354,23 @@ const DeckSelector = ({ onSelectDeck }) => {
         ));
     };
 
-    const handleMoveDeck = (sourceRepoId, deckId, targetRepoId) => {
+    const handlePersistRepositoryName = async (repoId, newTitle) => {
+        if (!repoId || !newTitle) return;
+        try {
+            const response = await fetch('/api/repositories/rename', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ repoId, newTitle })
+            });
+            if (!response.ok) {
+                console.error("Failed to persist repo name");
+            }
+        } catch (error) {
+            console.error("Error persisting repo name:", error);
+        }
+    };
+
+    const handleMoveDeck = async (sourceRepoId, deckId, targetRepoId) => {
         if (sourceRepoId === targetRepoId) return;
 
         const sourceRepo = repositories.find(r => r.id === sourceRepoId);
@@ -371,6 +390,21 @@ const DeckSelector = ({ onSelectDeck }) => {
         });
 
         setRepositories(newRepositories);
+
+        // Persist change
+        try {
+            await fetch(`/api/decks/${deckId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    repoId: targetRepoId,
+                    repoTitle: targetRepo.title
+                })
+            });
+        } catch (error) {
+            console.error("Failed to move deck:", error);
+            alert("Failed to save move. Please refresh.");
+        }
     };
 
 
@@ -1009,6 +1043,12 @@ const DeckSelector = ({ onSelectDeck }) => {
                                         type="text"
                                         value={repo.title}
                                         onChange={(e) => handleRenameRepository(repo.id, e.target.value)}
+                                        onBlur={(e) => handlePersistRepositoryName(repo.id, e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.target.blur();
+                                            }
+                                        }}
                                         className="bg-transparent text-2xl font-bold text-white/80 border-b border-blue-500/50 focus:border-blue-500 outline-none px-2 py-1 w-full max-w-md"
                                         placeholder="Repository Name"
                                     />
