@@ -2,79 +2,71 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const Slide5_Types = () => {
-    const [hoveredIndex, setHoveredIndex] = useState(null);
-
     const types = [
         {
             title: "Hardware Load Balancer",
             icon: "🖥️",
             desc: "Physical device, expensive, high performance.",
-            color: "bg-blue-600",
-            backColor: "bg-blue-950"
+            color: "from-blue-600",
+            bg: "bg-blue-950/50",
+            border: "border-blue-500/30"
         },
         {
             title: "Software Load Balancer",
             icon: "💾",
             desc: "Runs on standard servers, flexible, cost-effective.",
-            color: "bg-purple-600",
-            backColor: "bg-purple-950"
+            color: "from-purple-600",
+            bg: "bg-purple-950/50",
+            border: "border-purple-500/30"
         },
         {
             title: "Cloud Load Balancer",
             icon: "☁️",
             desc: "Managed service (AWS ELB), scalable, pay-as-you-go.",
-            color: "bg-orange-600",
-            backColor: "bg-orange-950"
+            color: "from-orange-600",
+            bg: "bg-orange-950/50",
+            border: "border-orange-500/30"
         }
     ];
 
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center p-8">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-16 z-10">Types of Load Balancers</h2>
+        <div className="h-full w-full flex flex-col items-center justify-center p-8 bg-slate-900">
+            <motion.h2
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-4xl md:text-5xl font-bold text-white mb-16 z-10"
+            >
+                Types of Load Balancers
+            </motion.h2>
 
-            <div className="flex flex-wrap justify-center gap-8 w-full max-w-6xl z-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl z-10">
                 {types.map((type, index) => (
-                    <div
+                    <motion.div
                         key={index}
-                        className="w-80 h-96 perspective-1000 cursor-pointer"
-                        onMouseEnter={() => setHoveredIndex(index)}
-                        onMouseLeave={() => setHoveredIndex(null)}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.2, duration: 0.5 }}
+                        whileHover={{ y: -10, transition: { duration: 0.3 } }}
+                        className={`relative overflow-hidden rounded-2xl p-8 ${type.bg} ${type.border} border shadow-2xl flex flex-col items-center text-center group backdrop-blur-sm`}
                     >
-                        <motion.div
-                            initial={{ rotateY: 90, opacity: 0 }}
-                            animate={{
-                                rotateY: hoveredIndex === index ? 180 : 0,
-                                opacity: 1
-                            }}
-                            transition={{ duration: 0.6 }}
-                            className="relative w-full h-full"
-                            style={{ transformStyle: 'preserve-3d' }}
-                        >
-                            {/* Front Side */}
-                            <div
-                                className={`absolute inset-0 ${type.color} rounded-2xl p-8 flex flex-col items-center justify-center shadow-2xl border border-white/10`}
-                                style={{ backfaceVisibility: 'hidden' }}
-                            >
-                                <div className="text-8xl mb-8">{type.icon}</div>
-                                <h3 className="text-2xl font-bold text-white text-center">{type.title}</h3>
-                                <p className="text-white/70 mt-4 text-sm uppercase tracking-widest">Hover to flip</p>
-                            </div>
+                        {/* Decorative Top Line */}
+                        <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${type.color} to-transparent`} />
 
-                            {/* Back Side */}
-                            <div
-                                className={`absolute inset-0 ${type.backColor} rounded-2xl p-8 flex flex-col items-center justify-center shadow-xl border border-white/10`}
-                                style={{
-                                    backfaceVisibility: 'hidden',
-                                    transform: 'rotateY(180deg)'
-                                }}
-                            >
-                                <h3 className="text-2xl font-bold text-white mb-6 text-center">{type.title}</h3>
-                                <p className="text-xl text-gray-200 text-center leading-relaxed">
-                                    {type.desc}
-                                </p>
-                            </div>
+                        <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: index * 0.2 + 0.3, type: "spring" }}
+                            className="text-7xl mb-8 bg-white/5 p-6 rounded-2xl aspect-square flex items-center justify-center backdrop-blur-md group-hover:bg-white/10 transition-colors shadow-inner"
+                        >
+                            {type.icon}
                         </motion.div>
-                    </div>
+
+                        <h3 className="text-2xl font-bold text-white mb-4">{type.title}</h3>
+                        <p className="text-gray-300 leading-relaxed text-lg">{type.desc}</p>
+
+                        {/* Subtle Glow Effect */}
+                        <div className={`absolute -bottom-10 -right-10 w-32 h-32 bg-gradient-to-br ${type.color} to-transparent opacity-10 blur-3xl group-hover:opacity-20 transition-opacity`} />
+                    </motion.div>
                 ))}
             </div>
         </div>

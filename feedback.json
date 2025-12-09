@@ -314,5 +314,181 @@
     "screenshots": [
       "1764955779128-868701939-image.png"
     ]
+  },
+  {
+    "id": 1765081562704,
+    "timestamp": "2025-12-07T04:26:02.704Z",
+    "deckId": "rate-limiting",
+    "slideIndex": 5,
+    "instruction": "please fix this animation related issue",
+    "status": "completed",
+    "videos": [
+      "1765081562685-117783774-screen-recording-1765081546730.webm"
+    ]
+  },
+  {
+    "id": 1765082857185,
+    "timestamp": "2025-12-07T04:47:37.185Z",
+    "deckId": "load-balancer",
+    "slideIndex": 3,
+    "instruction": "add the animation and motion graphics here",
+    "status": "completed",
+    "screenshots": [
+      "1765082857171-951639480-image.png"
+    ]
+  },
+  {
+    "id": 1765083640706,
+    "timestamp": "2025-12-07T05:00:40.706Z",
+    "deckId": "load-balancer",
+    "slideIndex": 5,
+    "instruction": "flip page removed and add animation and graphics with the text",
+    "status": "completed",
+    "screenshots": [
+      "1765083640696-53188846-image.png"
+    ]
+  },
+  {
+    "id": 1765100087930,
+    "timestamp": "2025-12-07T09:34:47.930Z",
+    "deckId": "concurrency-guide",
+    "slideIndex": 9,
+    "instruction": "please add the animation here where needed",
+    "status": "completed",
+    "screenshots": [
+      "1765100087917-185162293-image.png"
+    ]
+  },
+  {
+    "id": 1765100188039,
+    "timestamp": "2025-12-07T09:36:28.039Z",
+    "deckId": "concurrency-guide",
+    "slideIndex": 12,
+    "instruction": "please add some more point where i added the highlighted red square lines",
+    "status": "completed",
+    "screenshots": [
+      "1765100188030-923667840-image.png"
+    ]
+  },
+  {
+    "id": 1765100281316,
+    "timestamp": "2025-12-07T09:38:01.316Z",
+    "deckId": "hindi-concurrency",
+    "slideIndex": 4,
+    "instruction": "please add some animation and motion graphics here",
+    "status": "completed",
+    "screenshots": [
+      "1765100281308-808897620-image.png"
+    ]
+  },
+  {
+    "id": 1765101558944,
+    "timestamp": "2025-12-07T09:59:18.944Z",
+    "deckId": "concurrency",
+    "slideIndex": 9,
+    "instruction": "please fix animation related issue in this slide",
+    "status": "completed",
+    "screenshots": [
+      "1765101558933-20333779-image.png"
+    ]
+  },
+  {
+    "id": 1765101598967,
+    "timestamp": "2025-12-07T09:59:58.967Z",
+    "deckId": "concurrency",
+    "slideIndex": 8,
+    "instruction": "please add the animation here",
+    "status": "completed",
+    "screenshots": [
+      "1765101598959-927997827-image.png"
+    ]
+  },
+  {
+    "id": 1765103321206,
+    "timestamp": "2025-12-07T10:28:41.206Z",
+    "deckId": "hindi-concurrency",
+    "slideIndex": 2,
+    "instruction": "please add some more text here in the container",
+    "status": "completed",
+    "screenshots": [
+      "1765103321188-202961185-image.png"
+    ]
+  },
+  {
+    "id": 1765104935745,
+    "timestamp": "2025-12-07T10:55:35.745Z",
+    "deckId": "hindi-concurrency",
+    "slideIndex": 3,
+    "instruction": "demo request pending",
+    "status": "completed",
+    "screenshots": [
+      "1765104935732-227213487-image.png"
+    ]
+  },
+  {
+    "id": 1765105259849,
+    "timestamp": "2025-12-07T11:00:59.849Z",
+    "deckId": "hindi-concurrency",
+    "slideIndex": 3,
+    "instruction": "added here",
+    "status": "completed",
+    "videos": [
+      "1765105259834-387253006-screen-recording-1765105254524.webm"
+    ]
+  },
+  {
+    "id": 1765254267416,
+    "timestamp": "2025-12-09T04:24:27.416Z",
+    "deckId": "preplexity_v3",
+    "slideIndex": 5,
+    "instruction": "here words are very close, here please make the visuals very clear",
+    "status": "completed",
+    "videos": [
+      "1765254267356-146130593-screen-recording-1765254240223.webm"
+    ]
+  },
+  {
+    "id": 1765254322937,
+    "timestamp": "2025-12-09T04:25:22.937Z",
+    "deckId": "preplexity_v3",
+    "slideIndex": 6,
+    "instruction": "please make the visuals very clear here",
+    "status": "completed",
+    "videos": [
+      "1765254322855-660138613-screen-recording-1765254311208.webm"
+    ]
+  },
+  {
+    "id": 1765254422908,
+    "timestamp": "2025-12-09T04:27:02.908Z",
+    "deckId": "preplexity_v3",
+    "slideIndex": 7,
+    "instruction": "here make the grpahs visuals very clear to see the audience",
+    "status": "completed",
+    "videos": [
+      "1765254422845-334051829-screen-recording-1765254406022.webm"
+    ]
+  },
+  {
+    "id": 1765255504620,
+    "timestamp": "2025-12-09T04:45:04.620Z",
+    "deckId": "preplexity_v3",
+    "slideIndex": 6,
+    "instruction": "please fix these css related issue and properly align the nodes",
+    "status": "completed",
+    "screenshots": [
+      "1765255504617-958057288-image.png"
+    ]
+  },
+  {
+    "id": 1765255570751,
+    "timestamp": "2025-12-09T04:46:10.751Z",
+    "deckId": "preplexity_v3",
+    "slideIndex": 7,
+    "instruction": "please fix the animation and css related issue",
+    "status": "completed",
+    "screenshots": [
+      "1765255570747-6455139-image.png"
+    ]
   }
 ]

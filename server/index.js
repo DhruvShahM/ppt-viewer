@@ -11,13 +11,18 @@ const globalErrorHandler = require('./controllers/errorController');
 const metadataManager = require('./utils/metadata');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
+
+// Trigger restart 2
+
+
 
 app.use(cors());
 app.use(express.json());
 
 const FEEDBACK_FILE = path.join(__dirname, '..', 'feedback.json');
 const SCREENSHOTS_DIR = path.join(__dirname, 'screenshots');
+const DECKS_DIR = path.join(__dirname, '..', 'src', 'decks');
 
 // Ensure feedback file exists
 if (!fs.existsSync(FEEDBACK_FILE)) {
@@ -493,6 +498,82 @@ app.post('/api/import-deck', codeUpload.array('files'), catchAsync(async (req, r
         return next(new AppError('Failed to save files', 500));
     }
 
+    // Process Markdown files to extract slides
+    const mdFiles = importedFiles.filter(f => f.endsWith('.md'));
+    for (const mdFile of mdFiles) {
+        try {
+            const mdPath = path.join(deckDir, mdFile);
+            const content = fs.readFileSync(mdPath, 'utf8');
+
+            // Regex to find sections starting with ## Filename
+            // This handles variations like:
+            // ## Slide1.jsx
+            // ## Slide 1
+            // ... code code ...
+
+            // Split by lines starting with ##
+            const sections = content.split(/(?=^##\s+)/m);
+
+            let extractedCount = 0;
+
+            sections.forEach(section => {
+                const trimmed = section.trim();
+                if (!trimmed.startsWith('##')) return;
+
+                // Get first line as filename
+                const firstLineEnd = trimmed.indexOf('\n');
+                if (firstLineEnd === -1) return;
+
+                let filenameLine = trimmed.substring(2, firstLineEnd).trim(); // Remove ##
+
+                // Extract code block
+                const codeBlockRegex = /```(?:jsx|js|javascript|typescript|ts)?\s*([\s\S]*?)```/;
+                const match = trimmed.match(codeBlockRegex);
+
+                if (match && match[1]) {
+                    let code = match[1].trim();
+                    let filename = filenameLine;
+
+                    // Sanitize filename
+                    filename = filename.replace(/[^\w\d\-\.]/g, '_');
+                    if (!filename.match(/\.(js|jsx)$/i)) {
+                        filename += '.jsx';
+                    }
+
+                    // Write file
+                    const targetPath = path.join(deckDir, filename);
+                    fs.writeFileSync(targetPath, code);
+                    importedFiles.push(filename);
+                    extractedCount++;
+                }
+            });
+
+            // Fallback: If no ## headers found or regular structure, try to find just code blocks
+            if (extractedCount === 0) {
+                const codeBlockRegexGlobal = /```(?:jsx|js|javascript|typescript|ts)?\s*([\s\S]*?)```/g;
+                let match;
+                let idx = 1;
+                while ((match = codeBlockRegexGlobal.exec(content)) !== null) {
+                    if (match[1]) {
+                        const code = match[1].trim();
+                        // Basic check if it looks like React/Slide code
+                        if (code.includes('import') && code.includes('export default')) {
+                            const filename = `Slide_${idx}.jsx`;
+                            const targetPath = path.join(deckDir, filename);
+                            fs.writeFileSync(targetPath, code);
+                            importedFiles.push(filename);
+                            extractedCount++;
+                            idx++;
+                        }
+                    }
+                }
+            }
+
+        } catch (err) {
+            console.error(`Error processing markdown file ${mdFile}:`, err);
+        }
+    }
+
     if (importedFiles.length === 0) {
         // Clean up created directory if no files
         try { fs.rmdirSync(deckDir, { recursive: true }); } catch (e) { }
@@ -544,12 +625,304 @@ app.post('/api/import-deck', codeUpload.array('files'), catchAsync(async (req, r
     res.status(201).json({ success: true, deck: newDeck });
 
 }));
+
+const archiver = require('archiver');
+
+app.post('/api/export', catchAsync(async (req, res, next) => {
+    const { deckIds } = req.body;
+
+    if (!deckIds || !Array.isArray(deckIds) || deckIds.length === 0) {
+        return next(new AppError('Invalid deckIds', 400));
+    }
+
+    const DECK_INDEX_FILE = path.join(__dirname, '..', 'src', 'data', 'deck-index.json');
+    let deckIndex = [];
+    if (fs.existsSync(DECK_INDEX_FILE)) {
+        deckIndex = JSON.parse(fs.readFileSync(DECK_INDEX_FILE, 'utf8'));
+    }
+
+    // Helper to generate markdown for a single deck
+    const generateDeckMarkdown = (deckId) => {
+        const deckInfo = deckIndex.find(d => d.id === deckId);
+        const deckTitle = deckInfo ? deckInfo.title : deckId;
+        const deckDir = path.join(__dirname, '..', 'src', 'decks', deckId);
+
+        if (!fs.existsSync(deckDir)) {
+            throw new Error(`Deck directory not found for ${deckId}`);
+        }
+
+        const files = fs.readdirSync(deckDir);
+        const slideFiles = files.filter(f => f.endsWith('.jsx') || f.endsWith('.js'));
+        slideFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+        let markdownContent = `# ${deckTitle}\n\n`;
+
+        slideFiles.forEach(file => {
+            if (file === 'deck.js') return;
+            const content = fs.readFileSync(path.join(deckDir, file), 'utf8');
+            markdownContent += `## ${file}\n\n\`\`\`jsx\n${content}\n\`\`\`\n\n`;
+        });
+
+        return { filename: `${deckTitle}.md`, content: markdownContent };
+    };
+
+    if (deckIds.length === 1) {
+        // Single File Download
+        try {
+            const { filename, content } = generateDeckMarkdown(deckIds[0]);
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            res.setHeader('Content-Type', 'text/markdown');
+            res.send(content);
+        } catch (error) {
+            return next(new AppError(`Export failed: ${error.message}`, 500));
+        }
+    } else {
+        // Zip Download
+        try {
+            const archive = archiver('zip', {
+                zlib: { level: 9 } // Sets the compression level.
+            });
+
+            res.setHeader('Content-Disposition', 'attachment; filename="decks-export.zip"');
+            res.setHeader('Content-Type', 'application/zip');
+
+            archive.pipe(res);
+
+            for (const deckId of deckIds) {
+                try {
+                    const { filename, content } = generateDeckMarkdown(deckId);
+                    archive.append(content, { name: filename });
+                } catch (err) {
+                    console.error(`Skipping deck ${deckId} due to error:`, err);
+                    archive.append(`Error exporting deck ${deckId}: ${err.message}`, { name: `${deckId}-error.txt` });
+                }
+            }
+
+            await archive.finalize();
+        } catch (error) {
+            return next(new AppError('Export zip failed', 500));
+        }
+    }
+}));
 try {
     metadataManager.migrateMetadataSchema();
     console.log('Metadata schema initialized');
 } catch (error) {
     console.error('Failed to initialize metadata schema:', error.message);
 }
+
+
+const { generateFeedbackDoc } = require('./services/docx-generator.js');
+
+app.post('/api/feedback/download-docx', catchAsync(async (req, res, next) => {
+    const { deckId, deckIds } = req.body;
+
+    const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
+    const feedback = JSON.parse(fileContent);
+    let feedbackItems = [];
+
+    if (deckIds && Array.isArray(deckIds) && deckIds.length > 0) {
+        // Multi-deck selection
+        feedbackItems = feedback.filter(f => deckIds.includes(f.deckId) && f.status === 'pending');
+        if (feedbackItems.length === 0) {
+            return next(new AppError('No pending feedback found for selected decks', 404));
+        }
+    } else if (deckId) {
+        // Single deck - check for slide specificity
+        if (req.body.slideIndex !== undefined) {
+            const index = parseInt(req.body.slideIndex);
+            feedbackItems = feedback.filter(f => f.deckId === deckId && f.slideIndex === index && f.status === 'pending');
+            if (feedbackItems.length === 0) {
+                return next(new AppError('No pending feedback found for this slide', 404));
+            }
+        } else {
+            // Full deck
+            feedbackItems = feedback.filter(f => f.deckId === deckId && f.status === 'pending');
+            if (feedbackItems.length === 0) {
+                return next(new AppError('No pending feedback found for this deck', 404));
+            }
+        }
+    } else {
+        // Global feedback
+
+        feedbackItems = feedback.filter(f => f.status === 'pending');
+        if (feedbackItems.length === 0) {
+            return next(new AppError('No pending feedback found', 404));
+        }
+    }
+
+    // Sort: If global, sort by deckId then slideIndex. If local, deckId is same so sort by slideIndex.
+    feedbackItems.sort((a, b) => {
+        if (a.deckId !== b.deckId) return a.deckId.localeCompare(b.deckId);
+        if (a.slideIndex !== b.slideIndex) return a.slideIndex - b.slideIndex;
+        return new Date(a.timestamp) - new Date(b.timestamp);
+    });
+
+    try {
+        const buffer = await generateFeedbackDoc(feedbackItems, DECKS_DIR, SCREENSHOTS_DIR);
+
+        const filename = (deckId)
+            ? `${deckId}-design-feedback-${Date.now()}.docx`
+            : (deckIds && deckIds.length > 0)
+                ? `selected-decks-feedback-${Date.now()}.docx`
+                : `global-design-feedback-${Date.now()}.docx`;
+
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        res.setHeader('Content-Length', buffer.length);
+
+        res.send(buffer);
+        console.log(`Generated DOCX for ${deckId || 'ALL DECKS'} with ${feedbackItems.length} items`);
+    } catch (error) {
+        console.error('Error generating DOCX:', error);
+        return next(new AppError('Failed to generate DOCX file', 500));
+    }
+}));
+
+
+app.patch('/api/decks/:deckId', catchAsync(async (req, res, next) => {
+    const { deckId } = req.params;
+    const updates = req.body;
+
+    if (!updates || Object.keys(updates).length === 0) {
+        return next(new AppError('No updates provided', 400));
+    }
+
+    try {
+        const updatedDeck = metadataManager.updateDeck(deckId, updates);
+        res.json({ success: true, deck: updatedDeck });
+    } catch (error) {
+        return next(new AppError(error.message, 404));
+    }
+}));
+
+app.post('/api/repositories/rename', catchAsync(async (req, res, next) => {
+    const { repoId, newTitle } = req.body;
+
+    if (!repoId || !newTitle) {
+        return next(new AppError('Missing repoId or newTitle', 400));
+    }
+
+    try {
+        const metadata = metadataManager.readMetadata();
+        let updatedCount = 0;
+
+        // Update all decks in this repository
+        metadata.forEach(deck => {
+            if (deck.repoId === repoId) {
+                deck.repoTitle = newTitle;
+                updatedCount++;
+            }
+        });
+
+        if (updatedCount > 0) {
+            metadataManager.writeMetadata(metadata);
+        }
+
+        res.json({ success: true, count: updatedCount });
+    } catch (error) {
+        return next(new AppError('Failed to rename repository', 500));
+    }
+}));
+
+app.post('/api/open-file', catchAsync(async (req, res, next) => {
+    const { deckId, slideIndex } = req.body;
+
+    if (!deckId || slideIndex === undefined) {
+        return next(new AppError('Missing required fields', 400));
+    }
+
+    const deckDir = path.join(__dirname, '..', 'src', 'decks', deckId);
+
+    if (!fs.existsSync(deckDir)) {
+        return next(new AppError('Deck not found', 404));
+    }
+
+    const deckJsPath = path.join(deckDir, 'deck.js');
+    let filepath;
+    let filename;
+
+    // Try parsing deck.js first to get accurate file path
+    if (fs.existsSync(deckJsPath)) {
+        try {
+            const deckContent = fs.readFileSync(deckJsPath, 'utf8');
+            const exportMatch = deckContent.match(/export\s+default\s*\[([\s\S]*?)\]/);
+
+            if (exportMatch) {
+                const exportBody = exportMatch[1];
+                const cleanBody = exportBody.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+                const componentNames = cleanBody
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0);
+
+                if (slideIndex < componentNames.length) {
+                    const componentName = componentNames[slideIndex];
+                    const safeName = componentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const importRegex = new RegExp(`import\\s+${safeName}\\s+from\\s+['"](.+)['"]`);
+                    const importMatch = deckContent.match(importRegex);
+
+                    if (importMatch) {
+                        const importPath = importMatch[1];
+                        // Resolve path relative to deckDir
+                        let resolvedPath = path.resolve(deckDir, importPath);
+
+                        // Attach extension if missing
+                        if (!resolvedPath.match(/\.(js|jsx)$/)) {
+                            if (fs.existsSync(resolvedPath + '.jsx')) {
+                                resolvedPath += '.jsx';
+                            } else if (fs.existsSync(resolvedPath + '.js')) {
+                                resolvedPath += '.js';
+                            }
+                        }
+
+                        // Verify existence
+                        if (fs.existsSync(resolvedPath)) {
+                            filepath = resolvedPath;
+                            filename = path.basename(resolvedPath);
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Error parsing deck.js:', err);
+        }
+    }
+
+    // Fallback: directory listing (original logic)
+    if (!filepath) {
+        console.warn('Falling back to directory listing for open-file');
+
+        const files = fs.readdirSync(deckDir);
+        const slideFiles = files.filter(f => (f.endsWith('.jsx') || f.endsWith('.js')) && f !== 'deck.js');
+        slideFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+        filename = slideFiles[slideIndex];
+
+        if (!filename) {
+            return next(new AppError('Slide file not found', 404));
+        }
+
+        filepath = path.join(deckDir, filename);
+    }
+
+    console.log(`Opening file: ${filepath}`);
+
+    exec(`code "${filepath}"`, (error) => {
+        if (error) {
+            console.log('VSCode not found or failed, trying Notepad...');
+            exec(`notepad "${filepath}"`, (err2) => {
+                if (err2) {
+                    console.error('Failed to open file in Notepad:', err2);
+                    return next(new AppError('Failed to open file in any editor', 500));
+                }
+                res.json({ success: true, file: filename, method: 'notepad' });
+            });
+        } else {
+            res.json({ success: true, file: filename, method: 'code' });
+        }
+    });
+}));
 
 
 app.all('*', (req, res, next) => {
@@ -561,4 +934,5 @@ app.use(globalErrorHandler);
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
+
 

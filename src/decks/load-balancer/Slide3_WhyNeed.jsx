@@ -1,105 +1,191 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React from "react";
+import { motion } from "framer-motion";
+
+const trafficVariant = {
+    initial: { opacity: 0, y: -10 },
+    animate: {
+        opacity: [0, 1, 0],
+        y: [0, 60],
+        transition: {
+            duration: 1.2,
+            repeat: Infinity,
+            ease: "linear",
+        },
+    },
+};
 
 const Slide3_WhyNeed = () => {
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center p-8">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-12 z-10">Why do we need a Load Balancer?</h2>
+        <div className="h-full w-full flex flex-col items-center justify-center p-10">
+            {/* Title */}
+            <motion.h2
+                initial={{ opacity: 0, y: -30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="text-5xl font-bold text-white mb-14"
+            >
+                Why do we need a Load Balancer?
+            </motion.h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 w-full max-w-6xl z-10">
-                {/* Left: Without Load Balancer */}
+            {/* List Variants moved inside or defined outside if preferred, defining inline for simplicity or adding const above component */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-14 w-full max-w-7xl">
+                {/* WITHOUT LOAD BALANCER */}
                 <motion.div
-                    initial={{ opacity: 0, x: -50 }}
+                    initial={{ opacity: 0, x: -80 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="bg-red-900/20 border border-red-500/30 rounded-2xl p-8 flex flex-col items-center"
+                    transition={{ duration: 0.6 }}
+                    className="relative bg-red-900/20 border border-red-500/40 rounded-2xl p-8"
                 >
-                    <h3 className="text-2xl font-bold text-red-400 mb-6">Without Load Balancer</h3>
+                    <h3 className="text-2xl font-bold text-red-400 mb-6">
+                        Without Load Balancer
+                    </h3>
 
-                    {/* Shaking Server Animation */}
+                    {/* Traffic */}
+                    <div className="absolute top-16 left-10 flex flex-col gap-2">
+                        {[...Array(3)].map((_, i) => (
+                            <motion.div
+                                key={i}
+                                variants={trafficVariant}
+                                initial="initial"
+                                animate="animate"
+                                className="w-3 h-3 bg-red-400 rounded-full"
+                            />
+                        ))}
+                    </div>
+
+                    {/* Overloaded Server */}
                     <motion.div
                         animate={{
-                            x: [-2, 2, -2, 2, 0],
+                            x: [-3, 3, -3, 3, 0],
                             rotate: [-1, 1, -1, 1, 0],
-                            backgroundColor: ["#1e293b", "#450a0a", "#1e293b"]
+                            boxShadow: [
+                                "0 0 0px rgba(239,68,68,0)",
+                                "0 0 30px rgba(239,68,68,0.6)",
+                                "0 0 0px rgba(239,68,68,0)",
+                            ],
                         }}
                         transition={{
                             duration: 0.5,
                             repeat: Infinity,
-                            repeatDelay: 2
+                            repeatDelay: 1.5,
                         }}
-                        className="w-32 h-40 bg-slate-800 rounded-lg border-2 border-red-500/50 mb-8 flex flex-col items-center justify-center shadow-lg shadow-red-900/50"
+                        className="mx-auto mt-10 w-36 h-44 bg-slate-800 border-2 border-red-500 rounded-xl flex flex-col items-center justify-center"
                     >
-                        <span className="text-4xl">🔥</span>
-                        <span className="text-xs text-red-300 mt-2 font-mono">OVERLOAD</span>
+                        <span className="text-5xl">🔥</span>
+                        <span className="text-xs mt-2 font-mono text-red-300">
+                            OVERLOADED
+                        </span>
                     </motion.div>
 
-                    <ul className="space-y-4 w-full">
-                        {[
-                            "One server handles everything ❌",
-                            "Server crashes under heavy load ❌",
-                            "More downtime ❌"
-                        ].map((text, i) => (
+                    <motion.ul
+                        initial="hidden"
+                        animate="visible"
+                        variants={{
+                            hidden: { opacity: 0 },
+                            visible: { opacity: 1, transition: { staggerChildren: 0.3, delayChildren: 0.5 } }
+                        }}
+                        className="mt-8 space-y-3 text-slate-300"
+                    >
+                        {["❌ All traffic hits one server", "❌ Crashes during peak load", "❌ Poor user experience"].map((item, index) => (
                             <motion.li
-                                key={i}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.5 + i * 0.2 }}
-                                className="text-slate-300 flex items-center gap-2"
+                                key={index}
+                                variants={{
+                                    hidden: { opacity: 0, x: -20 },
+                                    visible: { opacity: 1, x: 0 }
+                                }}
                             >
-                                {text}
+                                {item}
                             </motion.li>
                         ))}
-                    </ul>
+                    </motion.ul>
                 </motion.div>
 
-                {/* Right: With Load Balancer */}
+                {/* WITH LOAD BALANCER */}
                 <motion.div
-                    initial={{ opacity: 0, x: 50 }}
+                    initial={{ opacity: 0, x: 80 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                    className="bg-green-900/20 border border-green-500/30 rounded-2xl p-8 flex flex-col items-center"
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="relative bg-green-900/20 border border-green-500/40 rounded-2xl p-8"
                 >
-                    <h3 className="text-2xl font-bold text-green-400 mb-6">With Load Balancer</h3>
+                    <h3 className="text-2xl font-bold text-green-400 mb-6">
+                        With Load Balancer
+                    </h3>
 
-                    {/* Balanced Servers Animation */}
-                    <div className="flex gap-4 mb-8">
+                    {/* Load Balancer */}
+                    <motion.div
+                        animate={{ scale: [1, 1.05, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                        className="mx-auto w-28 h-16 bg-gradient-to-r from-green-400 to-emerald-500 rounded-xl flex items-center justify-center text-slate-900 font-bold shadow-lg shadow-green-500/20"
+                    >
+                        LB
+                    </motion.div>
+
+                    {/* Flow Lines */}
+                    <div className="flex justify-center gap-6 my-6">
+                        {[1, 2, 3].map((i) => (
+                            <motion.div
+                                key={i}
+                                animate={{ height: [0, 40, 0], opacity: [0, 1, 0] }}
+                                transition={{
+                                    duration: 1.5,
+                                    repeat: Infinity,
+                                    delay: i * 0.3,
+                                }}
+                                className="w-1 bg-green-400/50 rounded-full"
+                            />
+                        ))}
+                    </div>
+
+                    {/* Servers */}
+                    <div className="flex justify-center gap-5">
                         {[1, 2, 3].map((i) => (
                             <motion.div
                                 key={i}
                                 animate={{
-                                    boxShadow: ["0 0 0px rgba(34, 197, 94, 0)", "0 0 20px rgba(34, 197, 94, 0.3)", "0 0 0px rgba(34, 197, 94, 0)"]
+                                    boxShadow: [
+                                        "0 0 0px rgba(34,197,94,0)",
+                                        "0 0 15px rgba(34,197,94,0.4)",
+                                        "0 0 0px rgba(34,197,94,0)",
+                                    ],
+                                    y: [0, -5, 0]
                                 }}
                                 transition={{
                                     duration: 2,
                                     repeat: Infinity,
-                                    delay: i * 0.5
+                                    delay: i * 0.4,
+                                    ease: "easeInOut"
                                 }}
-                                className="w-20 h-24 bg-slate-800 rounded-lg border-2 border-green-500/50 flex flex-col items-center justify-center"
+                                className="w-20 h-24 bg-slate-800 border border-green-500/50 rounded-lg flex flex-col items-center justify-center"
                             >
-                                <span className="text-2xl">❄️</span>
-                                <span className="text-[10px] text-green-300 mt-2 font-mono">STABLE</span>
+                                <span className="text-3xl">❄️</span>
+                                <span className="text-[10px] mt-1 font-mono text-green-300">
+                                    STABLE
+                                </span>
                             </motion.div>
                         ))}
                     </div>
 
-                    <ul className="space-y-4 w-full">
-                        {[
-                            "Smooth distribution ✔️",
-                            "High availability ✔️",
-                            "Faster response ✔️"
-                        ].map((text, i) => (
+                    <motion.ul
+                        initial="hidden"
+                        animate="visible"
+                        variants={{
+                            hidden: { opacity: 0 },
+                            visible: { opacity: 1, transition: { staggerChildren: 0.3, delayChildren: 1 } }
+                        }}
+                        className="mt-8 space-y-3 text-slate-300"
+                    >
+                        {["✅ Even traffic distribution", "✅ High availability", "✅ Faster response time"].map((item, index) => (
                             <motion.li
-                                key={i}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.7 + i * 0.2 }}
-                                className="text-slate-300 flex items-center gap-2"
+                                key={index}
+                                variants={{
+                                    hidden: { opacity: 0, x: 20 },
+                                    visible: { opacity: 1, x: 0 }
+                                }}
                             >
-                                {text}
+                                {item}
                             </motion.li>
                         ))}
-                    </ul>
+                    </motion.ul>
                 </motion.div>
             </div>
         </div>

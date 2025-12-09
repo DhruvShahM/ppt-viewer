@@ -87,6 +87,25 @@ class MetadataManager {
     }
 
     /**
+     * Update any fields of a specific deck
+     * @param {string} deckId - Deck ID to update
+     * @param {Object} updates - Fields to update
+     */
+    updateDeck(deckId, updates) {
+        const metadata = this.readMetadata();
+        const deck = metadata.find(d => d.id === deckId);
+
+        if (!deck) {
+            throw new Error(`Deck not found: ${deckId}`);
+        }
+
+        Object.assign(deck, updates);
+
+        this.writeMetadata(metadata);
+        return deck;
+    }
+
+    /**
      * Get decks filtered by status
      * @param {string} status - Status to filter by ('active' or 'archived')
      * @returns {Array} Filtered deck array

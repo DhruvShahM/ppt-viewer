@@ -17,7 +17,7 @@
     *   Create continuous loops for diagrams using `transition: { repeat: Infinity }`.
 *   **Icons:** `lucide-react` (e.g., `Zap`, `Server`, `Database`).
 *   **File Format:** Single `.jsx` file.
-*   **Delivery:** If generating multiple slides, please bundle them into a single **ZIP file** for easy download.
+*   **Delivery:** Bundle all files into a single Markdown response. Use `## Filename.jsx` as a separator header before each file's code block.
 
 ## 2. Component Boilerplate (MUST FOLLOW)
 Use this exact structure for compatibility:
@@ -30,11 +30,6 @@ import { Sparkles, ArrowRight } from 'lucide-react'; // Add icons you need
 const SlideComponent = () => {
     return (
         <div className="h-full w-full flex flex-col items-center justify-center bg-slate-950 text-white p-8 relative overflow-hidden">
-            
-            {/* 1. Background Effects (Optional) */}
-            <div className="absolute top-0 left-0 w-full h-full z-0">
-                <div className="absolute top-20 right-20 w-72 h-72 bg-blue-500/20 rounded-full blur-[100px]" />
-            </div>
 
             {/* 2. Main Content (Z-Index 10) */}
             <div className="z-10 text-center max-w-5xl w-full">

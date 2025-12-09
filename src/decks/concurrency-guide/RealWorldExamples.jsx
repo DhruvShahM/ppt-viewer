@@ -41,11 +41,12 @@ for req := range requests {
                     <p className="text-gray-300 mb-4">
                         Process thousands of files using a worker pool.
                     </p>
-                    <ul className="text-sm text-gray-400 list-disc list-inside">
+                    <ul className="text-sm text-gray-400 list-disc list-inside space-y-1">
                         <li>Walk directory tree</li>
-                        <li>Send paths to <code>jobs</code> channel</li>
+                        <li>Send paths to <code>jobs</code> channel (Worker Pool Pattern)</li>
                         <li>Workers read file, process, send to <code>results</code></li>
-                        <li>Main aggregates results</li>
+                        <li>Main aggregates results & handles errors centrally</li>
+                        <li>Tuning: Adjust number of workers for disk I/O optimization</li>
                     </ul>
                 </div>
 
