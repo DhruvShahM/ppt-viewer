@@ -44,19 +44,20 @@ const Slide5_Algorithms = () => {
                 Popular Algorithms
             </h2>
 
-            <div className="grid grid-cols-2 gap-8 w-full max-w-5xl">
+            <div className="grid grid-cols-2 gap-8 w-full max-w-5xl" style={{ perspective: '1000px' }}>
                 {algorithms.map((algo, index) => (
                     <motion.div
                         key={index}
                         initial={{ opacity: 0, rotateY: 90 }}
                         animate={{ opacity: 1, rotateY: 0 }}
+                        whileHover={{ scale: 1.05 }}
                         transition={{
                             duration: 0.6,
                             delay: index * 0.2,
                             type: "spring",
                             stiffness: 100
                         }}
-                        className={`p-8 rounded-2xl border ${algo.border} ${algo.bg} backdrop-blur-sm flex flex-col items-center justify-center gap-6 hover:scale-105 transition-transform cursor-pointer`}
+                        className={`p-8 rounded-2xl border ${algo.border} ${algo.bg} backdrop-blur-sm flex flex-col items-center justify-center gap-6 cursor-pointer`}
                     >
                         <motion.div
                             initial={{ scale: 0 }}

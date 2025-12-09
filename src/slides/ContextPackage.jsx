@@ -76,10 +76,26 @@ const ContextPackage = () => {
 
                         {/* Connecting Lines */}
                         <div className="flex w-full justify-center gap-16 relative">
-                            <div className="absolute top-[-32px] w-px h-8 bg-gray-600"></div>
-                            <div className="absolute top-[-32px] w-32 h-px bg-gray-600"></div>
-                            <div className="absolute top-[-32px] left-[calc(50%-64px)] w-px h-8 bg-gray-600"></div>
-                            <div className="absolute top-[-32px] right-[calc(50%-64px)] w-px h-8 bg-gray-600"></div>
+                            <motion.div
+                                className="absolute top-[-32px] w-px h-8 bg-gray-600"
+                                animate={{ backgroundColor: ["#525252", "#ef4444", "#525252"] }}
+                                transition={{ duration: 4, repeat: Infinity, delay: 0.1 }}
+                            />
+                            <motion.div
+                                className="absolute top-[-32px] w-32 h-px bg-gray-600"
+                                animate={{ backgroundColor: ["#525252", "#ef4444", "#525252"] }}
+                                transition={{ duration: 4, repeat: Infinity, delay: 0.1 }}
+                            />
+                            <motion.div
+                                className="absolute top-[-32px] left-[calc(50%-64px)] w-px h-8 bg-gray-600"
+                                animate={{ backgroundColor: ["#525252", "#ef4444", "#525252"] }}
+                                transition={{ duration: 4, repeat: Infinity, delay: 0.1 }}
+                            />
+                            <motion.div
+                                className="absolute top-[-32px] right-[calc(50%-64px)] w-px h-8 bg-gray-600"
+                                animate={{ backgroundColor: ["#525252", "#ef4444", "#525252"] }}
+                                transition={{ duration: 4, repeat: Infinity, delay: 0.1 }}
+                            />
                         </div>
 
                         {/* Children */}
@@ -103,13 +119,18 @@ const ContextPackage = () => {
 
                         <motion.div
                             variants={{
-                                hidden: { opacity: 0, y: 20 },
-                                visible: { opacity: 1, y: 0 }
+                                hidden: { opacity: 0, scale: 0.5 },
+                                visible: { opacity: 1, scale: 1.2 }
                             }}
                             initial="hidden"
                             animate="visible"
-                            transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 3.5 }}
-                            className="text-red-500 font-bold mt-4"
+                            transition={{
+                                duration: 0.5,
+                                repeat: Infinity,
+                                repeatType: "reverse",
+                                repeatDelay: 0.5
+                            }}
+                            className="text-red-500 font-bold mt-6 text-xl tracking-widest"
                         >
                             CANCELLED!
                         </motion.div>

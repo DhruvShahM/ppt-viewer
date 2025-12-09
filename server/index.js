@@ -494,6 +494,82 @@ app.post('/api/import-deck', codeUpload.array('files'), catchAsync(async (req, r
         return next(new AppError('Failed to save files', 500));
     }
 
+    // Process Markdown files to extract slides
+    const mdFiles = importedFiles.filter(f => f.endsWith('.md'));
+    for (const mdFile of mdFiles) {
+        try {
+            const mdPath = path.join(deckDir, mdFile);
+            const content = fs.readFileSync(mdPath, 'utf8');
+
+            // Regex to find sections starting with ## Filename
+            // This handles variations like:
+            // ## Slide1.jsx
+            // ## Slide 1
+            // ... code code ...
+
+            // Split by lines starting with ##
+            const sections = content.split(/(?=^##\s+)/m);
+
+            let extractedCount = 0;
+
+            sections.forEach(section => {
+                const trimmed = section.trim();
+                if (!trimmed.startsWith('##')) return;
+
+                // Get first line as filename
+                const firstLineEnd = trimmed.indexOf('\n');
+                if (firstLineEnd === -1) return;
+
+                let filenameLine = trimmed.substring(2, firstLineEnd).trim(); // Remove ##
+
+                // Extract code block
+                const codeBlockRegex = /```(?:jsx|js|javascript|typescript|ts)?\s*([\s\S]*?)```/;
+                const match = trimmed.match(codeBlockRegex);
+
+                if (match && match[1]) {
+                    let code = match[1].trim();
+                    let filename = filenameLine;
+
+                    // Sanitize filename
+                    filename = filename.replace(/[^\w\d\-\.]/g, '_');
+                    if (!filename.match(/\.(js|jsx)$/i)) {
+                        filename += '.jsx';
+                    }
+
+                    // Write file
+                    const targetPath = path.join(deckDir, filename);
+                    fs.writeFileSync(targetPath, code);
+                    importedFiles.push(filename);
+                    extractedCount++;
+                }
+            });
+
+            // Fallback: If no ## headers found or regular structure, try to find just code blocks
+            if (extractedCount === 0) {
+                const codeBlockRegexGlobal = /```(?:jsx|js|javascript|typescript|ts)?\s*([\s\S]*?)```/g;
+                let match;
+                let idx = 1;
+                while ((match = codeBlockRegexGlobal.exec(content)) !== null) {
+                    if (match[1]) {
+                        const code = match[1].trim();
+                        // Basic check if it looks like React/Slide code
+                        if (code.includes('import') && code.includes('export default')) {
+                            const filename = `Slide_${idx}.jsx`;
+                            const targetPath = path.join(deckDir, filename);
+                            fs.writeFileSync(targetPath, code);
+                            importedFiles.push(filename);
+                            extractedCount++;
+                            idx++;
+                        }
+                    }
+                }
+            }
+
+        } catch (err) {
+            console.error(`Error processing markdown file ${mdFile}:`, err);
+        }
+    }
+
     if (importedFiles.length === 0) {
         // Clean up created directory if no files
         try { fs.rmdirSync(deckDir, { recursive: true }); } catch (e) { }

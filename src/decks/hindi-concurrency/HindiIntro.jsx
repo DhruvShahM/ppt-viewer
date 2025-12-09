@@ -15,8 +15,11 @@ const HindiIntro = () => {
                         className="bg-white/5 p-6 rounded-xl border border-white/10"
                     >
                         <h3 className="text-2xl font-bold mb-4 text-purple-400">Concurrency क्या है?</h3>
-                        <p className="text-xl text-gray-300 leading-relaxed">
+                        <p className="text-xl text-gray-300 leading-relaxed mb-4">
                             Concurrency का मतलब है एक साथ कई कार्यों (tasks) को <strong>manage</strong> करना। यह ज़रूरी नहीं कि वे एक ही समय पर execute हो रहे हों।
+                        </p>
+                        <p className="text-gray-400 text-sm border-t border-white/10 pt-4">
+                            Example: एक ही समय पर खाना बनाना और phone पर बात करना।
                         </p>
                     </motion.div>
 

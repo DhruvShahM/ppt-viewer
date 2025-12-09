@@ -27,6 +27,7 @@ const Slide3_WhyNeed = () => {
                 Why do we need a Load Balancer?
             </motion.h2>
 
+            {/* List Variants moved inside or defined outside if preferred, defining inline for simplicity or adding const above component */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-14 w-full max-w-7xl">
                 {/* WITHOUT LOAD BALANCER */}
                 <motion.div
@@ -76,11 +77,27 @@ const Slide3_WhyNeed = () => {
                         </span>
                     </motion.div>
 
-                    <ul className="mt-8 space-y-3 text-slate-300">
-                        <li>❌ All traffic hits one server</li>
-                        <li>❌ Crashes during peak load</li>
-                        <li>❌ Poor user experience</li>
-                    </ul>
+                    <motion.ul
+                        initial="hidden"
+                        animate="visible"
+                        variants={{
+                            hidden: { opacity: 0 },
+                            visible: { opacity: 1, transition: { staggerChildren: 0.3, delayChildren: 0.5 } }
+                        }}
+                        className="mt-8 space-y-3 text-slate-300"
+                    >
+                        {["❌ All traffic hits one server", "❌ Crashes during peak load", "❌ Poor user experience"].map((item, index) => (
+                            <motion.li
+                                key={index}
+                                variants={{
+                                    hidden: { opacity: 0, x: -20 },
+                                    visible: { opacity: 1, x: 0 }
+                                }}
+                            >
+                                {item}
+                            </motion.li>
+                        ))}
+                    </motion.ul>
                 </motion.div>
 
                 {/* WITH LOAD BALANCER */}
@@ -96,9 +113,9 @@ const Slide3_WhyNeed = () => {
 
                     {/* Load Balancer */}
                     <motion.div
-                        animate={{ scale: [1, 1.08, 1] }}
+                        animate={{ scale: [1, 1.05, 1] }}
                         transition={{ duration: 1.5, repeat: Infinity }}
-                        className="mx-auto w-28 h-16 bg-gradient-to-r from-green-400 to-emerald-500 rounded-xl flex items-center justify-center text-slate-900 font-bold shadow-lg"
+                        className="mx-auto w-28 h-16 bg-gradient-to-r from-green-400 to-emerald-500 rounded-xl flex items-center justify-center text-slate-900 font-bold shadow-lg shadow-green-500/20"
                     >
                         LB
                     </motion.div>
@@ -108,13 +125,13 @@ const Slide3_WhyNeed = () => {
                         {[1, 2, 3].map((i) => (
                             <motion.div
                                 key={i}
-                                animate={{ opacity: [0, 1, 0] }}
+                                animate={{ height: [0, 40, 0], opacity: [0, 1, 0] }}
                                 transition={{
-                                    duration: 1,
+                                    duration: 1.5,
                                     repeat: Infinity,
                                     delay: i * 0.3,
                                 }}
-                                className="w-1 h-10 bg-green-400 rounded"
+                                className="w-1 bg-green-400/50 rounded-full"
                             />
                         ))}
                     </div>
@@ -127,16 +144,18 @@ const Slide3_WhyNeed = () => {
                                 animate={{
                                     boxShadow: [
                                         "0 0 0px rgba(34,197,94,0)",
-                                        "0 0 25px rgba(34,197,94,0.6)",
+                                        "0 0 15px rgba(34,197,94,0.4)",
                                         "0 0 0px rgba(34,197,94,0)",
                                     ],
+                                    y: [0, -5, 0]
                                 }}
                                 transition={{
                                     duration: 2,
                                     repeat: Infinity,
                                     delay: i * 0.4,
+                                    ease: "easeInOut"
                                 }}
-                                className="w-20 h-24 bg-slate-800 border border-green-500 rounded-lg flex flex-col items-center justify-center"
+                                className="w-20 h-24 bg-slate-800 border border-green-500/50 rounded-lg flex flex-col items-center justify-center"
                             >
                                 <span className="text-3xl">❄️</span>
                                 <span className="text-[10px] mt-1 font-mono text-green-300">
@@ -146,11 +165,27 @@ const Slide3_WhyNeed = () => {
                         ))}
                     </div>
 
-                    <ul className="mt-8 space-y-3 text-slate-300">
-                        <li>✅ Even traffic distribution</li>
-                        <li>✅ High availability</li>
-                        <li>✅ Faster response time</li>
-                    </ul>
+                    <motion.ul
+                        initial="hidden"
+                        animate="visible"
+                        variants={{
+                            hidden: { opacity: 0 },
+                            visible: { opacity: 1, transition: { staggerChildren: 0.3, delayChildren: 1 } }
+                        }}
+                        className="mt-8 space-y-3 text-slate-300"
+                    >
+                        {["✅ Even traffic distribution", "✅ High availability", "✅ Faster response time"].map((item, index) => (
+                            <motion.li
+                                key={index}
+                                variants={{
+                                    hidden: { opacity: 0, x: 20 },
+                                    visible: { opacity: 1, x: 0 }
+                                }}
+                            >
+                                {item}
+                            </motion.li>
+                        ))}
+                    </motion.ul>
                 </motion.div>
             </div>
         </div>

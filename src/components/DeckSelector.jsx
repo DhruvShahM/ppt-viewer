@@ -1184,12 +1184,12 @@ const DeckSelector = ({ onSelectDeck }) => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-1">Slide Files (.zip, .jsx, .js) <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Slide Files (.zip, .md, .jsx, .js) <span className="text-red-500">*</span></label>
                                 <div className="border-2 border-dashed border-white/20 rounded-lg p-6 text-center hover:border-blue-500/50 hover:bg-blue-500/5 transition-all text-gray-400 relative">
                                     <input
                                         type="file"
                                         multiple
-                                        accept=".jsx,.js,.zip"
+                                        accept=".jsx,.js,.zip,.md"
                                         required
                                         className="w-full h-full opacity-0 absolute inset-0 cursor-pointer z-10"
                                         onChange={e => setImportForm({ ...importForm, files: e.target.files })}

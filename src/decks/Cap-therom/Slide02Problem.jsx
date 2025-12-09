@@ -1,115 +1,163 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { HardHat, Split, GitBranch } from 'lucide-react';
+import { Zap, AlertCircle } from 'lucide-react';
 
-// Base variants for the slide container
-const slideVariants = {
-    initial: { opacity: 0, scale: 0.95 },
-    animate: { opacity: 1, scale: 1, transition: { duration: 0.5 } },
-    exit: { opacity: 0, scale: 0.95, transition: { duration: 0.3 } },
-};
-
-// Container for staggered list items
-const listContainerVariants = {
-    animate: {
-        transition: {
-            staggerChildren: 0.15,
-            delayChildren: 0.5,
-        },
-    },
-};
-
-// Variants for individual list items
-const itemVariants = {
-    initial: { x: -50, opacity: 0 },
-    animate: { x: 0, opacity: 1, transition: { type: 'spring', stiffness: 100 } },
-};
-
-const iconStyle = "w-8 h-8 mr-4 flex-shrink-0";
-
-const Slide02Problem = () => {
+const Slide2_TheProblem = () => {
     return (
-        <motion.div
-            className="flex flex-col min-h-screen bg-slate-950 p-16 text-white"
-            variants={slideVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-        >
-            {/* Title */}
-            <motion.h2
-                className="text-5xl font-extrabold mb-4"
-                initial={{ y: -30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1, transition: { delay: 0.2 } }}
-            >
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500">
-                    The Problem Statement
-                </span>
-            </motion.h2>
+        <div className="w-full h-screen bg-slate-900 flex items-center justify-center overflow-hidden relative p-8">
+            {/* Background blur */}
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
 
-            {/* Main Problem Description */}
-            <motion.p
-                className="text-3xl font-light text-slate-300 mb-12 max-w-5xl"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1, transition: { delay: 0.4 } }}
-            >
-                How do we manage **data consistency** when a single business domain is split across **multiple, independent services**?
-            </motion.p>
-
-            <motion.div
-                className="flex space-x-12"
-                variants={listContainerVariants}
-            >
-                {/* Monolith to Microservice Transition */}
+            <div className="relative z-10 grid grid-cols-2 gap-12 max-w-6xl w-full">
+                {/* Left: Definition */}
                 <motion.div
-                    className="w-1/3 p-6 rounded-xl border border-slate-700 shadow-xl bg-slate-900"
-                    variants={itemVariants}
+                    initial={{ opacity: 0, x: -40 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.8 }}
+                    className="flex flex-col justify-center"
                 >
-                    <Split className={`text-cyan-400 mb-3 ${iconStyle}`} />
-                    <h3 className="text-2xl font-semibold mb-3">Service Split</h3>
-                    <p className="text-lg text-slate-400">
-                        Moving from a **monolithic** architecture (single database, single state) to **microservices** (decentralized data stores).
-                    </p>
+                    <h2 className="text-5xl font-black mb-8 text-transparent bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text">
+                        What is CAP Theorem?
+                    </h2>
+
+                    <div className="space-y-6">
+                        {[
+                            {
+                                letter: 'C',
+                                title: 'Consistency',
+                                desc: 'All nodes see the same data at the same time',
+                                color: 'from-red-500 to-pink-500',
+                            },
+                            {
+                                letter: 'A',
+                                title: 'Availability',
+                                desc: 'Every request returns a response, no failures',
+                                color: 'from-green-500 to-emerald-500',
+                            },
+                            {
+                                letter: 'P',
+                                title: 'Partition Tolerance',
+                                desc: 'System works even if network fails between nodes',
+                                color: 'from-yellow-500 to-orange-500',
+                            },
+                        ].map((item, idx) => (
+                            <motion.div
+                                key={idx}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 + idx * 0.15, duration: 0.6 }}
+                                className="flex gap-4"
+                            >
+                                <div
+                                    className={`flex-shrink-0 w-14 h-14 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center font-bold text-xl text-white`}
+                                >
+                                    {item.letter}
+                                </div>
+                                <div>
+                                    <p className="text-lg font-semibold text-white mb-1">
+                                        {item.title}
+                                    </p>
+                                    <p className="text-slate-400 text-sm leading-relaxed">
+                                        {item.desc}
+                                    </p>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
                 </motion.div>
 
-                {/* Distributed Data */}
+                {/* Right: Visual representation */}
                 <motion.div
-                    className="w-1/3 p-6 rounded-xl border border-slate-700 shadow-xl bg-slate-900"
-                    variants={itemVariants}
+                    initial={{ opacity: 0, x: 40 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.8 }}
+                    className="flex items-center justify-center"
                 >
-                    <GitBranch className={`text-purple-400 mb-3 ${iconStyle}`} />
-                    <h3 className="text-2xl font-semibold mb-3">Distributed State</h3>
-                    <p className="text-lg text-slate-400">
-                        A customer's order status might involve the **Inventory Service**, **Payment Service**, and **Shipping Service**, each with its own data.
-                    </p>
+                    <svg viewBox="0 0 400 400" className="w-full h-auto">
+                        {/* Triangle outline */}
+                        <motion.polygon
+                            points="200,50 350,350 50,350"
+                            fill="none"
+                            stroke="url(#triangleGradient)"
+                            strokeWidth="3"
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ duration: 1.5 }}
+                        />
+
+                        {/* Gradient definition */}
+                        <defs>
+                            <linearGradient
+                                id="triangleGradient"
+                                x1="0%"
+                                y1="0%"
+                                x2="100%"
+                                y2="100%"
+                            >
+                                <stop offset="0%" stopColor="rgba(34, 211, 238, 1)" />
+                                <stop offset="50%" stopColor="rgba(59, 130, 246, 1)" />
+                                <stop offset="100%" stopColor="rgba(139, 92, 246, 1)" />
+                            </linearGradient>
+                        </defs>
+
+                        {/* Vertices with animated circles */}
+                        {[
+                            { cx: 200, cy: 50, label: 'C', color: '#ef4444' },
+                            { cx: 350, cy: 350, label: 'A', color: '#22c55e' },
+                            { cx: 50, cy: 350, label: 'P', color: '#eab308' },
+                        ].map((vertex, idx) => (
+                            <g key={idx}>
+                                <motion.circle
+                                    cx={vertex.cx}
+                                    cy={vertex.cy}
+                                    r="25"
+                                    fill={vertex.color}
+                                    opacity="0.2"
+                                    animate={{
+                                        r: [25, 40, 25],
+                                    }}
+                                    transition={{
+                                        duration: 2,
+                                        delay: idx * 0.2,
+                                        repeat: Infinity,
+                                    }}
+                                />
+                                <circle
+                                    cx={vertex.cx}
+                                    cy={vertex.cy}
+                                    r="20"
+                                    fill={vertex.color}
+                                />
+                                <text
+                                    x={vertex.cx}
+                                    y={vertex.cy}
+                                    textAnchor="middle"
+                                    dy="0.3em"
+                                    fontSize="24"
+                                    fontWeight="bold"
+                                    fill="white"
+                                >
+                                    {vertex.label}
+                                </text>
+                            </g>
+                        ))}
+
+                        {/* Center label */}
+                        <text
+                            x="200"
+                            y="220"
+                            textAnchor="middle"
+                            fontSize="16"
+                            fill="rgba(203, 213, 225, 0.6)"
+                            fontWeight="500"
+                        >
+                            Pick 2 of 3
+                        </text>
+                    </svg>
                 </motion.div>
-
-                {/* The Dilemma */}
-                <motion.div
-                    className="w-1/3 p-6 rounded-xl border border-slate-700 shadow-xl bg-slate-900"
-                    variants={itemVariants}
-                >
-                    <HardHat className={`text-pink-400 mb-3 ${iconStyle}`} />
-                    <h3 className="text-2xl font-semibold mb-3">The CAP Dilemma</h3>
-                    <p className="text-lg text-slate-400">
-                        As soon as services live on different network nodes, we introduce **Partition Tolerance (P)**, forcing a crucial choice.
-                    </p>
-                </motion.div>
-            </motion.div>
-
-            {/* Key Takeaway Highlight */}
-            <motion.div
-                className="mt-16 p-6 border-2 border-cyan-400 rounded-lg shadow-2xl shadow-cyan-900/50"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1, transition: { delay: 1.5, type: 'spring', stiffness: 50 } }}
-            >
-                <p className="text-xl text-center font-bold">
-                    Microservices = Distributed System. Distributed System $\implies$ CAP Theorem is **mandatory**.
-                </p>
-            </motion.div>
-
-        </motion.div>
+            </div>
+        </div>
     );
 };
 
-export default Slide02Problem;
+export default Slide2_TheProblem;

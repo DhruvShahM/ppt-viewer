@@ -37,78 +37,51 @@ const iconStyle = "w-6 h-6 mr-3";
 
 const Slide01Intro = () => {
     return (
-        <motion.div
-            className="flex flex-col items-center justify-center min-h-screen bg-slate-950 p-16 text-white"
-            variants={slideVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-        >
-            {/* Title with Gradient Text and Motion */}
-            <motion.h1
-                className="text-7xl font-extrabold mb-4 tracking-tight"
-                variants={titleVariants}
+        <div className="w-full h-full bg-slate-900 text-white p-10 flex gap-8">
+            <motion.div
+                className="w-1/2"
+                initial={{ x: -60, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ type: 'spring' }}
             >
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
-                    CAP Theorem
-                </span>
-            </motion.h1>
+                <h2 className="text-3xl font-bold">What is CAP theorem?</h2>
+                <p className="mt-4 opacity-80 leading-relaxed">CAP theorem states that in the presence of network partitions, a distributed system must choose between consistency and availability.</p>
 
-            {/* Subtitle with Motion */}
-            <motion.h2
-                className="text-4xl font-light text-slate-300 mb-12"
-                variants={subtitleVariants}
-            >
-                Applying Distributed Trade-offs to Microservices
-            </motion.h2>
+                <ul className="mt-6 space-y-3">
+                    <li className="inline-flex items-center gap-3">
+                        <motion.span className="w-3 h-3 rounded-full bg-indigo-400" animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 2 }} />
+                        <span>Consistency</span>
+                    </li>
+                    <li className="inline-flex items-center gap-3">
+                        <motion.span className="w-3 h-3 rounded-full bg-emerald-400" animate={{ scale: [1, 1.5, 1], rotate: [0, 15, 0] }} transition={{ repeat: Infinity, duration: 2.4 }} />
+                        <span>Availability</span>
+                    </li>
+                    <li className="inline-flex items-center gap-3">
+                        <motion.span className="w-3 h-3 rounded-full bg-rose-400" animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 3 }} />
+                        <span>Partition Tolerance</span>
+                    </li>
+                </ul>
+            </motion.div>
 
-            <div className="flex w-full max-w-4xl justify-between">
-                {/* Audience Section */}
-                <motion.div
-                    className="w-1/2 pr-8"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1, transition: { delay: 1.2 } }}
-                >
-                    <h3 className="text-2xl font-semibold mb-6 flex items-center">
-                        <Users className={iconStyle} /> Target Audience
-                    </h3>
-                    <motion.ul className="space-y-3" variants={containerVariants}>
-                        <motion.li className="text-xl flex items-center" variants={itemVariants}>
-                            <span className="text-blue-400 mr-2">&bull;</span> Engineering Students
-                        </motion.li>
-                        <motion.li className="text-xl flex items-center" variants={itemVariants}>
-                            <span className="text-blue-400 mr-2">&bull;</span> Software Developers
-                        </motion.li>
-                        <motion.li className="text-xl flex items-center" variants={itemVariants}>
-                            <span className="text-blue-400 mr-2">&bull;</span> System Design Prep
-                        </motion.li>
-                    </motion.ul>
-                </motion.div>
+            <motion.div className="w-1/2 flex items-center justify-center" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+                <div className="relative w-72 h-56">
+                    <motion.div className="absolute left-0 top-6 bg-slate-800 rounded-2xl p-4 shadow-lg w-32 flex flex-col items-center gap-3" animate={{ x: [0, -8, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+                        <Server size={28} />
+                        <div className="text-xs opacity-80">Service A</div>
+                    </motion.div>
 
-                {/* Tech Stack Section */}
-                <motion.div
-                    className="w-1/2 pl-8 border-l border-slate-700"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1, transition: { delay: 1.2 } }}
-                >
-                    <h3 className="text-2xl font-semibold mb-6 flex items-center">
-                        <Code className={iconStyle} /> Motion Stack
-                    </h3>
-                    <motion.ul className="space-y-3" variants={containerVariants}>
-                        <motion.li className="text-xl flex items-center" variants={itemVariants}>
-                            <Zap className="w-5 h-5 mr-2 text-cyan-400" /> **React** (Functional Components)
-                        </motion.li>
-                        <motion.li className="text-xl flex items-center" variants={itemVariants}>
-                            <Atom className="w-5 h-5 mr-2 text-cyan-400" /> **Framer Motion** (The Magic)
-                        </motion.li>
-                        <motion.li className="text-xl flex items-center" variants={itemVariants}>
-                            <span className="font-mono text-pink-400 mr-2">#</span> **Tailwind CSS** (Styling)
-                        </motion.li>
-                    </motion.ul>
-                </motion.div>
-            </div>
-        </motion.div>
-    );
+                    <motion.div className="absolute right-0 bottom-6 bg-slate-800 rounded-2xl p-4 shadow-lg w-32 flex flex-col items-center gap-3" animate={{ x: [0, 8, 0] }} transition={{ duration: 2.2, repeat: Infinity }}>
+                        <Database size={28} />
+                        <div className="text-xs opacity-80">DB Replica</div>
+                    </motion.div>
+
+                    <motion.div className="absolute inset-0 flex items-center justify-center">
+                        <motion.div className="w-6 h-6 rounded-full bg-emerald-400 shadow-lg" animate={{ x: [-60, 60], opacity: [0.2, 1, 0.2] }} transition={{ duration: 2, repeat: Infinity }} />
+                    </motion.div>
+                </div>
+            </motion.div>
+        </div>
+    )
 };
 
 export default Slide01Intro;

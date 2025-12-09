@@ -108,6 +108,11 @@ Slide2_Concept.jsx
 Slide3_Flow.jsx
 ...
 
+**Bundling:**
+Provide all code in a SINGLE Markdown response.
+Separate each file with a Level 2 Header: `## Filename.jsx`
+Followed by the code block.
+
 --------------------------------------------------
 
 FINAL INSTRUCTION (CRITICAL):
