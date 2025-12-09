@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Slide from './Slide';
 import AnnotationLayer from './AnnotationLayer';
-import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock, FileCode } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock, FileCode, Stamp, X } from 'lucide-react';
 import DesignFeedback from './DesignFeedback';
 
 
@@ -17,6 +17,26 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const [activeTool, setActiveTool] = useState('none');
     const [activeColor, setActiveColor] = useState('#ef4444');
     const [isLocked, setIsLocked] = useState(false);
+
+    // Trademark State
+    const [trademarkText, setTrademarkText] = useState(() => localStorage.getItem(`trademark_${deckId}`) || '');
+    const [showTrademark, setShowTrademark] = useState(() => !!localStorage.getItem(`trademark_${deckId}`));
+    const [trademarkPosition, setTrademarkPosition] = useState(() => localStorage.getItem(`trademark_pos_${deckId}`) || 'top-right');
+    const [showTrademarkModal, setShowTrademarkModal] = useState(false);
+
+    useEffect(() => {
+        if (trademarkText) {
+            localStorage.setItem(`trademark_${deckId}`, trademarkText);
+        }
+        localStorage.setItem(`trademark_pos_${deckId}`, trademarkPosition);
+    }, [trademarkText, trademarkPosition, deckId]);
+
+    const positionClasses = {
+        'top-left': 'top-6 left-6',
+        'top-right': 'top-6 right-6',
+        'bottom-left': 'bottom-6 left-6',
+        'bottom-right': 'bottom-6 right-6',
+    };
 
     const [clearTrigger, setClearTrigger] = useState(0);
 
@@ -208,6 +228,16 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                 </AnimatePresence>
             </div>
 
+            {/* Trademark Overlay */}
+            {showTrademark && trademarkText && (
+                <div className={`absolute z-20 pointer-events-none opacity-60 ${positionClasses[trademarkPosition]}`}>
+                    <p className="text-white text-xl font-bold tracking-widest font-mono select-none drop-shadow-lg transform -rotate-0 border-2 border-white/20 px-4 py-2 rounded-lg bg-black/20 backdrop-blur-sm">
+                        {trademarkText}
+                        <span className="ml-2 text-sm text-cyan-400">©</span>
+                    </p>
+                </div>
+            )}
+
             {/* Annotation Layer */}
             <AnnotationLayer
                 ref={annotationRef}
@@ -219,6 +249,68 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                 height={containerRef.current?.offsetHeight || 1080}
                 initialData={annotations[currentSlide]}
             />
+
+            {/* Trademark Popup Modal */}
+            {isPresenting && showTrademarkModal && (
+                <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[60] bg-slate-900/95 backdrop-blur-xl border border-white/20 p-5 rounded-2xl shadow-2xl w-80 ring-1 ring-white/10">
+                    <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+                        <div className="flex items-center gap-2">
+                            <Stamp size={16} className="text-blue-400" />
+                            <h3 className="text-white font-semibold text-sm">Trademark Settings</h3>
+                        </div>
+                        <button
+                            onClick={() => setShowTrademarkModal(false)}
+                            className="text-white/50 hover:text-white transition-colors p-1 hover:bg-white/10 rounded"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-xs text-slate-400 block mb-1.5 font-medium ml-1">TRADEMARK TEXT</label>
+                            <input
+                                type="text"
+                                value={trademarkText}
+                                onChange={(e) => {
+                                    setTrademarkText(e.target.value);
+                                    if (e.target.value && !showTrademark) setShowTrademark(true);
+                                }}
+                                placeholder="e.g. Confidential Property"
+                                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-xs text-slate-400 block mb-1.5 font-medium ml-1">POSITION</label>
+                            <div className="relative group">
+                                <select
+                                    value={trademarkPosition}
+                                    onChange={(e) => setTrademarkPosition(e.target.value)}
+                                    className="appearance-none w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-all cursor-pointer"
+                                >
+                                    <option value="top-left" className="bg-slate-900">Top Left</option>
+                                    <option value="top-right" className="bg-slate-900">Top Right</option>
+                                    <option value="bottom-left" className="bg-slate-900">Bottom Left</option>
+                                    <option value="bottom-right" className="bg-slate-900">Bottom Right</option>
+                                </select>
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/50">
+                                    <ChevronRight size={14} className="rotate-90" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5">
+                            <span className="text-sm text-white font-medium">Show on Slides</span>
+                            <button
+                                onClick={() => setShowTrademark((prev) => !prev)}
+                                className={`w-11 h-6 rounded-full relative transition-all duration-300 ${showTrademark ? 'bg-blue-600' : 'bg-slate-700'}`}
+                            >
+                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm ${showTrademark ? 'left-6' : 'left-1'}`} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Annotation Toolbar (Only in Presentation Mode) */}
             {isPresenting && !isLocked && (
@@ -302,6 +394,16 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                         title="Clear Annotations"
                     >
                         <Trash2 size={20} />
+                    </button>
+
+                    <div className="w-px h-8 bg-white/20 mx-1 self-center" />
+
+                    <button
+                        onClick={() => setShowTrademarkModal(prev => !prev)}
+                        className={`p-3 rounded-full transition-all ${showTrademarkModal ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                        title="Trademark Settings"
+                    >
+                        <Stamp size={20} />
                     </button>
                     <div className="w-px h-8 bg-white/20 mx-1 self-center" />
                     <button
