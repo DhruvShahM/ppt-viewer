@@ -13,6 +13,10 @@ const metadataManager = require('./utils/metadata');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Trigger restart 2
+
+
+
 app.use(cors());
 app.use(express.json());
 
@@ -773,6 +777,52 @@ app.post('/api/feedback/download-docx', catchAsync(async (req, res, next) => {
         console.error('Error generating DOCX:', error);
         return next(new AppError('Failed to generate DOCX file', 500));
     }
+}));
+
+
+app.post('/api/open-file', catchAsync(async (req, res, next) => {
+    const { deckId, slideIndex } = req.body;
+
+    if (!deckId || slideIndex === undefined) {
+        return next(new AppError('Missing required fields', 400));
+    }
+
+    const deckDir = path.join(__dirname, '..', 'src', 'decks', deckId);
+
+    if (!fs.existsSync(deckDir)) {
+        return next(new AppError('Deck not found', 404));
+    }
+
+    const files = fs.readdirSync(deckDir);
+    // Same logic as export/import to ensure order matches
+    const slideFiles = files.filter(f => (f.endsWith('.jsx') || f.endsWith('.js')) && f !== 'deck.js');
+    slideFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+    const filename = slideFiles[slideIndex];
+
+    if (!filename) {
+        return next(new AppError('Slide file not found', 404));
+    }
+
+    const filepath = path.join(deckDir, filename);
+
+    console.log(`Opening file: ${filepath}`);
+
+    exec(`code "${filepath}"`, (error) => {
+        if (error) {
+            console.log('VSCode not found or failed, trying Notepad...');
+            // Fallback to Notepad
+            exec(`notepad "${filepath}"`, (err2) => {
+                if (err2) {
+                    console.error('Failed to open file in Notepad:', err2);
+                    return next(new AppError('Failed to open file in any editor', 500));
+                }
+                res.json({ success: true, file: filename, method: 'notepad' });
+            });
+        } else {
+            res.json({ success: true, file: filename, method: 'code' });
+        }
+    });
 }));
 
 

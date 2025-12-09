@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Slide from './Slide';
 import AnnotationLayer from './AnnotationLayer';
-import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock, FileCode } from 'lucide-react';
 import DesignFeedback from './DesignFeedback';
 
 
@@ -172,6 +172,23 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     }, []);
 
 
+
+    const handleOpenFile = async () => {
+        try {
+            await fetch('http://localhost:3001/api/open-file', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    deckId,
+                    slideIndex: currentSlide,
+                }),
+            });
+        } catch (error) {
+            console.error('Failed to open file:', error);
+        }
+    };
 
     return (
         <div
@@ -401,6 +418,13 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                             title="Back to Home"
                         >
                             <Home size={24} />
+                        </button>
+                        <button
+                            onClick={handleOpenFile}
+                            className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm mr-4"
+                            title="Open Slide Code in VSCode"
+                        >
+                            <FileCode size={24} />
                         </button>
                     </>
                 )}

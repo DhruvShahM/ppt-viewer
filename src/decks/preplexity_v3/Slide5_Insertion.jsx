@@ -1,276 +1,291 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { PlayCircle, RotateCcw } from 'lucide-react';
 
 const Slide5_Insertion = () => {
+  const word = 'HELLO';
+  const letters = word.split('');
+  const nodes = ['ROOT', ...letters];
+
   const [isAnimating, setIsAnimating] = useState(false);
   const [step, setStep] = useState(0);
-  const word = 'CAT';
-  const totalSteps = word.length * 2 + 3;
 
-  const steps = [
-    { label: 'Start at ROOT', description: 'Initialize from root node' },
-    { label: `Insert 'C'`, description: 'Create child C with big impact' },
-    { label: `Move to C`, description: 'Traverse to node C' },
-    { label: `Insert 'A'`, description: 'Expand to child A' },
-    { label: `Move to A`, description: 'Traverse to node A' },
-    { label: `Insert 'T'`, description: 'Finalize with child T' },
-    { label: `Move to T`, description: 'Traverse to node T' },
-    { label: `Mark End`, description: 'Set isEndOfWord = true' },
-  ];
+  /* ============= PROPERLY SYNCED STEPS ============= */
+  const steps = useMemo(() => {
+    const s = [
+      {
+        label: 'Start at ROOT',
+        description: 'Initialize from root node',
+        activeNode: 'ROOT',
+      },
+    ];
 
+    // For each letter: Insert step, then Move step
+    letters.forEach((letter, idx) => {
+      s.push({
+        label: `Insert '${letter}'`,
+        description: `Create node ${letter}`,
+        activeNode: idx === 0 ? 'ROOT' : letters[idx - 1],
+      });
+      s.push({
+        label: `Move to '${letter}'`,
+        description: `Traverse to node ${letter}`,
+        activeNode: letter,
+      });
+    });
+
+    // Final step
+    s.push({
+      label: 'Mark End',
+      description: 'Set isEndOfWord = true',
+      activeNode: letters[letters.length - 1],
+    });
+
+    return s;
+  }, [letters]);
+
+  /* ============= AUTO-ANIMATION ============= */
   useEffect(() => {
-    let timer;
-    if (isAnimating && step < steps.length) {
-      timer = setTimeout(() => setStep(step + 1), 800);
+    let t;
+    if (isAnimating && step < steps.length - 1) {
+      t = setTimeout(() => setStep((s) => s + 1), 800);
     }
-    return () => clearTimeout(timer);
-  }, [isAnimating, step]);
+    return () => clearTimeout(t);
+  }, [isAnimating, step, steps.length]);
 
-  const currentNodeIndex = Math.floor((step - 1) / 2);
-  const currentNode = ['ROOT', 'C', 'A', 'T'][Math.min(currentNodeIndex, 3)];
+  /* ============= NODE POSITIONS ============= */
+  const nodePositions = useMemo(() => {
+    return nodes.reduce((acc, n, i) => {
+      acc[n] = { x: 120, y: 40 + i * 70 };
+      return acc;
+    }, {});
+  }, [nodes]);
 
-  const nodePositions = {
-    ROOT: { x: 100, y: 30 },
-    C: { x: 50, y: 100 },
-    A: { x: 100, y: 180 },
-    T: { x: 150, y: 260 },
+  /* ============= EDGE VISIBILITY ============= */
+  // Edge from nodes[i] to nodes[i+1] becomes visible when we insert or move to that edge
+  // Edge i appears at step (2*i + 1) - the "Insert" step for that letter
+  const isEdgeVisible = (toNodeIndex) => {
+    // toNodeIndex ranges from 1 to letters.length
+    const insertStep = 2 * toNodeIndex - 1; // Step index when this edge/node is created
+    return step >= insertStep;
   };
 
+  /* ============= NODE CREATION & STATE ============= */
+  const isNodeCreated = (nodeIndex) => {
+    if (nodeIndex === 0) return true; // ROOT always exists
+    // Node i (1-indexed) is created at step (2*i - 1)
+    const creationStep = 2 * nodeIndex - 1;
+    return step >= creationStep;
+  };
+
+  const isNodeActive = (node) => {
+    return node === steps[step]?.activeNode;
+  };
+
+  const isNodeCompleted = (nodeIndex) => {
+    if (nodeIndex === 0) return false; // ROOT doesn't get checkmark
+    // Node i is "done" after we move to it, which is at step (2*i)
+    const doneStep = 2 * nodeIndex;
+    return step > doneStep;
+  };
+
+  /* ============= RENDER ============= */
   return (
-    <div className='w-full h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-12 overflow-hidden'>
-      {/* Title */}
-      <motion.h1
-        initial={{ opacity: 0, y: -40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className='text-5xl font-bold text-white mb-2 text-center relative z-10'
-      >
-        Inserting a Word: "{word}"
-      </motion.h1>
+    <div className="w-full h-screen flex items-center justify-center p-12">
 
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className='text-lg text-slate-300 mb-8 text-center relative z-10'
-      >
-        Step-by-step insertion process
-      </motion.p>
 
-      <div className='flex gap-12 w-full max-w-6xl relative z-10'>
-        {/* Visualization */}
-        <motion.div
-          className='flex-1 flex items-center justify-center'
-          initial={{ opacity: 0, x: -40 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <svg width='100%' height='350' viewBox='0 0 200 350' className='overflow-visible'>
-            {/* Edges */}
-            {['C', 'A', 'T'].map((char, idx) => {
-              const fromPos = nodePositions[['ROOT', 'C', 'A'][idx]];
-              const toPos = nodePositions[char];
-              return (
-                <motion.line
-                  key={`edge-${char}`}
-                  x1={fromPos.x}
-                  y1={fromPos.y}
-                  x2={toPos.x}
-                  y2={toPos.y}
-                  stroke='#64748b'
-                  strokeWidth='2'
-                  initial={{ opacity: 0 }}
+
+      <div className="flex gap-14 max-w-6xl w-full">
+        {/* ============= SVG VISUALIZATION ============= */}
+        <svg width="240" height="500">
+          {/* -------- EDGES -------- */}
+          {letters.map((char, idx) => {
+            const from = nodePositions[nodes[idx]];
+            const to = nodePositions[char];
+            const visible = isEdgeVisible(idx + 1);
+
+            return (
+              <motion.line
+                key={`edge-${char}`}
+                x1={from.x}
+                y1={from.y}
+                x2={to.x}
+                y2={to.y}
+                stroke="#60a5fa"
+                strokeWidth="2"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{
+                  pathLength: visible ? 1 : 0,
+                  opacity: visible ? 1 : 0.2,
+                }}
+                transition={{ duration: 0.5 }}
+              />
+            );
+          })}
+
+          {/* -------- NODES -------- */}
+          {nodes.map((node, idx) => {
+            const pos = nodePositions[node];
+            const created = isNodeCreated(idx);
+            const active = isNodeActive(node);
+            const done = isNodeCompleted(idx);
+
+            return (
+              <g key={node}>
+                {/* Node Circle */}
+                <motion.circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r="18"
+                  initial={{ scale: 0, opacity: 0 }}
                   animate={{
-                    opacity: step >= (idx + 1) * 2 ? 1 : 0.2,
+                    scale: created ? 1 : 0,
+                    opacity: created ? 1 : 0,
+                    fill: active
+                      ? '#3b82f6' // Blue when active
+                      : done
+                        ? '#10b981' // Green when completed
+                        : '#475569', // Gray otherwise
                   }}
                   transition={{ duration: 0.4 }}
                 />
-              );
-            })}
 
-            {/* Nodes */}
-            {['ROOT', 'C', 'A', 'T'].map((node, idx) => {
-              const pos = nodePositions[node];
-              const isActive = node === currentNode;
-              const isCompleted =
-                step > (idx === 0 ? 1 : (idx) * 2 + 1);
+                {/* Node Label */}
+                <motion.text
+                  x={pos.x}
+                  y={pos.y}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fill="white"
+                  fontWeight="bold"
+                  fontSize="14"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: created ? 1 : 0 }}
+                  transition={{ delay: 0.15 }}
+                >
+                  {node}
+                </motion.text>
 
-              return (
-                <g key={node}>
-                  {/* Node circle */}
+                {/* Active Pulse Ring */}
+                {active && (
                   <motion.circle
                     cx={pos.x}
                     cy={pos.y}
-                    r='18'
-                    fill={
-                      isActive
-                        ? '#3b82f6'
-                        : isCompleted
-                          ? '#10b981'
-                          : '#475569'
-                    }
+                    r="20"
+                    fill="none"
+                    stroke="#3b82f6"
+                    strokeWidth="2"
+                    animate={{ r: [18, 28, 18], opacity: [0.8, 0.2, 0.8] }}
+                    transition={{ repeat: Infinity, duration: 1 }}
+                  />
+                )}
+
+                {/* Completion Checkmark */}
+                {done && !active && idx !== 0 && (
+                  <motion.text
+                    x={pos.x + 14}
+                    y={pos.y - 12}
+                    fill="#10b981"
+                    fontSize="16"
+                    fontWeight="bold"
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ delay: idx * 0.3 }}
-                  />
-
-                  {/* Node label */}
-                  <motion.text
-                    x={pos.x}
-                    y={pos.y}
-                    textAnchor='middle'
-                    dominantBaseline='middle'
-                    fill='white'
-                    fontSize='14'
-                    fontWeight='bold'
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: idx * 0.3 + 0.1 }}
+                    transition={{ delay: 0.2 }}
                   >
-                    {node}
+                    ✓
                   </motion.text>
+                )}
+              </g>
+            );
+          })}
 
-                  {/* Active glow */}
-                  {isActive && (
-                    <motion.circle
-                      cx={pos.x}
-                      cy={pos.y}
-                      r='18'
-                      fill='none'
-                      stroke='#3b82f6'
-                      strokeWidth='2'
-                      animate={{
-                        r: [18, 30, 18],
-                      }}
-                      transition={{
-                        duration: 0.8,
-                        repeat: Infinity,
-                      }}
-                    />
-                  )}
-
-                  {/* Completed check */}
-                  {isCompleted && !isActive && (
-                    <motion.text
-                      x={pos.x + 12}
-                      y={pos.y - 12}
-                      fill='#10b981'
-                      fontSize='16'
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                    >
-                      ✓
-                    </motion.text>
-                  )}
-                </g>
-              );
-            })}
-
-            {/* End of word flag */}
-            {step === steps.length - 1 && (
-              <motion.g
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3 }}
+          {/* -------- END FLAG ============= */}
+          {step === steps.length - 1 && (
+            <motion.g
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <motion.circle
+                cx={nodePositions[letters[letters.length - 1]].x}
+                cy={nodePositions[letters[letters.length - 1]].y - 30}
+                r="7"
+                fill="#f59e0b"
+                animate={{ scale: [1, 1.25, 1] }}
+                transition={{ repeat: Infinity, duration: 0.8 }}
+              />
+              <text
+                x={nodePositions[letters[letters.length - 1]].x}
+                y={nodePositions[letters[letters.length - 1]].y - 45}
+                textAnchor="middle"
+                fill="#f59e0b"
+                fontSize="12"
+                fontWeight="bold"
               >
-                <motion.circle
-                  cx={nodePositions.T.x}
-                  cy={nodePositions.T.y - 35}
-                  r='8'
-                  fill='#f59e0b'
-                  animate={{
-                    scale: [1, 1.2, 1],
-                  }}
-                  transition={{ duration: 0.6, repeat: Infinity }}
-                />
-                <text
-                  x={nodePositions.T.x}
-                  y={nodePositions.T.y - 50}
-                  textAnchor='middle'
-                  fill='#f59e0b'
-                  fontSize='11'
-                  fontWeight='bold'
-                >
-                  isEndOfWord
-                </text>
-              </motion.g>
-            )}
-          </svg>
-        </motion.div>
+                isEndOfWord
+              </text>
+            </motion.g>
+          )}
+        </svg>
 
-        {/* Steps panel */}
-        <motion.div
-          className='flex-1 space-y-4'
-          initial={{ opacity: 0, x: 40 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          {/* Current step */}
-          <motion.div
-            className='bg-gradient-to-r from-blue-500/30 to-purple-500/30 border border-blue-500/50 rounded-xl p-6 mb-6'
-            key={`step-${step}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <h3 className='text-2xl font-bold text-blue-300 mb-2'>
+        {/* ============= INFO PANEL ============= */}
+        <div className="flex-1 space-y-6">
+          {/* Step Display */}
+          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+            <h3 className="text-2xl font-bold text-blue-400">
               {steps[step]?.label}
             </h3>
-            <p className='text-slate-300'>{steps[step]?.description}</p>
-            <p className='text-sm text-slate-400 mt-2'>
+            <p className="text-slate-300 mt-2">{steps[step]?.description}</p>
+            <p className="text-xs text-slate-400 mt-2">
               Step {step + 1} / {steps.length}
             </p>
-          </motion.div>
+          </div>
 
-          {/* Progress bar */}
-          <motion.div className='bg-slate-800 rounded-full h-2 overflow-hidden'>
+          {/* Progress Bar */}
+          <div className="bg-slate-800 h-2 rounded-full overflow-hidden">
             <motion.div
-              className='h-full bg-gradient-to-r from-blue-500 to-purple-500'
-              initial={{ width: 0 }}
+              className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
               animate={{ width: `${((step + 1) / steps.length) * 100}%` }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.3 }}
             />
-          </motion.div>
+          </div>
 
           {/* Controls */}
-          <div className='flex gap-4 mt-8'>
-            <motion.button
-              onClick={() => {
-                setIsAnimating(!isAnimating);
-              }}
-              className='flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-all'
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+          <div className="flex gap-4">
+            <button
+              onClick={() => setIsAnimating((p) => !p)}
+              className="flex-1 bg-blue-500 hover:bg-blue-600 py-3 rounded-lg font-bold flex justify-center gap-2 items-center text-white transition"
             >
               <PlayCircle size={18} />
               {isAnimating ? 'Pause' : 'Play'}
-            </motion.button>
+            </button>
 
-            <motion.button
+            <button
               onClick={() => {
                 setStep(0);
                 setIsAnimating(false);
               }}
-              className='flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-all'
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-lg font-bold flex justify-center gap-2 items-center text-white transition"
             >
               <RotateCcw size={18} />
               Reset
-            </motion.button>
+            </button>
           </div>
 
-          {/* Time complexity */}
-          <motion.div
-            className='bg-slate-800 border border-slate-700 rounded-lg p-4 mt-4'
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-          >
-            <p className='text-xs text-slate-400 mb-1'>Time Complexity</p>
-            <p className='font-mono text-lg text-green-400'>O(m) - m = word length</p>
-          </motion.div>
-        </motion.div>
+          {/* Complexity Info */}
+          <div className="bg-slate-800 p-4 rounded-lg font-mono text-green-400 border border-slate-700">
+            <div className="text-sm">Time Complexity</div>
+            <div className="text-lg font-bold">O(m) - m = word length</div>
+          </div>
+
+          {/* Active Node Info */}
+          <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+            <p className="text-slate-400 text-sm">Current Active Node</p>
+            <p className="text-white font-mono text-xl">
+              {steps[step]?.activeNode}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
