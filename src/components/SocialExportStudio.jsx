@@ -24,36 +24,98 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
 
     const startRecording = async (auto = false) => {
         try {
-            // We use getDisplayMedia to record the specific area (or screen)
-            const stream = await navigator.mediaDevices.getDisplayMedia({
+            // 1. Get the raw screen stream (typically 16:9)
+            const rawStream = await navigator.mediaDevices.getDisplayMedia({
                 video: {
                     cursor: "never",
                     displaySurface: "browser",
-                    width: { ideal: 1920, max: 3840 },
-                    height: { ideal: 1080, max: 2160 },
                     frameRate: { ideal: 60, max: 60 }
                 },
                 audio: false
             });
 
-            // If user cancels selection, stream will be inactive or empty
-            if (!stream || !stream.active) {
+            // If user cancelled
+            if (!rawStream || !rawStream.active) {
                 console.warn("Stream not active (user cancelled?)");
                 return;
             }
 
-            // High bitrate for better quality
+            // 2. Create a hidden video element to play the stream
+            const video = document.createElement('video');
+            video.srcObject = rawStream;
+            video.muted = true;
+            video.play();
+
+            // 3. Create a canvas with the TARGET dimensions
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d', { alpha: false });
+
+            // 4. Drawing Loop
+            let animationFrameId;
+            const drawFrame = () => {
+                if (!video.videoWidth) {
+                    animationFrameId = requestAnimationFrame(drawFrame);
+                    return;
+                }
+
+                // Smart Crop / Fit Logic
+                // If we are recording Vertical (9:16) from a Landscape (16:9) screen:
+                // we want to keep the HEIGHT and crop the WIDTH (center cut).
+
+                const srcW = video.videoWidth;
+                const srcH = video.videoHeight;
+                const srcAspect = srcW / srcH;
+                const destAspect = width / height;
+
+                let drawX = 0, drawY = 0, drawW = width, drawH = height;
+
+                if (destAspect < srcAspect) {
+                    // Destination is narrower (e.g. Portrait dest, Landscape src)
+                    // Scale so height matches, crop width
+                    const scale = height / srcH;
+                    const scaledW = srcW * scale;
+                    drawH = height;
+                    drawW = scaledW;
+                    drawX = (width - scaledW) / 2; // Center horizontally
+                    drawY = 0;
+                } else {
+                    // Destination is wider (e.g. Landscape dest, Portrait src) - rare
+                    // Scale so width matches, crop height
+                    const scale = width / srcW;
+                    const scaledH = srcH * scale;
+                    drawW = width;
+                    drawH = scaledH;
+                    drawY = (height - scaledH) / 2; // Center vertically
+                    drawX = 0;
+                }
+
+                // Fill background black
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, width, height);
+
+                // Draw Image
+                ctx.drawImage(video, 0, 0, srcW, srcH, drawX, drawY, drawW, drawH);
+
+                animationFrameId = requestAnimationFrame(drawFrame);
+            };
+            drawFrame(); // Start loop
+
+            // 5. Capture stream from canvas
+            // Use 8Mbps bitrate for high quality
+            const canvasStream = canvas.captureStream(60);
+
+            // High bitrate options
             const options = {
                 mimeType: 'video/webm;codecs=vp9',
                 videoBitsPerSecond: 8000000
             };
-
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                console.warn(`${options.mimeType} not supported, falling back`);
                 delete options.mimeType;
             }
 
-            const mediaRecorder = new MediaRecorder(stream, options);
+            const mediaRecorder = new MediaRecorder(canvasStream, options);
             mediaRecorderRef.current = mediaRecorder;
             chunksRef.current = [];
 
@@ -62,45 +124,43 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
             };
 
             mediaRecorder.onstop = () => {
+                cancelAnimationFrame(animationFrameId);
+                video.pause();
+                video.srcObject = null;
+                rawStream.getTracks().forEach(t => t.stop()); // Stop raw screen share
+                canvasStream.getTracks().forEach(t => t.stop());
+
                 const blob = new Blob(chunksRef.current, { type: 'video/webm' });
                 const url = URL.createObjectURL(blob);
                 setPreviewUrl(url);
-
-                // Stop all tracks
-                stream.getTracks().forEach(track => track.stop());
-
                 setIsRecording(false);
 
-                // Cleanup auto-record state
+                // Cleanup
                 if (auto) {
                     setIsAutoRecording(false);
-                    if (document.fullscreenElement) {
-                        document.exitFullscreen().catch(e => console.warn("Exit fullscreen failed", e));
-                    }
+                    if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
                     if (onRecordingEnd) onRecordingEnd();
                 }
             };
+
 
             // If auto-recording, hide UI first
             if (auto) {
                 if (onRecordingStart) onRecordingStart();
                 setIsAutoRecording(true);
-
-                // Attempt fullscreen (might fail if gesture token expired during getDisplayMedia)
                 try {
                     await document.documentElement.requestFullscreen();
                 } catch (e) {
-                    console.warn("Fullscreen request failed (likely lost user gesture)", e);
+                    console.warn("Fullscreen failed", e);
                 }
             }
 
-            // Start recording after a brief delay to allow UI to hide/fullscreen to engage
+            // Start delay
             setTimeout(() => {
                 if (mediaRecorder.state === 'inactive') {
                     mediaRecorder.start();
                     setIsRecording(true);
 
-                    // Auto-stop timer
                     if (auto && duration > 0) {
                         setTimeout(() => {
                             if (mediaRecorder.state === 'recording') {
@@ -109,7 +169,7 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                         }, duration * 1000);
                     }
                 }
-            }, 800); // Slightly reduced delay to 800ms
+            }, 800);
 
         } catch (err) {
             console.error("Recording failed:", err);
@@ -333,7 +393,8 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                 </div>
 
                 {/* 2. Controls */}
-                <div className="w-80 flex flex-col gap-6">
+                {/* 2. Controls */}
+                <div className="w-80 flex flex-col gap-6 overflow-y-auto pr-2 h-full custom-scrollbar">
                     {/* Aspect Ratio Selector */}
                     <div className="bg-slate-800/50 p-4 rounded-xl border border-white/10">
                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 block">Frame Size</label>
