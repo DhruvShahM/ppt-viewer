@@ -227,6 +227,18 @@ app.post('/api/feedback', upload.fields([{ name: 'screenshots', maxCount: 10 }, 
 
 // --- Social Scheduling APIs ---
 
+app.post('/api/upload-media', upload.single('file'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+    res.json({
+        success: true,
+        url: `/api/screenshots/${req.file.filename}`,
+        filename: req.file.filename
+    });
+});
+
+
 app.get('/api/social/queue', (req, res) => {
     const queue = scheduler.getQueue();
     // Sort: Pending first (by date), then others (by date desc)

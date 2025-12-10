@@ -552,8 +552,8 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                     </>
                 )}
 
-                {/* Design Feedback - Always mounted to preserve state/recording, hidden when presenting if desired */}
-                <div className={isPresenting ? 'hidden' : 'block'}>
+                {/* Design Feedback - Always mounted to preserve state/recording, hidden when presenting or recording export */}
+                <div className={isPresenting || isExportRecording ? 'hidden' : 'block'}>
                     <DesignFeedback deckId={deckId} slideIndex={currentSlide + 1} />
                 </div>
 
@@ -568,28 +568,30 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                 )}
 
                 {/* Smart Navigation & Counter */}
-                <div className="flex items-center gap-1 bg-black/50 border border-white/20 p-1 pl-4 rounded-full backdrop-blur-sm self-center">
-                    <div className="text-white text-sm font-medium tabular-nums mr-2">
-                        {currentSlide + 1} / {totalSlides}
+                {!isExportRecording && (
+                    <div className="flex items-center gap-1 bg-black/50 border border-white/20 p-1 pl-4 rounded-full backdrop-blur-sm self-center">
+                        <div className="text-white text-sm font-medium tabular-nums mr-2">
+                            {currentSlide + 1} / {totalSlides}
+                        </div>
+                        <div className="h-4 w-px bg-white/20 mx-1" />
+                        <button
+                            onClick={prevSlide}
+                            disabled={currentSlide === 0}
+                            className="p-1.5 rounded-full hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
+                            title="Previous Slide"
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+                        <button
+                            onClick={nextSlide}
+                            disabled={currentSlide === totalSlides - 1}
+                            className="p-1.5 rounded-full hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
+                            title="Next Slide"
+                        >
+                            <ChevronRight size={16} />
+                        </button>
                     </div>
-                    <div className="h-4 w-px bg-white/20 mx-1" />
-                    <button
-                        onClick={prevSlide}
-                        disabled={currentSlide === 0}
-                        className="p-1.5 rounded-full hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
-                        title="Previous Slide"
-                    >
-                        <ChevronLeft size={16} />
-                    </button>
-                    <button
-                        onClick={nextSlide}
-                        disabled={currentSlide === totalSlides - 1}
-                        className="p-1.5 rounded-full hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
-                        title="Next Slide"
-                    >
-                        <ChevronRight size={16} />
-                    </button>
-                </div>
+                )}
 
             </div>
 

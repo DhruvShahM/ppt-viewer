@@ -1,15 +1,30 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Video, StopCircle, Download, Square, Smartphone, Monitor, Loader2, Check, X, Share2, Youtube } from 'lucide-react';
+import { Video, StopCircle, Download, Square, Smartphone, Monitor, Loader2, Check, X, Share2, Youtube, Send } from 'lucide-react';
 
 const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecordingStart, onRecordingEnd }) => {
     const [aspectRatio, setAspectRatio] = useState('1:1'); // 1:1, 9:16, 16:9
     const [isRecording, setIsRecording] = useState(false);
     const [isAutoRecording, setIsAutoRecording] = useState(false);
-    const [duration, setDuration] = useState(10); // Auto-record duration
+    const [duration, setDuration] = useState(10); // Target duration for Cloud Render
+    const [elapsedTime, setElapsedTime] = useState(0);
     const [previewUrl, setPreviewUrl] = useState(null);
     const mediaRecorderRef = useRef(null);
     const chunksRef = useRef([]);
     const containerRef = useRef(null);
+
+    // Timer for manual recording
+    useEffect(() => {
+        let interval;
+        if (isRecording) {
+            const startTime = Date.now();
+            interval = setInterval(() => {
+                setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+            }, 1000);
+        } else {
+            setElapsedTime(0);
+        }
+        return () => clearInterval(interval);
+    }, [isRecording]);
 
     const getDimensions = () => {
         switch (aspectRatio) {
@@ -40,82 +55,134 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                 return;
             }
 
-            // 2. Create a hidden video element to play the stream
+            // 2. Create a hidden video element
             const video = document.createElement('video');
             video.srcObject = rawStream;
             video.muted = true;
-            video.play();
+            video.playsInline = true;
+            video.style.position = 'absolute';
+            video.style.opacity = '0.01'; // Trick browser into treating it as visible
+            video.style.pointerEvents = 'none';
+            document.body.appendChild(video); // Attach to DOM to ensure priority
+            video.play().catch(e => console.warn("Auto-play prevented", e));
 
-            // 3. Create a canvas with the TARGET dimensions
+            // Wait for video to actually have data using events
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => reject(new Error("Video start timeout")), 5000);
+                if (video.readyState >= 2) { // HAVE_CURRENT_DATA
+                    clearTimeout(timeout);
+                    resolve();
+                } else {
+                    video.onloadeddata = () => {
+                        clearTimeout(timeout);
+                        resolve();
+                    };
+                }
+            });
+
+            // 3. Create a canvas
             const canvas = document.createElement('canvas');
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d', { alpha: false });
 
+            // Optimization: Small offscreen canvas for background blur
+            // Bluring a 1920x1080 image is SLOW. Bluring a 192x108 image is FAST.
+            const bgSmallW = Math.max(width / 10, 64);
+            const bgSmallH = Math.max(height / 10, 64);
+            const bgCanvas = document.createElement('canvas');
+            bgCanvas.width = bgSmallW;
+            bgCanvas.height = bgSmallH;
+            const bgCtx = bgCanvas.getContext('2d', { alpha: false });
+            bgCtx.filter = 'blur(4px) brightness(0.6)'; // Small blur radius on small image = looks like large blur when scaled
+
             // 4. Drawing Loop
             let animationFrameId;
-            const drawFrame = () => {
-                if (!video.videoWidth) {
-                    animationFrameId = requestAnimationFrame(drawFrame);
-                    return;
-                }
 
-                // Smart Crop / Fit Logic
-                // If we are recording Vertical (9:16) from a Landscape (16:9) screen:
-                // we want to keep the HEIGHT and crop the WIDTH (center cut).
+            const renderLoop = () => {
+                if (!video.videoWidth) return; // Skip if not ready
 
                 const srcW = video.videoWidth;
                 const srcH = video.videoHeight;
-                const srcAspect = srcW / srcH;
-                const destAspect = width / height;
 
-                let drawX = 0, drawY = 0, drawW = width, drawH = height;
+                // 1. Prepare Background (Fast Blur)
+                // Draw total video frame to small canvas
+                bgCtx.drawImage(video, 0, 0, bgSmallW, bgSmallH);
 
-                if (destAspect < srcAspect) {
-                    // Destination is narrower (e.g. Portrait dest, Landscape src)
-                    // Scale so height matches, crop width
-                    const scale = height / srcH;
-                    const scaledW = srcW * scale;
-                    drawH = height;
-                    drawW = scaledW;
-                    drawX = (width - scaledW) / 2; // Center horizontally
-                    drawY = 0;
-                } else {
-                    // Destination is wider (e.g. Landscape dest, Portrait src) - rare
-                    // Scale so width matches, crop height
-                    const scale = width / srcW;
-                    const scaledH = srcH * scale;
-                    drawW = width;
-                    drawH = scaledH;
-                    drawY = (height - scaledH) / 2; // Center vertically
-                    drawX = 0;
-                }
+                // 2. Draw Blurred Background to Main Canvas
+                // Calculate "Cover" rect
+                const bgScale = Math.max(width / srcW, height / srcH);
+                const bgW = srcW * bgScale;
+                const bgH = srcH * bgScale;
+                const bgX = (width - bgW) / 2;
+                const bgY = (height - bgH) / 2;
 
-                // Fill background black
-                ctx.fillStyle = '#000000';
-                ctx.fillRect(0, 0, width, height);
+                // Draw the small blurred canvas, scaled up to cover
+                // ctx.filter = 'none'; // Ensure no heavy filter on main ctx
+                ctx.drawImage(bgCanvas, 0, 0, bgSmallW, bgSmallH, bgX, bgY, bgW, bgH);
 
-                // Draw Image
+                // 3. Draw Main Content (Contain)
+                const scale = Math.min(width / srcW, height / srcH);
+                const drawW = srcW * scale;
+                const drawH = srcH * scale;
+                const drawX = (width - drawW) / 2;
+                const drawY = (height - drawH) / 2;
+
+                // Optimize Shadow: Use pre-configured setting. 
+                // ShadowBlur is somewhat expensive but okay for one rect.
+                ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx.shadowBlur = 30;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 10;
+
                 ctx.drawImage(video, 0, 0, srcW, srcH, drawX, drawY, drawW, drawH);
+                ctx.shadowBlur = 0; // Reset for next frame background draw
 
-                animationFrameId = requestAnimationFrame(drawFrame);
+                // 4. Schedule next frame
+                if ('requestVideoFrameCallback' in video) {
+                    video.requestVideoFrameCallback(renderLoop);
+                } else {
+                    animationFrameId = requestAnimationFrame(renderLoop);
+                }
             };
-            drawFrame(); // Start loop
 
-            // 5. Capture stream from canvas
-            // Use 8Mbps bitrate for high quality
+            // Start the loop
+            if ('requestVideoFrameCallback' in video) {
+                video.requestVideoFrameCallback(renderLoop);
+            } else {
+                renderLoop(); // Starts rAF
+            }
+
+            // 5. Capture stream
             const canvasStream = canvas.captureStream(60);
 
-            // High bitrate options
+            // FIX: Add silent audio track to ensure valid timestamp/duration metadata in WebM
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const dest = audioCtx.createMediaStreamDestination();
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.value = 0; // Mute
+            oscillator.connect(gainNode);
+            gainNode.connect(dest);
+            oscillator.start();
+            const audioTrack = dest.stream.getAudioTracks()[0];
+
+            const combinedStream = new MediaStream([
+                ...canvasStream.getVideoTracks(),
+                audioTrack
+            ]);
+
+            // ... (options setup) ...
             const options = {
                 mimeType: 'video/webm;codecs=vp9',
                 videoBitsPerSecond: 8000000
             };
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                // Fallback
                 delete options.mimeType;
             }
 
-            const mediaRecorder = new MediaRecorder(canvasStream, options);
+            const mediaRecorder = new MediaRecorder(combinedStream, options);
             mediaRecorderRef.current = mediaRecorder;
             chunksRef.current = [];
 
@@ -127,15 +194,22 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                 cancelAnimationFrame(animationFrameId);
                 video.pause();
                 video.srcObject = null;
-                rawStream.getTracks().forEach(t => t.stop()); // Stop raw screen share
+                if (document.body.contains(video)) document.body.removeChild(video);
+
+                // Cleanup Audio
+                oscillator.stop();
+                audioCtx.close();
+
+                rawStream.getTracks().forEach(t => t.stop());
                 canvasStream.getTracks().forEach(t => t.stop());
+                audioTrack.stop();
 
                 const blob = new Blob(chunksRef.current, { type: 'video/webm' });
                 const url = URL.createObjectURL(blob);
                 setPreviewUrl(url);
                 setIsRecording(false);
+                setElapsedTime(0); // Reset timer
 
-                // Cleanup
                 if (auto) {
                     setIsAutoRecording(false);
                     if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
@@ -143,30 +217,40 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                 }
             };
 
-
             // If auto-recording, hide UI first
             if (auto) {
                 if (onRecordingStart) onRecordingStart();
                 setIsAutoRecording(true);
                 try {
                     await document.documentElement.requestFullscreen();
-                } catch (e) {
-                    console.warn("Fullscreen failed", e);
-                }
+                } catch (e) { console.warn("Fullscreen failed", e); }
             }
 
-            // Start delay
+            // Start delay to let UI hide completely
             setTimeout(() => {
                 if (mediaRecorder.state === 'inactive') {
-                    mediaRecorder.start();
+                    mediaRecorder.start(1000); // 1s chunks + Audio track = Solid duration
                     setIsRecording(true);
 
-                    if (auto && duration > 0) {
+                    // Sanitize duration for safety
+                    const safeDuration = (duration && !isNaN(duration) && duration > 0) ? duration : 10;
+
+                    if (auto) {
+                        // Safety: Allow cancelling with Escape key
+                        const handleEscape = (e) => {
+                            if (e.key === 'Escape' && isRecording) {
+                                mediaRecorder.stop();
+                                window.removeEventListener('keydown', handleEscape);
+                            }
+                        };
+                        window.addEventListener('keydown', handleEscape);
+
                         setTimeout(() => {
                             if (mediaRecorder.state === 'recording') {
                                 mediaRecorder.stop();
+                                window.removeEventListener('keydown', handleEscape);
                             }
-                        }, duration * 1000);
+                        }, safeDuration * 1000);
                     }
                 }
             }, 800);
@@ -197,6 +281,7 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
     const [renderResult, setRenderResult] = useState(null);
     const [socialForm, setSocialForm] = useState(null); // { caption, platforms }
     const [isRendering, setIsRendering] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
 
     // If auto-recording, hide the entire studio UI so we capture the slide beneath
     if (isAutoRecording) {
@@ -234,8 +319,30 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
 
     const handleDirectPost = async () => {
         if (!socialForm?.caption) return;
+        setIsUploading(true);
 
         try {
+            let finalMediaPath = null;
+
+            if (renderResult) {
+                finalMediaPath = renderResult.url;
+            } else if (previewUrl) {
+                // Upload Blob
+                const blob = await fetch(previewUrl).then(r => r.blob());
+                const formData = new FormData();
+                formData.append('file', blob, `manual-recording-${Date.now()}.webm`);
+
+                const uploadRes = await fetch('/api/upload-media', {
+                    method: 'POST',
+                    body: formData
+                });
+                const uploadData = await uploadRes.json();
+                if (!uploadData.success) throw new Error(uploadData.error || 'Upload failed');
+                finalMediaPath = uploadData.url;
+            }
+
+            if (!finalMediaPath) throw new Error("No media to post");
+
             await fetch('/api/social/schedule', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -247,15 +354,17 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                     scheduledTime: new Date().toISOString(),
                     mediaType: 'video',
                     // Pass the server-side reference
-                    mediaPath: renderResult.url,
-                    isCloudRender: true
+                    mediaPath: finalMediaPath,
+                    isCloudRender: !!renderResult
                 })
             });
             alert('Video scheduled for posting!');
             onClose();
         } catch (e) {
             console.error(e);
-            alert('Failed to schedule');
+            alert('Failed to schedule: ' + e.message);
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -393,7 +502,6 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                 </div>
 
                 {/* 2. Controls */}
-                {/* 2. Controls */}
                 <div className="w-80 flex flex-col gap-6 overflow-y-auto pr-2 h-full custom-scrollbar">
                     {/* Aspect Ratio Selector */}
                     <div className="bg-slate-800/50 p-4 rounded-xl border border-white/10">
@@ -432,9 +540,9 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                         </div>
                     </div>
 
-                    {/* Auto-Record Settings */}
+                    {/* Duration Settings */}
                     <div className="bg-slate-800/50 p-4 rounded-xl border border-white/10">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Auto-Record Duration</label>
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Target Duration (Cloud)</label>
                         <div className="flex gap-2">
                             {[5, 10, 15, 30].map(s => (
                                 <button
@@ -447,9 +555,21 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                             ))}
                             <div className="flex items-center px-2 bg-slate-900 rounded border border-slate-700">
                                 <input
-                                    type="number"
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
                                     value={duration}
-                                    onChange={(e) => setDuration(parseInt(e.target.value))}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '') setDuration('');
+                                        else {
+                                            const parsed = parseInt(val);
+                                            if (!isNaN(parsed)) setDuration(parsed);
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        if (!duration || duration < 1) setDuration(10);
+                                    }}
                                     className="w-10 bg-transparent text-white text-sm text-center focus:outline-none"
                                 />
                                 <span className="text-xs text-slate-500">s</span>
@@ -463,37 +583,93 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                         {previewUrl ? (
                             <div className="space-y-3">
                                 <video src={previewUrl} controls className="w-full rounded-lg border border-white/10 bg-black" />
-                                <button
-                                    onClick={downloadVideo}
-                                    className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg shadow-lg flex items-center justify-center gap-2 transition-all"
-                                >
-                                    <Download size={18} /> Download Video
-                                </button>
-                                <button
-                                    onClick={() => setPreviewUrl(null)}
-                                    className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-all"
-                                >
-                                    Discard & Record Again
-                                </button>
+
+                                {!socialForm ? (
+                                    <>
+                                        <button
+                                            onClick={downloadVideo}
+                                            className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg shadow-lg flex items-center justify-center gap-2 transition-all"
+                                        >
+                                            <Download size={18} /> Download Video
+                                        </button>
+
+                                        <button
+                                            onClick={() => setSocialForm({ caption: '', platforms: ['linkedin'] })}
+                                            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-lg flex items-center justify-center gap-2 transition-all"
+                                        >
+                                            <Share2 size={18} /> Post to Social
+                                        </button>
+
+                                        <button
+                                            onClick={() => setPreviewUrl(null)}
+                                            className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-all"
+                                        >
+                                            Discard & Record Again
+                                        </button>
+                                    </>
+                                ) : (
+                                    <div className="animate-in slide-in-from-bottom-4 bg-slate-900/80 p-3 rounded-lg border border-white/10">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h3 className="font-bold text-white text-sm">Compose Post</h3>
+                                            <button onClick={() => setSocialForm(null)} className="text-xs text-slate-400 hover:text-white">Cancel</button>
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-2 mb-3">
+                                            {['linkedin', 'twitter', 'instagram', 'youtube'].map(p => (
+                                                <button
+                                                    key={p}
+                                                    onClick={() => setSocialForm(prev => ({
+                                                        ...prev,
+                                                        platforms: prev.platforms.includes(p)
+                                                            ? prev.platforms.filter(x => x !== p)
+                                                            : [...prev.platforms, p]
+                                                    }))}
+                                                    className={`px-2 py-1 rounded border text-[10px] uppercase transition-all ${socialForm.platforms.includes(p) ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'border-slate-700 text-slate-400'}`}
+                                                >
+                                                    {p}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <textarea
+                                            value={socialForm.caption}
+                                            onChange={e => setSocialForm(prev => ({ ...prev, caption: e.target.value }))}
+                                            placeholder="Write your caption..."
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white text-sm focus:border-blue-500 focus:outline-none mb-3"
+                                            rows={3}
+                                        />
+
+                                        <button
+                                            onClick={handleDirectPost}
+                                            disabled={isUploading}
+                                            className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-lg shadow-lg flex items-center justify-center gap-2"
+                                        >
+                                            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                                            {isUploading ? 'Uploading & Scheduling...' : 'Schedule Post'}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="space-y-3">
                                 <button
-                                    onClick={() => startRecording(true)}
-                                    className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-xl shadow-blue-900/20"
-                                >
-                                    <Monitor size={20} />
-                                    REC Full Scene ({duration}s)
-                                </button>
-
-                                <button
                                     onClick={() => isRecording ? stopRecording() : startRecording(false)}
-                                    className={`w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all ${isRecording
-                                        ? 'bg-red-500/10 border border-red-500 text-red-500 animate-pulse'
-                                        : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
+                                    className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg ${isRecording
+                                        ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse shadow-red-500/20'
+                                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'
                                         }`}
                                 >
-                                    {isRecording ? 'Stop Recording' : 'Manual Record'}
+                                    {isRecording ? (
+                                        <>
+                                            <StopCircle size={20} />
+                                            Stop Recording ({elapsedTime}s)
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Monitor size={20} />
+                                            Start Manual Recording
+                                        </>
+                                    )}
                                 </button>
 
                                 <div className="w-full h-px bg-white/10 my-2"></div>
@@ -511,7 +687,7 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
 
                         {!isRecording && !previewUrl && (
                             <p className="text-xs text-slate-500 text-center mt-4">
-                                Tip: Click Start, then select the tab to record.
+                                Tip: Start a manual recording to capture the screen interactively, or use Cloud Render for perfect timing.
                             </p>
                         )}
                     </div>
