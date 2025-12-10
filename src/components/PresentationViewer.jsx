@@ -450,7 +450,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                 className={`absolute bottom-8 right-8 flex gap-4 z-50 transition-opacity duration-500 ${isPresenting && (!showControls || isExportRecording) ? 'opacity-0 pointer-events-none' : 'opacity-100'
                     }`}
             >
-                {!isPresenting && (
+                {!isPresenting && !isExportRecording && (
                     <>
                         <div className="relative group self-center mr-4">
                             <select

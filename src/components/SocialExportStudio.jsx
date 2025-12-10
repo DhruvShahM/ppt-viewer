@@ -25,14 +25,10 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
     const startRecording = async (auto = false) => {
         try {
             // We use getDisplayMedia to record the specific area (or screen)
-            // Note: In a browser environment, we can't easily force it to record JUST a specific DOM element programmatically without user selection in some browsers
-            // BUT we can use canvas.captureStream() if the slide was a canvas.
-            // Since it's DOM, we typically use getDisplayMedia and ask user to select the window/tab.
-
             const stream = await navigator.mediaDevices.getDisplayMedia({
                 video: {
                     cursor: "never",
-                    displaySurface: "browser", // Hint to browser we prefer tab/window
+                    displaySurface: "browser",
                     width: { ideal: 1920, max: 3840 },
                     height: { ideal: 1080, max: 2160 },
                     frameRate: { ideal: 60, max: 60 }
@@ -40,23 +36,21 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                 audio: false
             });
 
-            // If auto-recording, hide UI and go fullscreen immediately
-            if (auto) {
-                if (onRecordingStart) onRecordingStart();
-                setIsAutoRecording(true);
-                await document.documentElement.requestFullscreen();
+            // If user cancels selection, stream will be inactive or empty
+            if (!stream || !stream.active) {
+                console.warn("Stream not active (user cancelled?)");
+                return;
             }
 
-            // High bitrate for better quality (8 Mbps)
+            // High bitrate for better quality
             const options = {
                 mimeType: 'video/webm;codecs=vp9',
-                videoBitsPerSecond: 8000000 // 8 Mbps
+                videoBitsPerSecond: 8000000
             };
 
-            // Fallback for codec support
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                console.warn(`${options.mimeType} not supported, falling back to default`);
-                delete options.mimeType; // Let browser choose
+                console.warn(`${options.mimeType} not supported, falling back`);
+                delete options.mimeType;
             }
 
             const mediaRecorder = new MediaRecorder(stream, options);
@@ -71,20 +65,36 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                 const blob = new Blob(chunksRef.current, { type: 'video/webm' });
                 const url = URL.createObjectURL(blob);
                 setPreviewUrl(url);
+
+                // Stop all tracks
                 stream.getTracks().forEach(track => track.stop());
+
                 setIsRecording(false);
 
                 // Cleanup auto-record state
                 if (auto) {
                     setIsAutoRecording(false);
                     if (document.fullscreenElement) {
-                        document.exitFullscreen();
+                        document.exitFullscreen().catch(e => console.warn("Exit fullscreen failed", e));
                     }
                     if (onRecordingEnd) onRecordingEnd();
                 }
             };
 
-            // Delay start to allow UI to settle (hide dialogs, enter fullscreen)
+            // If auto-recording, hide UI first
+            if (auto) {
+                if (onRecordingStart) onRecordingStart();
+                setIsAutoRecording(true);
+
+                // Attempt fullscreen (might fail if gesture token expired during getDisplayMedia)
+                try {
+                    await document.documentElement.requestFullscreen();
+                } catch (e) {
+                    console.warn("Fullscreen request failed (likely lost user gesture)", e);
+                }
+            }
+
+            // Start recording after a brief delay to allow UI to hide/fullscreen to engage
             setTimeout(() => {
                 if (mediaRecorder.state === 'inactive') {
                     mediaRecorder.start();
@@ -99,12 +109,11 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                         }, duration * 1000);
                     }
                 }
-            }, 1000); // 1 second delay
+            }, 800); // Slightly reduced delay to 800ms
 
         } catch (err) {
             console.error("Recording failed:", err);
-            // alert("Could not start recording. Please ensure you grant permission."); // Removed alert to be less intrusive or handle gracefully
-            setIsAutoRecording(false); // Reset on error
+            setIsAutoRecording(false);
             if (onRecordingEnd && auto) onRecordingEnd();
         }
     };
@@ -125,14 +134,14 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
         document.body.removeChild(a);
     };
 
+    const [renderResult, setRenderResult] = useState(null);
+    const [socialForm, setSocialForm] = useState(null); // { caption, platforms }
+    const [isRendering, setIsRendering] = useState(false);
+
     // If auto-recording, hide the entire studio UI so we capture the slide beneath
     if (isAutoRecording) {
         return <div className="hidden" />;
     }
-
-    const [renderResult, setRenderResult] = useState(null);
-    const [socialForm, setSocialForm] = useState(null); // { caption, platforms }
-    const [isRendering, setIsRendering] = useState(false);
 
     const handleCloudRender = async () => {
         setIsRendering(true);
