@@ -19,16 +19,18 @@ const HindiGoroutines = () => {
   const [cursorVisible, setCursorVisible] = useState(true);
 
   // Typewriter effect
-  useEffect(() => {
-    let i = 0;
-    const interval = setInterval(() => {
-      setDisplayedCode((prev) => prev + code[i]);
-      i++;
-      if (i >= code.length) clearInterval(interval);
-    }, 18); // typing speed
+useEffect(() => {
+  let i = 0;
+  const interval = setInterval(() => {
+    i++;
+    setDisplayedCode(code.slice(0, i));
 
-    return () => clearInterval(interval);
-  }, []);
+    if (i >= code.length) clearInterval(interval);
+  }, 18);
+
+  return () => clearInterval(interval);
+}, [code]);
+
 
   // Cursor blink
   useEffect(() => {

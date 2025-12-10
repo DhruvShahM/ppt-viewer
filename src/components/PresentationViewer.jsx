@@ -4,16 +4,19 @@ import Slide from './Slide';
 import AnnotationLayer from './AnnotationLayer';
 import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock, FileCode, Stamp, X } from 'lucide-react';
 import DesignFeedback from './DesignFeedback';
+import SocialHub from './SocialHub';
+import SocialExportStudio from './SocialExportStudio';
 
 
-const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient, fonts, currentFont, onFontSelect }) => {
+const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient, fonts, currentFont, onFontSelect, isHeadless = false, initialSlideIndex = 0 }) => {
     const [currentSlide, setCurrentSlide] = useState(() => {
+        if (isHeadless) return initialSlideIndex;
         const saved = localStorage.getItem(`lastSlide_${deckId}`);
         return saved ? Math.min(parseInt(saved, 10), slides.length - 1) : 0;
     });
-    const [isPresenting, setIsPresenting] = useState(false);
-    const [showControls, setShowControls] = useState(true);
-    const [showCursor, setShowCursor] = useState(true);
+    const [isPresenting, setIsPresenting] = useState(isHeadless);
+    const [showControls, setShowControls] = useState(!isHeadless);
+    const [showCursor, setShowCursor] = useState(!isHeadless);
     const [activeTool, setActiveTool] = useState('none');
     const [activeColor, setActiveColor] = useState('#ef4444');
     const [isLocked, setIsLocked] = useState(false);
@@ -23,6 +26,8 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const [showTrademark, setShowTrademark] = useState(() => !!localStorage.getItem(`trademark_${deckId}`));
     const [trademarkPosition, setTrademarkPosition] = useState(() => localStorage.getItem(`trademark_pos_${deckId}`) || 'top-right');
     const [showTrademarkModal, setShowTrademarkModal] = useState(false);
+    const [showSocialExport, setShowSocialExport] = useState(false);
+    const [isExportRecording, setIsExportRecording] = useState(isHeadless);
 
     useEffect(() => {
         if (trademarkText) {
@@ -115,6 +120,10 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     useEffect(() => {
         const handleMouseMove = (e) => {
             // 1. Cursor Logic: Always show on move, hide after 3s
+            if (isExportRecording) {
+                setShowCursor(false);
+                return;
+            }
             setShowCursor(true);
             if (cursorTimeoutRef.current) clearTimeout(cursorTimeoutRef.current);
             if (isPresenting) {
@@ -122,6 +131,8 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
             }
 
             // 2. Toolbar Logic: Show only if at bottom or hovering controls
+            if (isExportRecording) return; // Don't show controls if recording
+
             const isBottom = e.clientY > window.innerHeight - 150;
 
             if (isBottom || isHoveringControls.current) {
@@ -149,9 +160,10 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
             if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
             if (cursorTimeoutRef.current) clearTimeout(cursorTimeoutRef.current);
         };
-    }, [isPresenting]);
+    }, [isPresenting, isExportRecording]);
 
     const handleMouseEnterControls = () => {
+        if (isExportRecording) return;
         isHoveringControls.current = true;
         if (controlsTimeoutRef.current) {
             clearTimeout(controlsTimeoutRef.current);
@@ -313,7 +325,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
             )}
 
             {/* Annotation Toolbar (Only in Presentation Mode) */}
-            {isPresenting && !isLocked && (
+            {isPresenting && !isLocked && !isExportRecording && (
                 <div
                     onMouseEnter={handleMouseEnterControls}
                     onMouseLeave={handleMouseLeaveControls}
@@ -421,7 +433,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
             )}
 
             {/* Unlock Button */}
-            {isPresenting && isLocked && (
+            {isPresenting && isLocked && !isExportRecording && (
                 <button
                     onClick={() => setIsLocked(false)}
                     className={`absolute bottom-8 left-8 p-3 rounded-full bg-black/20 hover:bg-black/50 text-white/50 hover:text-white transition-all backdrop-blur-sm z-50 ${!showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
@@ -435,7 +447,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
             <div
                 onMouseEnter={handleMouseEnterControls}
                 onMouseLeave={handleMouseLeaveControls}
-                className={`absolute bottom-8 right-8 flex gap-4 z-50 transition-opacity duration-500 ${isPresenting && !showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                className={`absolute bottom-8 right-8 flex gap-4 z-50 transition-opacity duration-500 ${isPresenting && (!showControls || isExportRecording) ? 'opacity-0 pointer-events-none' : 'opacity-100'
                     }`}
             >
                 {!isPresenting && (
@@ -527,6 +539,16 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                         >
                             <FileCode size={24} />
                         </button>
+
+                        <SocialHub deckId={deckId} slideIndex={currentSlide + 1} />
+
+                        <button
+                            onClick={() => setShowSocialExport(true)}
+                            className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm mr-4"
+                            title="Open Social Export Studio"
+                        >
+                            <Video size={24} />
+                        </button>
                     </>
                 )}
 
@@ -575,7 +597,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
 
             {/* Smart Scrubber / Timeline */}
             <div
-                className={`absolute bottom-0 left-0 w-full z-50 transition-all duration-500 group/scrubber ${isPresenting && !showControls ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}
+                className={`absolute bottom-0 left-0 w-full z-50 transition-all duration-500 group/scrubber ${isPresenting && (!showControls || isExportRecording) ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}
                 onMouseLeave={() => setPreviewSlide(null)}
             >
                 {/* Hover Hit Area & Progress Bar */}
@@ -650,6 +672,16 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
             </div>
 
             {/* Design Feedback Loop - Moved to Toolbar */}
+
+            {showSocialExport && (
+                <SocialExportStudio
+                    slideIndex={currentSlide + 1}
+                    currentSlideNode={slides[currentSlide]}
+                    onClose={() => setShowSocialExport(false)}
+                    onRecordingStart={() => setIsExportRecording(true)}
+                    onRecordingEnd={() => setIsExportRecording(false)}
+                />
+            )}
         </div >
     );
 };

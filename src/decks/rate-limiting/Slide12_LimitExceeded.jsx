@@ -13,7 +13,7 @@ const Slide12_LimitExceeded = () => {
     }, []);
 
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center bg-slate-900 text-white p-8">
+        <div className="h-full w-full flex flex-col items-center justify-center text-white p-8">
             <h2 className="text-4xl font-bold mb-12 text-red-500">What Happens When Limit is Exceeded?</h2>
 
             <div className="grid grid-cols-2 gap-12 w-full max-w-6xl">

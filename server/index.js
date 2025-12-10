@@ -9,6 +9,8 @@ const catchAsync = require('./utils/catchAsync');
 const globalErrorHandler = require('./controllers/errorController');
 
 const metadataManager = require('./utils/metadata');
+const scheduler = require('./services/scheduler');
+const videoRenderer = require('./services/video-renderer');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,6 +34,11 @@ if (!fs.existsSync(FEEDBACK_FILE)) {
 // Ensure screenshots directory exists
 if (!fs.existsSync(SCREENSHOTS_DIR)) {
     fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
+}
+
+const RENDERS_DIR = path.join(__dirname, 'renders');
+if (!fs.existsSync(RENDERS_DIR)) {
+    fs.mkdirSync(RENDERS_DIR, { recursive: true });
 }
 
 
@@ -111,9 +118,46 @@ fs.watchFile(FEEDBACK_FILE, { interval: 2000 }, (curr, prev) => {
     }
 });
 
+// Cleanup old renders (older than 8 days)
+const cleanupRenders = () => {
+    try {
+        if (!fs.existsSync(RENDERS_DIR)) return;
+
+        const files = fs.readdirSync(RENDERS_DIR);
+        const MAX_AGE_MS = 8 * 24 * 60 * 60 * 1000; // 8 days
+        const now = Date.now();
+
+        files.forEach(file => {
+            const filePath = path.join(RENDERS_DIR, file);
+            const stats = fs.statSync(filePath);
+
+            // strict 8-day retention from creation time (birthtime)
+            const creationTime = stats.birthtimeMs || stats.mtimeMs;
+
+            if (now - creationTime > MAX_AGE_MS) {
+                try {
+                    fs.unlinkSync(filePath);
+                    console.log(`Deleted expired render (older than 8 days): ${file}`);
+                } catch (err) {
+                    console.error(`Failed to delete expired render ${file}:`, err);
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error cleaning up renders:', error);
+    }
+};
+
 // Run cleanup on startup
 cleanupScreenshots();
 cleanupFeedback();
+cleanupRenders();
+
+// Schedule daily cleanup check
+setInterval(cleanupRenders, 24 * 60 * 60 * 1000);
+
+// Initialize Scheduler (Catch-Up Strategy)
+scheduler.init();
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -180,6 +224,87 @@ app.post('/api/feedback', upload.fields([{ name: 'screenshots', maxCount: 10 }, 
     console.log(`Feedback received for ${deckId} slide ${slideIndex}: ${instruction} (${sCount} screenshots, ${vCount} videos)`);
     res.status(201).json(newFeedback);
 }));
+
+// --- Social Scheduling APIs ---
+
+app.get('/api/social/queue', (req, res) => {
+    const queue = scheduler.getQueue();
+    // Sort: Pending first (by date), then others (by date desc)
+    queue.sort((a, b) => {
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (a.status !== 'pending' && b.status === 'pending') return 1;
+
+        if (a.status === 'pending') {
+            return new Date(a.scheduledTime) - new Date(b.scheduledTime); // Earliest first
+        } else {
+            return new Date(b.scheduledTime) - new Date(a.scheduledTime); // Newest first
+        }
+    });
+    res.json(queue);
+});
+
+app.post('/api/social/schedule', catchAsync(async (req, res, next) => {
+    // req.body should have: slideId, deckId, caption, platforms, scheduledTime
+    const result = scheduler.schedulePost(req.body);
+    res.status(201).json(result);
+}));
+
+app.delete('/api/social/queue/:id', (req, res) => {
+    const success = scheduler.deletePost(req.params.id);
+    if (success) {
+        res.json({ success: true });
+    } else {
+        res.status(404).json({ error: 'Post not found' });
+    }
+});
+
+app.post('/api/social/run-catchup', (req, res) => {
+    scheduler.checkQueue();
+    res.json({ success: true, message: 'Catch-up triggered' });
+});
+
+app.post('/api/render-video', catchAsync(async (req, res, next) => {
+    const { deckId, slideIndex, duration, width, height } = req.body;
+
+    if (!deckId || slideIndex === undefined || !duration) {
+        return next(new AppError('Missing required fields', 400));
+    }
+
+    const filename = `render-${deckId}-${slideIndex}-${Date.now()}.mp4`;
+    const outputPath = path.join(RENDERS_DIR, filename);
+
+    try {
+        await videoRenderer.renderSlide({
+            deckId,
+            slideIndex,
+            duration: duration || 10,
+            width: width || 1920,
+            height: height || 1080,
+            outputPath
+        });
+
+        res.json({
+            success: true,
+            url: `/api/renders/${filename}`
+        });
+    } catch (error) {
+        console.error("Video render failed", error);
+        return next(new AppError('Video render failed: ' + error.message, 500));
+    }
+}));
+
+app.get('/api/renders/:filename', (req, res, next) => {
+    const filename = req.params.filename;
+    const filepath = path.join(RENDERS_DIR, filename);
+
+    if (fs.existsSync(filepath)) {
+        res.sendFile(filepath);
+    } else {
+        next(new AppError('Render not found', 404));
+    }
+});
+
+// ------------------------------
 
 app.get('/api/feedback', catchAsync(async (req, res, next) => {
     const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');

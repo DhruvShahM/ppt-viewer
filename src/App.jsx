@@ -7,11 +7,14 @@ import { Loader2 } from 'lucide-react';
 
 function App() {
     const [currentDeckId, setCurrentDeckId] = useState(() => {
-        return localStorage.getItem('lastDeckId') || null;
+        const params = new URLSearchParams(window.location.search);
+        return params.get('deckId') || localStorage.getItem('lastDeckId') || null;
     });
 
     const [currentSlides, setCurrentSlides] = useState(null);
-    const [isLoading, setIsLoading] = useState(() => !!localStorage.getItem('lastDeckId'));
+    const [isLoading, setIsLoading] = useState(() => !!localStorage.getItem('lastDeckId') || !!new URLSearchParams(window.location.search).get('deckId'));
+    const isHeadless = new URLSearchParams(window.location.search).get('mode') === 'export';
+    const initialSlideIndex = parseInt(new URLSearchParams(window.location.search).get('slide') || '0');
 
     useEffect(() => {
         const loadDeck = async () => {
@@ -136,6 +139,8 @@ function App() {
                     fonts={FONTS}
                     currentFont={currentFont}
                     onFontSelect={setCurrentFont}
+                    isHeadless={isHeadless}
+                    initialSlideIndex={initialSlideIndex}
                 />
             ) : (
                 <DeckSelector onSelectDeck={handleDeckSelect} />

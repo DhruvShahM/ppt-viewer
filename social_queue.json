@@ -1,0 +1,24 @@
+[
+  {
+    "id": "post_1765358745400_114",
+    "createdAt": "2025-12-10T09:25:45.400Z",
+    "status": "published",
+    "deckId": "rate-limiting",
+    "slideIndex": 4,
+    "caption": "demo",
+    "platforms": [
+      "youtube"
+    ],
+    "scheduledTime": "2025-12-10T09:25:45.385Z",
+    "mediaType": "video",
+    "mediaPath": "/api/renders/render-rate-limiting-3-1765358714887.mp4",
+    "isCloudRender": true,
+    "publishedAt": "2025-12-10T09:25:46.924Z",
+    "results": [
+      {
+        "platform": "youtube",
+        "status": "success"
+      }
+    ]
+  }
+]
