@@ -137,6 +137,13 @@ const socialDataService = {
                 throw new Error("Not implemented yet");
 
             } catch (e) {
+                // HANDLE AUTH ERRORS: If invalid_client, disconnect the account to force re-auth
+                if (e.message && e.message.includes('invalid_client')) {
+                    console.error(`[Social] ❌ Auth invalidated for ${platform} (invalid_client). Disconnecting account ${tokenData.username || tokenData.id}...`);
+                    await socialDataService.disconnectAccount(platform, tokenData.id || tokenData.userId);
+                    return []; // Return empty for now so UI doesn't break
+                }
+
                 // RETURN MOCK DATA FOR DEMO
                 console.log(`Fetching failed for ${platform}, returning mock data. Error: ${e.message}`);
                 return getMockPosts(platform, tokenData);
