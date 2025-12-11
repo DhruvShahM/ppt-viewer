@@ -82,23 +82,70 @@ class SocialScheduler {
         const results = [];
         const platforms = post.platforms || ['generic'];
 
-        // Simulate API calls for each platform
+        // Load tokens only once if needed, but we need fresh ones
+        const tokenManager = require('./token-manager');
+        const allTokens = tokenManager.loadTokens();
+
+        // Helper to find token for a platform
+        // This logic mimics social-data-service somewhat but needs to be robust
+        const getTokensForPlatform = (platform) => {
+            // 1. If post has specific accountId designated? (Not yet in format, but good for future)
+            // 2. Filter all tokens for this platform that are ENABLED
+            return Object.values(allTokens).filter(t => t.platform === platform && t.isEnabled !== false);
+        };
+
         for (const platform of platforms) {
             try {
                 console.log(`[Scheduler] 📡 Publishing to ${platform.toUpperCase()}...`);
 
-                // MOCK DELAY: Simulate network request (1-2 seconds)
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                if (platform === 'youtube') {
+                    const youtubeUploader = require('./youtube-uploader');
+                    const tokens = getTokensForPlatform('youtube');
 
-                // IN FUTURE: Add real API calls here
-                // if (platform === 'linkedin') await linkedinApi.post(...)
+                    if (tokens.length === 0) {
+                        throw new Error("No enabled YouTube accounts found");
+                    }
 
-                if (post.mediaPath) {
-                    console.log(`[Scheduler] 📎 Uploading media: ${post.mediaPath} (${post.mediaType})`);
+                    // RESOLVE ABSOLUTE PATH
+                    // If post.mediaPath starts with /api/screenshots/, it's in the screenshots dir
+                    // If it starts with /api/renders/, it's in the renders dir
+                    let absoluteMediaPath = post.mediaPath;
+                    const path = require('path');
+
+                    if (post.mediaPath && post.mediaPath.startsWith('/api/screenshots/')) {
+                        const filename = post.mediaPath.replace('/api/screenshots/', '');
+                        absoluteMediaPath = path.join(__dirname, '..', 'screenshots', filename);
+                    } else if (post.mediaPath && post.mediaPath.startsWith('/api/renders/')) {
+                        const filename = post.mediaPath.replace('/api/renders/', '');
+                        absoluteMediaPath = path.join(__dirname, '..', 'renders', filename);
+                    }
+
+                    for (const token of tokens) {
+                        console.log(`[Scheduler] 🎬 Uploading to YouTube Account: ${token.name}`);
+
+                        // Check file existence before upload
+                        const fs = require('fs');
+                        if (!fs.existsSync(absoluteMediaPath)) {
+                            throw new Error(`Video file not found at: ${absoluteMediaPath} (Original: ${post.mediaPath})`);
+                        }
+
+                        await youtubeUploader.uploadVideo(token, absoluteMediaPath, {
+                            title: post.caption || 'New Video',
+                            description: post.content || post.caption || '',
+                            scheduledTime: post.scheduledTime
+                        });
+                        console.log(`[Scheduler] ✅ Published to YouTube (${token.name})`);
+                    }
+
+                    results.push({ platform, status: 'success' });
+
+                } else {
+                    // MOCK DELAY for other platforms
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    console.log(`[Scheduler] (Simulated) Published to ${platform.toUpperCase()} successfully.`);
+                    results.push({ platform, status: 'success' });
                 }
 
-                console.log(`[Scheduler] ✅ Published to ${platform.toUpperCase()} successfully.`);
-                results.push({ platform, status: 'success' });
             } catch (err) {
                 console.error(`[Scheduler] ❌ Failed to publish to ${platform}:`, err);
                 results.push({ platform, status: 'failed', error: err.message });

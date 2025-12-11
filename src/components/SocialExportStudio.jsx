@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Video, StopCircle, Download, Square, Smartphone, Monitor, Loader2, Check, X, Share2, Youtube, Send, Link, AlertTriangle, Plus, Trash2, User, Lock, Facebook } from 'lucide-react';
 
-const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecordingStart, onRecordingEnd, initialMode }) => {
+const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecordingStart, onRecordingEnd, initialMode, onConnect }) => {
     const [aspectRatio, setAspectRatio] = useState('1:1'); // 1:1, 9:16, 16:9
     const [isRecording, setIsRecording] = useState(false);
     const [isAutoRecording, setIsAutoRecording] = useState(false);
@@ -12,23 +12,28 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
     const chunksRef = useRef([]);
     const containerRef = useRef(null);
 
-    // Mock Connected Accounts State: Array of { id, platform, name, type }
-    const [accounts, setAccounts] = useState(() => {
-        try {
-            return JSON.parse(localStorage.getItem('social_connected_accounts_v2')) || [];
-        } catch (e) {
-            return [];
-        }
-    });
+    // Real Connected Accounts State
+    const [accounts, setAccounts] = useState([]);
+
+    // Fetch real accounts on mount
+    useEffect(() => {
+        const fetchAccounts = async () => {
+            try {
+                const res = await fetch('http://localhost:3001/api/social/accounts');
+                if (res.ok) {
+                    const data = await res.json();
+                    setAccounts(data);
+                }
+            } catch (e) {
+                console.error("Failed to fetch accounts:", e);
+            }
+        };
+        fetchAccounts();
+    }, []);
     const [showConnectForm, setShowConnectForm] = useState(false);
     const [connectingPlatform, setConnectingPlatform] = useState(null);
 
-    // Persist mock connections
-    useEffect(() => {
-        localStorage.setItem('social_connected_accounts_v2', JSON.stringify(accounts));
-    }, [accounts]);
-
-    // Timer for manual recording
+    // Timer for manual recording logic
     useEffect(() => {
         let interval;
         if (isRecording) {
@@ -477,6 +482,22 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
         const selectedAccounts = accounts.filter(a => socialForm.selectedAccountIds.includes(a.id));
         const platformsPayload = selectedAccounts.map(a => a.platform);
 
+        // Check if accounts are valid/enabled
+        for (const platform of platformsPayload) {
+            const hasEnabledAccount = accounts.some(a => a.platform === platform && a.isEnabled !== false);
+            if (!hasEnabledAccount) {
+                if (confirm(`No enabled account found for ${platform}. Go to Social Settings to connect/enable?`)) {
+                    if (onConnect) {
+                        onConnect();
+                    } else {
+                        // Fallback redirect
+                        window.location.href = '/social';
+                    }
+                }
+                return;
+            }
+        }
+
         setIsUploading(true);
 
         try {
@@ -663,7 +684,7 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                                                 </div>
                                                 <div>
                                                     <div className="text-sm font-medium text-white flex items-center gap-2">
-                                                        {acc.name}
+                                                        {acc.username || acc.name}
                                                         <span className="text-[9px] uppercase bg-black/30 px-1.5 py-0.5 rounded text-slate-400">{acc.platform}</span>
                                                     </div>
                                                     <div className="text-[10px] text-green-500 flex items-center gap-1">
@@ -850,7 +871,7 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                                                         </div>
                                                         <div>
                                                             <div className="text-sm font-medium text-white flex items-center gap-2">
-                                                                {acc.name}
+                                                                {acc.username || acc.name}
                                                                 <span className="text-[9px] uppercase bg-black/30 px-1.5 py-0.5 rounded text-slate-400">{acc.platform}</span>
                                                             </div>
                                                             <div className="text-[10px] text-slate-500">Connected</div>

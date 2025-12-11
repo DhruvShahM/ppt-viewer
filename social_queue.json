@@ -42,5 +42,48 @@
         "status": "success"
       }
     ]
+  },
+  {
+    "id": "post_1765468239484_359",
+    "createdAt": "2025-12-11T15:50:39.484Z",
+    "status": "failed",
+    "caption": "demo testing",
+    "platforms": [
+      "youtube"
+    ],
+    "scheduledTime": "2025-12-11T15:50:39.479Z",
+    "mediaType": "video",
+    "mediaPath": "/api/screenshots/1765468239466-540839979-render-rate-limiting-3-1765468157614.mp4",
+    "deckId": "social-direct-upload",
+    "slideIndex": 0,
+    "publishedAt": "2025-12-11T15:50:39.499Z",
+    "results": [
+      {
+        "platform": "youtube",
+        "status": "failed",
+        "error": "Video file not found: /api/screenshots/1765468239466-540839979-render-rate-limiting-3-1765468157614.mp4"
+      }
+    ]
+  },
+  {
+    "id": "post_1765468465736_791",
+    "createdAt": "2025-12-11T15:54:25.736Z",
+    "status": "published",
+    "caption": "demo\n",
+    "platforms": [
+      "youtube"
+    ],
+    "scheduledTime": "2025-12-11T15:54:25.731Z",
+    "mediaType": "video",
+    "mediaPath": "/api/screenshots/1765468465720-943917217-render-rate-limiting-3-1765468157614.mp4",
+    "deckId": "social-direct-upload",
+    "slideIndex": 0,
+    "publishedAt": "2025-12-11T15:54:32.219Z",
+    "results": [
+      {
+        "platform": "youtube",
+        "status": "success"
+      }
+    ]
   }
 ]

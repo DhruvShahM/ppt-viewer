@@ -232,6 +232,17 @@ app.post('/api/feedback', upload.fields([{ name: 'screenshots', maxCount: 10 }, 
 
 // --- Social Scheduling APIs ---
 
+app.get('/api/social/accounts', (req, res) => {
+    // Return list of connected accounts so generic UI can use it
+    const socialDataService = require('./services/social-data-service');
+    socialDataService.getConnectedAccounts().then(accounts => {
+        res.json(accounts);
+    }).catch(err => {
+        res.status(500).json({ error: err.message });
+    });
+});
+
+
 // --- Real Authentication Routes ---
 
 app.get('/api/auth/:platform', (req, res) => {

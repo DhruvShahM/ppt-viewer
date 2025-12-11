@@ -14,7 +14,10 @@ import {
     X,
     Settings,
     Save,
-    Upload
+    Upload,
+    Video,
+    FileVideo,
+    Send
 } from 'lucide-react';
 
 const GET_SOCIAL_DATA = gql`
@@ -124,6 +127,81 @@ const SocialConnectionPage = ({ onBack }) => {
     const [configKeys, setConfigKeys] = React.useState({});
 
     const [testResult, setTestResult] = React.useState(null);
+
+    // Direct Post Modal State
+    const [showPostModal, setShowPostModal] = React.useState(false);
+    const [postCaption, setPostCaption] = React.useState('');
+    const [postFile, setPostFile] = React.useState(null);
+    const [uploading, setUploading] = React.useState(false);
+    const [selectedPostAccounts, setSelectedPostAccounts] = React.useState([]);
+
+    const fileInputRef = React.useRef(null);
+
+    const handleFileSelect = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            setPostFile(e.target.files[0]);
+        }
+    };
+
+    const handleDirectUploadAndPost = async () => {
+        if (!postFile || !postCaption || selectedPostAccounts.length === 0) {
+            alert("Please select a file, add a caption, and choose at least one account.");
+            return;
+        }
+
+        setUploading(true);
+        try {
+            // 1. Upload File
+            const formData = new FormData();
+            formData.append('file', postFile);
+
+            const uploadRes = await fetch('http://localhost:3001/api/upload-media', {
+                method: 'POST',
+                body: formData
+            });
+            const uploadData = await uploadRes.json();
+
+            if (!uploadData.success) throw new Error("Upload failed");
+
+            // 2. Schedule Post
+            // Get platforms from selected account IDs
+            const accounts = data?.getConnectedAccounts || [];
+            const selectedAccs = accounts.filter(a => selectedPostAccounts.includes(a.id));
+            const platforms = [...new Set(selectedAccs.map(a => a.platform))];
+
+            await fetch('http://localhost:3001/api/social/schedule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    caption: postCaption,
+                    platforms: platforms,
+                    scheduledTime: new Date().toISOString(),
+                    mediaType: 'video',
+                    mediaPath: uploadData.url,
+                    deckId: 'social-direct-upload', // Generic ID
+                    slideIndex: 0
+                })
+            });
+
+            alert("✅ Post scheduled successfully!");
+            setShowPostModal(false);
+            setPostFile(null);
+            setPostCaption('');
+            setSelectedPostAccounts([]);
+
+        } catch (e) {
+            console.error(e);
+            alert("Failed to post: " + e.message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const togglePostAccount = (id) => {
+        setSelectedPostAccounts(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+    };
 
     useEffect(() => {
         if (showSettings) {
@@ -384,12 +462,22 @@ const SocialConnectionPage = ({ onBack }) => {
                 </div>
             )}
 
-            <button
-                onClick={onBack}
-                className="absolute top-8 left-8 p-2 rounded-full bg-slate-800 hover:bg-slate-700 transition"
-            >
-                <X size={20} />
-            </button>
+
+
+            <div className="absolute left-8 top-1 flex items-center gap-4">
+                <button
+                    onClick={() => onBack()}
+                    className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 transition text-slate-400 hover:text-white"
+                >
+                    <X size={20} />
+                </button>
+                <button
+                    onClick={() => setShowPostModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold rounded-full shadow-lg hover:shadow-pink-500/25 transition transform hover:scale-105"
+                >
+                    <Video size={18} /> Create Post
+                </button>
+            </div>
 
             <header className="mb-12 text-center mt-8 relative">
                 <div className="absolute right-0 top-0 flex items-center gap-4">
@@ -560,6 +648,107 @@ const SocialConnectionPage = ({ onBack }) => {
                     )}
                 </div>
             </div>
+
+            {/* Create Post Modal */}
+            {showPostModal && (
+                <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95">
+                        <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
+                            <h3 className="font-bold text-white flex items-center gap-2">
+                                <Video className="text-pink-500" /> Create New Post
+                            </h3>
+                            <button onClick={() => setShowPostModal(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            {/* File Upload */}
+                            <div
+                                onClick={() => fileInputRef.current?.click()}
+                                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${postFile ? 'border-green-500 bg-green-500/10' : 'border-slate-700 hover:border-blue-500 hover:bg-slate-800'}`}
+                            >
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileSelect}
+                                    accept="video/*"
+                                    className="hidden"
+                                />
+                                {postFile ? (
+                                    <div className="flex flex-col items-center gap-2 text-green-400">
+                                        <FileVideo size={48} />
+                                        <span className="font-medium text-sm">{postFile.name}</span>
+                                        <span className="text-xs opacity-75">Click to change</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2 text-slate-400">
+                                        <Upload size={32} />
+                                        <span className="text-sm">Click to upload video</span>
+                                        <span className="text-[10px] uppercase tracking-wider opacity-50">MP4, WebM (Max 50MB)</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Caption */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Caption</label>
+                                <textarea
+                                    value={postCaption}
+                                    onChange={(e) => setPostCaption(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500 min-h-[100px]"
+                                    placeholder="What's on your mind?"
+                                />
+                            </div>
+
+                            {/* Account Selector */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Publish To</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {data?.getConnectedAccounts?.length > 0 ? (
+                                        data.getConnectedAccounts.map(acc => (
+                                            <button
+                                                key={acc.id}
+                                                onClick={() => togglePostAccount(acc.id)}
+                                                disabled={acc.isEnabled === false}
+                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs transition-all ${selectedPostAccounts.includes(acc.id)
+                                                        ? 'bg-blue-600 border-blue-500 text-white'
+                                                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
+                                                    } ${acc.isEnabled === false ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            >
+                                                {/* Simple Icon Map */}
+                                                {acc.platform === 'youtube' && <Youtube size={12} />}
+                                                {acc.platform === 'linkedin' && <LinkedinIcon size={12} />}
+                                                {acc.platform === 'facebook' && <Facebook size={12} />}
+                                                {acc.platform === 'instagram' && <Instagram size={12} />}
+                                                {acc.platform === 'reddit' && <MessageCircle size={12} />}
+                                                {acc.username}
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <div className="text-xs text-slate-500">No connected accounts.</div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-4 border-t border-slate-800 bg-slate-950/50 flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowPostModal(false)}
+                                className="px-4 py-2 text-slate-400 hover:text-white text-sm"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDirectUploadAndPost}
+                                disabled={uploading || !postFile || !postCaption || selectedPostAccounts.length === 0}
+                                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold rounded-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                                {uploading ? <RefreshCw className="animate-spin" size={16} /> : <Send size={16} />}
+                                {uploading ? 'Uploading...' : 'Schedule Post'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

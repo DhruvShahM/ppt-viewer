@@ -692,6 +692,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                     onClose={() => setShowSocialExport(false)}
                     onRecordingStart={() => setIsExportRecording(true)}
                     onRecordingEnd={() => setIsExportRecording(false)}
+                    onConnect={onConnect}
                 />
             )}
         </div >
