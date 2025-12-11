@@ -1,0 +1,212 @@
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
+const { google } = require('googleapis');
+const socialConfig = require('../config/social');
+
+const tokenManager = require('./token-manager');
+
+// Helper to save tokens
+const saveToken = (platform, tokenData) => {
+    return tokenManager.savePlatformToken(platform, tokenData);
+};
+
+const authService = {
+    // --- SIMULATED ---
+    handleSimulatedCallback: (platform) => {
+        const id = Math.round(Math.random() * 100000).toString();
+        const userData = {
+            id: id,
+            name: `${platform.charAt(0).toUpperCase() + platform.slice(1)} User ${id.substring(0, 3)}`,
+            email: `user${id}@${platform}.com`,
+            picture: null,
+            platform: platform,
+            accessToken: 'mock_token_' + id,
+            expiryDate: Date.now() + 3600000
+        };
+        saveToken(platform, userData);
+        return userData;
+    },
+
+    // --- LINKEDIN ---
+    getLinkedinAuthUrl: () => {
+        const { clientId, callbackUrl, scope } = socialConfig.linkedin;
+        const state = Math.random().toString(36).substring(7);
+        return `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&state=${state}&scope=${scope.join('%20')}`;
+    },
+
+    handleLinkedinCallback: async (code) => {
+        const { clientId, clientSecret, callbackUrl } = socialConfig.linkedin;
+
+        // 1. Exchange code for access token
+        const tokenResponse = await axios.post('https://www.linkedin.com/oauth/v2/accessToken', null, {
+            params: {
+                grant_type: 'authorization_code',
+                code,
+                redirect_uri: callbackUrl,
+                client_id: clientId,
+                client_secret: clientSecret
+            },
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+
+        const accessToken = tokenResponse.data.access_token;
+
+        // 2. Get User Profile (to know WHO connected)
+        const profileResponse = await axios.get('https://api.linkedin.com/v2/me', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+
+        const userData = {
+            id: profileResponse.data.id,
+            name: `${profileResponse.data.localizedFirstName} ${profileResponse.data.localizedLastName}`,
+            platform: 'linkedin',
+            accessToken,
+            scope: socialConfig.linkedin.scope
+        };
+
+        saveToken('linkedin', userData);
+        return userData;
+    },
+
+    // --- GOOGLE / YOUTUBE ---
+    getGoogleAuthUrl: () => {
+        const { clientId, clientSecret, callbackUrl, scope } = socialConfig.google;
+        const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, callbackUrl);
+
+        return oauth2Client.generateAuthUrl({
+            access_type: 'offline', // Critical for refreshing tokens
+            prompt: 'consent select_account', // Force account picker and consent screen to allow multiple accounts
+            scope: scope
+        });
+    },
+
+    handleGoogleCallback: async (code) => {
+        const { clientId, clientSecret, callbackUrl } = socialConfig.google;
+        const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, callbackUrl);
+
+        // 1. Exchange code for tokens
+        const { tokens } = await oauth2Client.getToken(code);
+        oauth2Client.setCredentials(tokens);
+
+        // 2. Get User Profile
+        const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+        const userInfo = await oauth2.userinfo.get();
+
+        const userData = {
+            id: userInfo.data.id,
+            name: userInfo.data.name,
+            email: userInfo.data.email,
+            picture: userInfo.data.picture,
+            platform: 'youtube', // Mapping google to youtube for app consistency
+            accessToken: tokens.access_token,
+            refreshToken: tokens.refresh_token, // Important!
+            expiryDate: tokens.expiry_date
+        };
+
+        saveToken('youtube', userData);
+        return userData;
+    },
+
+    // --- TWITTER (OAuth 2.0 with PKCE usually, but simplified here for Code Flow if Confidential Client) ---
+    // Note: Twitter implementation often requires session storage for code_verifier if using PKCE.
+    // We will assume "Confidential Client" flow for simplicity if keys are provided.
+    // --- FACEBOOK / INSTAGRAM ---
+    getFacebookAuthUrl: () => {
+        const { clientId, callbackUrl, scope } = socialConfig.facebook;
+        const state = Math.random().toString(36).substring(7);
+        return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&state=${state}&scope=${scope.join(',')}&response_type=code`;
+    },
+
+    handleFacebookCallback: async (code) => {
+        const { clientId, clientSecret, callbackUrl } = socialConfig.facebook;
+
+        // 1. Exchange code for access token
+        // Facebook requires a GET request usually
+        const tokenResponse = await axios.get('https://graph.facebook.com/v18.0/oauth/access_token', {
+            params: {
+                client_id: clientId,
+                redirect_uri: callbackUrl,
+                client_secret: clientSecret,
+                code: code
+            }
+        });
+
+        const accessToken = tokenResponse.data.access_token;
+        if (!accessToken) throw new Error('Failed to retrieve access token from Facebook');
+
+        // 2. Get User Profile
+        const profileResponse = await axios.get('https://graph.facebook.com/me', {
+            params: {
+                fields: 'id,name,email,picture',
+                access_token: accessToken
+            }
+        });
+
+        const userData = {
+            id: profileResponse.data.id,
+            name: profileResponse.data.name,
+            email: profileResponse.data.email, // might be undefined if not granted
+            picture: profileResponse.data.picture?.data?.url,
+            platform: 'facebook', // or instagram if determined later
+            accessToken: accessToken,
+            expiryDate: Date.now() + (tokenResponse.data.expires_in * 1000)
+        };
+
+        saveToken('facebook', userData);
+        return userData;
+    },
+
+    // --- REDDIT ---
+    getRedditAuthUrl: () => {
+        const { clientId, callbackUrl, scope } = socialConfig.reddit;
+        const state = Math.random().toString(36).substring(7);
+        // Reddit requires Basic Auth for the token request, but standard URL for auth
+        return `https://www.reddit.com/api/v1/authorize?client_id=${clientId}&response_type=code&state=${state}&redirect_uri=${encodeURIComponent(callbackUrl)}&duration=permanent&scope=${scope.join('%20')}`;
+    },
+
+    handleRedditCallback: async (code) => {
+        const { clientId, clientSecret, callbackUrl } = socialConfig.reddit;
+
+        // 1. Exchange code for access token
+        // Reddit requires Basic Auth
+        const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+        const params = new URLSearchParams();
+        params.append('grant_type', 'authorization_code');
+        params.append('code', code);
+        params.append('redirect_uri', callbackUrl);
+
+        const tokenResponse = await axios.post('https://www.reddit.com/api/v1/access_token', params, {
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        });
+
+        const accessToken = tokenResponse.data.access_token;
+        const refreshToken = tokenResponse.data.refresh_token;
+
+        // 2. Get User Identity
+        const meResponse = await axios.get('https://oauth.reddit.com/api/v1/me', {
+            headers: {
+                'Authorization': `bearer ${accessToken}`
+            }
+        });
+
+        const userData = {
+            id: meResponse.data.id,
+            name: meResponse.data.name, // Username
+            // icon_img usually available
+            picture: meResponse.data.icon_img ? meResponse.data.icon_img.split('?')[0] : null,
+            platform: 'reddit',
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            expiryDate: Date.now() + (tokenResponse.data.expires_in * 1000)
+        };
+
+        saveToken('reddit', userData);
+        return userData;
+    }
+};
+
+module.exports = authService;

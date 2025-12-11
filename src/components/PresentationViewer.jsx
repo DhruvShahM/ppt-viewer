@@ -26,7 +26,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const [showTrademark, setShowTrademark] = useState(() => !!localStorage.getItem(`trademark_${deckId}`));
     const [trademarkPosition, setTrademarkPosition] = useState(() => localStorage.getItem(`trademark_pos_${deckId}`) || 'top-right');
     const [showTrademarkModal, setShowTrademarkModal] = useState(false);
-    const [showSocialExport, setShowSocialExport] = useState(false);
+    const [showSocialExport, setShowSocialExport] = useState(false); // false | 'studio' | 'accounts'
     const [isExportRecording, setIsExportRecording] = useState(isHeadless);
 
     useEffect(() => {
@@ -496,7 +496,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                             <div className="relative group self-center mr-4">
                                 <select
                                     onChange={(e) => onVideoSelect && onVideoSelect(e.target.value)}
-                                    className="appearance-none bg-black/50 text-white pl-3 pr-8 py-2 rounded-full border border-white/20 hover:bg-white/10 focus:outline-none cursor-pointer text-sm"
+                                    className="appearance-none bg-black/50 text-white pl-3 pr-8 py-2 rounded-full border border-white/20 hover:bg-white/10 focus:outline-none cursor-pointer text-sm w-40 truncate"
                                     defaultValue=""
                                 >
                                     <option value="" disabled>Select Background</option>
@@ -517,6 +517,15 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                             title="Toggle Background Video"
                         >
                             <Video size={24} />
+                        </button>
+
+                        {/* New Connect Button for Social Studio */}
+                        <button
+                            onClick={() => setShowSocialExport('accounts')}
+                            className="p-2 px-4 rounded-full bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-400 text-sm font-medium transition-all backdrop-blur-sm mr-4 flex items-center gap-2"
+                            title="Connect & Export"
+                        >
+                            <span>Connect</span>
                         </button>
                         <button
                             onClick={() => setIsPresenting(true)}
@@ -543,7 +552,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                         <SocialHub deckId={deckId} slideIndex={currentSlide + 1} />
 
                         <button
-                            onClick={() => setShowSocialExport(true)}
+                            onClick={() => setShowSocialExport('studio')}
                             className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm mr-4"
                             title="Open Social Export Studio"
                         >
@@ -679,6 +688,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                 <SocialExportStudio
                     slideIndex={currentSlide + 1}
                     currentSlideNode={slides[currentSlide]}
+                    initialMode={showSocialExport === 'accounts' ? 'accounts' : 'studio'}
                     onClose={() => setShowSocialExport(false)}
                     onRecordingStart={() => setIsExportRecording(true)}
                     onRecordingEnd={() => setIsExportRecording(false)}

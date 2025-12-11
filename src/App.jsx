@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import DeckSelector from './components/DeckSelector';
 import PresentationViewer from './components/PresentationViewer';
+import SocialConnectionPage from './components/SocialConnectionPage';
+import { Share2 } from 'lucide-react';
 
 import { getDeck } from './data/decks';
 import { Loader2 } from 'lucide-react';
@@ -15,6 +17,23 @@ function App() {
     const [isLoading, setIsLoading] = useState(() => !!localStorage.getItem('lastDeckId') || !!new URLSearchParams(window.location.search).get('deckId'));
     const isHeadless = new URLSearchParams(window.location.search).get('mode') === 'export';
     const initialSlideIndex = parseInt(new URLSearchParams(window.location.search).get('slide') || '0');
+    const [view, setView] = useState(() => {
+        if (window.location.pathname === '/social') return 'social';
+        return 'main';
+    });
+
+    useEffect(() => {
+        const handlePopState = () => {
+            if (window.location.pathname === '/social') {
+                setView('social');
+            } else {
+                setView('main');
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, []);
 
     useEffect(() => {
         const loadDeck = async () => {
@@ -124,7 +143,9 @@ function App() {
                 <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[120px]" />
             </div>
 
-            {currentDeckId && currentSlides ? (
+            {view === 'social' ? (
+                <SocialConnectionPage onBack={() => setView('main')} />
+            ) : currentDeckId && currentSlides ? (
                 <PresentationViewer
                     slides={currentSlides}
                     deckId={currentDeckId}
@@ -144,6 +165,15 @@ function App() {
                 />
             ) : (
                 <DeckSelector onSelectDeck={handleDeckSelect} />
+            )}
+
+            {view !== 'social' && !currentDeckId && (
+                <button
+                    onClick={() => setView('social')}
+                    className="absolute top-4 right-4 z-50 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:shadow-lg hover:scale-105 transition font-medium text-sm"
+                >
+                    <Share2 size={16} /> Social Ecosystem
+                </button>
             )}
         </div>
     );

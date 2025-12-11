@@ -10,9 +10,14 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+
   server: {
     proxy: {
       '/api': 'http://localhost:3001',
+      '/graphql': 'http://localhost:3001',
     },
   },
-})
+  optimizeDeps: {
+    include: ['@apollo/client', 'graphql'],
+  },
+})  

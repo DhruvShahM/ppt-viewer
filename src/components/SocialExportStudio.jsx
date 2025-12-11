@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Video, StopCircle, Download, Square, Smartphone, Monitor, Loader2, Check, X, Share2, Youtube, Send } from 'lucide-react';
+import { Video, StopCircle, Download, Square, Smartphone, Monitor, Loader2, Check, X, Share2, Youtube, Send, Link, AlertTriangle, Plus, Trash2, User, Lock, Facebook } from 'lucide-react';
 
-const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecordingStart, onRecordingEnd }) => {
+const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecordingStart, onRecordingEnd, initialMode }) => {
     const [aspectRatio, setAspectRatio] = useState('1:1'); // 1:1, 9:16, 16:9
     const [isRecording, setIsRecording] = useState(false);
     const [isAutoRecording, setIsAutoRecording] = useState(false);
@@ -11,6 +11,22 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
     const mediaRecorderRef = useRef(null);
     const chunksRef = useRef([]);
     const containerRef = useRef(null);
+
+    // Mock Connected Accounts State: Array of { id, platform, name, type }
+    const [accounts, setAccounts] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem('social_connected_accounts_v2')) || [];
+        } catch (e) {
+            return [];
+        }
+    });
+    const [showConnectForm, setShowConnectForm] = useState(false);
+    const [connectingPlatform, setConnectingPlatform] = useState(null);
+
+    // Persist mock connections
+    useEffect(() => {
+        localStorage.setItem('social_connected_accounts_v2', JSON.stringify(accounts));
+    }, [accounts]);
 
     // Timer for manual recording
     useEffect(() => {
@@ -283,13 +299,22 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
     const [isRendering, setIsRendering] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
+    // ... existing code ...
+
     // If auto-recording, hide the entire studio UI so we capture the slide beneath
     if (isAutoRecording) {
         return <div className="hidden" />;
     }
 
+
+
+    const [connectionStep, setConnectionStep] = useState('select'); // 'select', 'details'
+    const [connectionDetails, setConnectionDetails] = useState({ name: '', handle: '' });
+
     const handleCloudRender = async () => {
+        // ... existing code ...
         setIsRendering(true);
+        // ... (render logic remains same) ...
         try {
             const response = await fetch('http://localhost:3001/api/render-video', {
                 method: 'POST',
@@ -317,8 +342,141 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
         }
     };
 
+    const handleInitiateConnection = (platform) => {
+        setConnectingPlatform(platform);
+        setConnectionStep('details');
+        setConnectionDetails({ name: '', handle: '' });
+    };
+
+    const handleSaveConnection = async () => {
+        if (!connectionDetails.name) return;
+
+        const platform = connectingPlatform;
+        setIsUploading(true); // Reuse loading state for "connecting"
+
+        // Simulation: In real life, open OAuth popup here
+        try {
+            // Mock delay to feel real
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Mock New Account with User Details
+            const newAccount = {
+                id: `acc_${Date.now()}`,
+                platform,
+                name: connectionDetails.name,
+                handle: connectionDetails.handle || `@${connectionDetails.name.toLowerCase().replace(/\s/g, '')}`,
+                type: 'personal',
+                avatarUrl: null // Could use a placeholder service
+            };
+
+            setAccounts(prev => [...prev, newAccount]);
+            setShowConnectForm(false);
+            setConnectionStep('select');
+
+            // Auto-select the new account
+            setSocialForm(prev => ({
+                ...prev,
+                selectedAccountIds: [...(prev?.selectedAccountIds || []), newAccount.id]
+            }));
+
+        } catch (e) {
+            alert("Connection failed");
+        } finally {
+            setConnectingPlatform(null);
+            setIsUploading(false);
+        }
+    };
+
+    const handleRealConnection = () => {
+        const platform = connectingPlatform;
+        if (!platform) return;
+
+        const width = 600;
+        const height = 700;
+        const left = (window.innerWidth - width) / 2;
+        const top = (window.innerHeight - height) / 2;
+
+        // Open Popup
+        window.open(`http://localhost:3001/api/auth/${platform}`, `Connect ${platform}`, `width=${width},height=${height},top=${top},left=${left}`);
+
+        // Listen for success message from popup
+        const handleMessage = (event) => {
+            if (event.data.type === 'SOCIAL_AUTH_SUCCESS' && event.data.platform === platform) {
+                const user = event.data.user;
+
+                // Add to accounts list
+                const newAccount = {
+                    id: `real_${user.id || Date.now()}`,
+                    platform: user.platform,
+                    name: user.name,
+                    handle: user.email || user.name,
+                    type: 'personal',
+                    avatarUrl: user.picture,
+                    isReal: true, // Marker for real accounts
+                    accessToken: user.accessToken
+                };
+
+                setAccounts(prev => {
+                    // Avoid duplicates
+                    if (prev.find(a => a.id === newAccount.id)) return prev;
+                    return [...prev, newAccount];
+                });
+
+                setShowConnectForm(false);
+                setConnectionStep('select');
+
+                // Auto-select
+                setSocialForm(prev => ({
+                    ...prev,
+                    selectedAccountIds: [...(prev?.selectedAccountIds || []), newAccount.id]
+                }));
+
+                window.removeEventListener('message', handleMessage);
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+    };
+
+    // Kept for backward compatibility if called directly
+    const handleAddAccount = handleInitiateConnection;
+
+    const handleDisconnect = (id) => {
+        if (confirm('Disconnect this account?')) {
+            setAccounts(prev => prev.filter(a => a.id !== id));
+            setSocialForm(prev => ({
+                ...prev,
+                selectedAccountIds: prev.selectedAccountIds ? prev.selectedAccountIds.filter(aid => aid !== id) : []
+            }));
+        }
+    };
+
+    const toggleAccountSelection = (id) => {
+        setSocialForm(prev => {
+            const current = prev.selectedAccountIds || [];
+            return {
+                ...prev,
+                selectedAccountIds: current.includes(id)
+                    ? current.filter(x => x !== id)
+                    : [...current, id]
+            };
+        });
+    };
+
     const handleDirectPost = async () => {
         if (!socialForm?.caption) return;
+
+        // Final check
+        if (!socialForm?.selectedAccountIds || socialForm.selectedAccountIds.length === 0) {
+            alert(`Please select at least one account!`);
+            return;
+        }
+
+        // Map account IDs to platforms for the backend mock
+        // In a real app, we'd send the account IDs directly
+        const selectedAccounts = accounts.filter(a => socialForm.selectedAccountIds.includes(a.id));
+        const platformsPayload = selectedAccounts.map(a => a.platform);
+
         setIsUploading(true);
 
         try {
@@ -350,7 +508,7 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                     deckId: new URLSearchParams(window.location.search).get('deckId') || localStorage.getItem('lastDeckId'),
                     slideIndex: slideIndex,
                     caption: socialForm.caption,
-                    platforms: socialForm.platforms,
+                    platforms: platformsPayload, // sending array of platforms (duplicates allowed in mock)
                     scheduledTime: new Date().toISOString(),
                     mediaType: 'video',
                     // Pass the server-side reference
@@ -367,6 +525,179 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
             setIsUploading(false);
         }
     };
+
+    // --- NEW: Standalone Account Management Mode ---
+    if (initialMode === 'accounts') {
+        return (
+            <div className="fixed inset-0 z-[120] bg-black/90 flex flex-col items-center justify-center p-8 backdrop-blur-md">
+                <div className="w-full max-w-lg bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-2xl relative animate-in zoom-in-95">
+                    <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white"><X size={20} /></button>
+
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 bg-blue-600/20 text-blue-500 rounded-full flex items-center justify-center">
+                            <Link size={20} />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-white">Connected Accounts</h2>
+                            <p className="text-sm text-slate-400">Manage your social media connections</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-950/50 rounded-xl p-4 border border-white/5 min-h-[300px] flex flex-col">
+
+                        {/* Connection Form Toggle */}
+                        {!showConnectForm && (
+                            <button
+                                onClick={() => setShowConnectForm(true)}
+                                className="w-full py-3 mb-4 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white hover:bg-slate-800/50 transition-all flex items-center justify-center gap-2 text-sm"
+                            >
+                                <Plus size={16} /> Connect New Account
+                            </button>
+                        )}
+
+                        {/* Connection Form */}
+                        {showConnectForm ? (
+                            <div className="bg-slate-800 rounded-xl p-4 border border-blue-500/30 animate-in slide-in-from-top-2 mb-4">
+                                <div className="flex justify-between items-center mb-3">
+                                    <h4 className="text-sm font-bold text-white">
+                                        {connectionStep === 'details' ? `Connect to ${connectingPlatform}` : 'Select Platform'}
+                                    </h4>
+                                    <button onClick={() => { setShowConnectForm(false); setConnectionStep('select'); }} className="text-slate-400 hover:text-white"><X size={14} /></button>
+                                </div>
+
+                                {connectionStep === 'select' ? (
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {['instagram', 'facebook', 'youtube', 'reddit'].map(p => (
+                                            <button
+                                                key={p}
+                                                onClick={() => handleInitiateConnection(p)}
+                                                className="flex flex-col items-center gap-2 p-3 bg-slate-900 hover:bg-slate-700 border border-slate-700 rounded-lg transition-all"
+                                            >
+                                                {p === 'instagram' && <Share2 size={20} className="text-pink-500" />}
+                                                {p === 'facebook' && <Facebook size={20} className="text-blue-600" />}
+                                                {p === 'youtube' && <Youtube size={20} className="text-red-500" />}
+                                                {p === 'reddit' && <Share2 size={20} className="text-orange-500" />}
+                                                <span className="text-[10px] capitalize text-slate-300">{p}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">Account Name / Channel Name</label>
+                                            <input
+                                                autoFocus
+                                                type="text"
+                                                value={connectionDetails.name}
+                                                onChange={e => setConnectionDetails(p => ({ ...p, name: e.target.value }))}
+                                                placeholder="e.g. Dhruv Shah"
+                                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">Handle (Optional)</label>
+                                            <input
+                                                type="text"
+                                                value={connectionDetails.handle}
+                                                onChange={e => setConnectionDetails(p => ({ ...p, handle: e.target.value }))}
+                                                placeholder="@dhruvshah"
+                                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2 mt-2">
+                                            <button
+                                                onClick={() => setConnectionStep('select')}
+                                                className="flex-1 py-2 text-xs text-slate-400 hover:text-white"
+                                            >
+                                                Back
+                                            </button>
+                                            <button
+                                                onClick={handleSaveConnection}
+                                                disabled={!connectionDetails.name || isUploading}
+                                                className="flex-[2] py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold flex items-center justify-center gap-2"
+                                            >
+                                                {isUploading ? <Loader2 size={12} className="animate-spin" /> : 'Connect Account'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                {connectionStep === 'details' && (
+                                    <>
+                                        <p className="text-[10px] text-slate-500 italic text-center mt-1">
+                                            * Simulation Mode (No real API keys needed)
+                                        </p>
+
+                                        <div className="relative flex py-1 items-center">
+                                            <div className="flex-grow border-t border-slate-700"></div>
+                                            <span className="flex-shrink-0 mx-2 text-[10px] text-slate-500 uppercase">Or Real Auth</span>
+                                            <div className="flex-grow border-t border-slate-700"></div>
+                                        </div>
+
+                                        <button
+                                            onClick={handleRealConnection}
+                                            className="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white rounded text-xs font-bold flex items-center justify-center gap-2 group"
+                                            title="Requires API Keys in server/config/social.js"
+                                        >
+                                            <Lock size={12} className="text-yellow-500 group-hover:text-white transition-colors" />
+                                            Connect via {connectingPlatform} (OAuth)
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        ) : (
+                            /* Account List */
+                            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                                {accounts.length === 0 ? (
+                                    <div className="text-center py-10 opacity-50">
+                                        <p className="text-sm">No accounts connected yet.</p>
+                                    </div>
+                                ) : (
+                                    accounts.map(acc => (
+                                        <div
+                                            key={acc.id}
+                                            className="flex items-center justify-between p-3 rounded-lg bg-slate-800 border border-slate-700 hover:border-slate-600 transition-all"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-300">
+                                                    <User size={14} />
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-medium text-white flex items-center gap-2">
+                                                        {acc.name}
+                                                        <span className="text-[9px] uppercase bg-black/30 px-1.5 py-0.5 rounded text-slate-400">{acc.platform}</span>
+                                                    </div>
+                                                    <div className="text-[10px] text-green-500 flex items-center gap-1">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div> Connected
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                onClick={() => handleDisconnect(acc.id)}
+                                                className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                title="Disconnect"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-6 flex justify-end">
+                        <button
+                            onClick={onClose}
+                            className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-lg transition-colors"
+                        >
+                            Done
+                        </button>
+                    </div>
+                </div>
+            </div >
+        );
+    }
 
     if (renderResult) {
         return (
@@ -404,8 +735,8 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                             <h3 className="text-lg font-bold text-white mb-2">Post to Social</h3>
                             <p className="text-sm text-slate-400 mb-4">Directly schedule/post without downloading.</p>
                             <button
-                                onClick={() => setSocialForm({ caption: '', platforms: ['linkedin'] })}
-                                className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium"
+                                onClick={() => setSocialForm({ caption: '', selectedAccountIds: [] })}
+                                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium"
                             >
                                 Compose Post
                             </button>
@@ -415,21 +746,131 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                     {socialForm && (
                         <div className="mt-6 border-t border-white/10 pt-6 animate-in slide-in-from-bottom-4">
                             <h3 className="font-bold text-white mb-4">Compose Update</h3>
-                            <div className="flex gap-4 mb-4">
-                                {['linkedin', 'twitter', 'instagram', 'youtube'].map(p => (
-                                    <button
-                                        key={p}
-                                        onClick={() => setSocialForm(prev => ({
-                                            ...prev,
-                                            platforms: prev.platforms.includes(p)
-                                                ? prev.platforms.filter(x => x !== p)
-                                                : [...prev.platforms, p]
-                                        }))}
-                                        className={`px-3 py-2 rounded border text-sm capitalize transition-all ${socialForm.platforms.includes(p) ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'border-slate-700 text-slate-400'}`}
-                                    >
-                                        {p}
-                                    </button>
-                                ))}
+                            {/* Account Management & Selection */}
+                            <div className="mb-4">
+                                <div className="flex justify-between items-end mb-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase">Publish To</label>
+                                    {!showConnectForm && (
+                                        <button
+                                            onClick={() => setShowConnectForm(true)}
+                                            className="text-[10px] flex items-center gap-1 text-blue-400 hover:text-blue-300"
+                                        >
+                                            <Plus size={12} /> Connect New
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Connection Form (Separate View) */}
+                                {showConnectForm ? (
+                                    <div className="bg-slate-800 rounded-xl p-4 border border-blue-500/30 animate-in zoom-in-95">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <h4 className="text-sm font-bold text-white">
+                                                {connectionStep === 'details' ? `Connect to ${connectingPlatform}` : 'Connect New Account'}
+                                            </h4>
+                                            <button onClick={() => { setShowConnectForm(false); setConnectionStep('select'); }} className="text-slate-400 hover:text-white"><X size={14} /></button>
+                                        </div>
+
+                                        {connectionStep === 'select' ? (
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {['instagram', 'facebook', 'youtube', 'reddit'].map(p => (
+                                                    <button
+                                                        key={p}
+                                                        onClick={() => handleInitiateConnection(p)}
+                                                        className="flex flex-col items-center gap-2 p-3 bg-slate-900 hover:bg-slate-700 border border-slate-700 rounded-lg transition-all"
+                                                    >
+                                                        {p === 'instagram' && <Share2 size={20} className="text-pink-500" />}
+                                                        {p === 'facebook' && <Facebook size={20} className="text-blue-600" />}
+                                                        {p === 'youtube' && <Youtube size={20} className="text-red-500" />}
+                                                        {p === 'reddit' && <Share2 size={20} className="text-orange-500" />}
+                                                        <span className="text-[10px] capitalize text-slate-300">{p}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">Account Name / Channel Name</label>
+                                                    <input
+                                                        autoFocus
+                                                        type="text"
+                                                        value={connectionDetails.name}
+                                                        onChange={e => setConnectionDetails(p => ({ ...p, name: e.target.value }))}
+                                                        placeholder="e.g. Dhruv Shah"
+                                                        className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">Handle (Optional)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={connectionDetails.handle}
+                                                        onChange={e => setConnectionDetails(p => ({ ...p, handle: e.target.value }))}
+                                                        placeholder="@dhruvshah"
+                                                        className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                                                    />
+                                                </div>
+                                                <div className="flex gap-2 mt-2">
+                                                    <button
+                                                        onClick={() => setConnectionStep('select')}
+                                                        className="flex-1 py-2 text-xs text-slate-400 hover:text-white"
+                                                    >
+                                                        Back
+                                                    </button>
+                                                    <button
+                                                        onClick={handleSaveConnection}
+                                                        disabled={!connectionDetails.name || isUploading}
+                                                        className="flex-[2] py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold flex items-center justify-center gap-2"
+                                                    >
+                                                        {isUploading ? <Loader2 size={12} className="animate-spin" /> : 'Connect Account'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    /* Account List */
+                                    <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar p-1">
+                                        {accounts.length === 0 && (
+                                            <div onClick={() => setShowConnectForm(true)} className="text-center p-4 border-2 border-dashed border-slate-700 rounded-lg text-slate-500 text-xs cursor-pointer hover:border-slate-500 hover:text-slate-400">
+                                                No accounts connected.<br />Click to add one.
+                                            </div>
+                                        )}
+
+                                        {accounts.map(acc => {
+                                            const isSelected = socialForm.selectedAccountIds?.includes(acc.id);
+                                            return (
+                                                <div
+                                                    key={acc.id}
+                                                    className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-all ${isSelected ? 'bg-blue-600/10 border-blue-500/50' : 'bg-slate-800 border-slate-700 hover:border-slate-600'}`}
+                                                    onClick={() => toggleAccountSelection(acc.id)}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-300">
+                                                            <User size={14} />
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-sm font-medium text-white flex items-center gap-2">
+                                                                {acc.name}
+                                                                <span className="text-[9px] uppercase bg-black/30 px-1.5 py-0.5 rounded text-slate-400">{acc.platform}</span>
+                                                            </div>
+                                                            <div className="text-[10px] text-slate-500">Connected</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2">
+                                                        {isSelected && <Check size={16} className="text-blue-500" />}
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleDisconnect(acc.id); }}
+                                                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                             <textarea
                                 value={socialForm.caption}
@@ -440,6 +881,7 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                             />
                             <button
                                 onClick={handleDirectPost}
+                                disabled={isUploading || !socialForm.selectedAccountIds?.length}
                                 className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-lg shadow-lg hover:shadow-blue-500/25 transition-all"
                             >
                                 🚀 Schedule Post
@@ -594,7 +1036,7 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                                         </button>
 
                                         <button
-                                            onClick={() => setSocialForm({ caption: '', platforms: ['linkedin'] })}
+                                            onClick={() => setSocialForm({ caption: '', selectedAccountIds: [] })}
                                             className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-lg flex items-center justify-center gap-2 transition-all"
                                         >
                                             <Share2 size={18} /> Post to Social
@@ -614,21 +1056,21 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                                             <button onClick={() => setSocialForm(null)} className="text-xs text-slate-400 hover:text-white">Cancel</button>
                                         </div>
 
-                                        <div className="flex flex-wrap gap-2 mb-3">
-                                            {['linkedin', 'twitter', 'instagram', 'youtube'].map(p => (
-                                                <button
-                                                    key={p}
-                                                    onClick={() => setSocialForm(prev => ({
-                                                        ...prev,
-                                                        platforms: prev.platforms.includes(p)
-                                                            ? prev.platforms.filter(x => x !== p)
-                                                            : [...prev.platforms, p]
-                                                    }))}
-                                                    className={`px-2 py-1 rounded border text-[10px] uppercase transition-all ${socialForm.platforms.includes(p) ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'border-slate-700 text-slate-400'}`}
-                                                >
-                                                    {p}
-                                                </button>
-                                            ))}
+                                        <div className="mb-3">
+                                            {/* Simplified version for Preview View - just show list */}
+                                            <div className="flex gap-2 mb-2 overflow-x-auto pb-1">
+                                                {accounts.map(acc => (
+                                                    <button
+                                                        key={acc.id}
+                                                        onClick={() => toggleAccountSelection(acc.id)}
+                                                        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg border text-xs whitespace-nowrap transition-all ${socialForm.selectedAccountIds?.includes(acc.id) ? 'bg-blue-600/20 border-blue-500 text-white' : 'border-slate-700 text-slate-400'}`}
+                                                    >
+                                                        <User size={10} />
+                                                        {acc.name}
+                                                    </button>
+                                                ))}
+                                                {accounts.length === 0 && <span className="text-xs text-slate-500">No accounts connected.</span>}
+                                            </div>
                                         </div>
 
                                         <textarea
@@ -641,7 +1083,7 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
 
                                         <button
                                             onClick={handleDirectPost}
-                                            disabled={isUploading}
+                                            disabled={isUploading || !socialForm.selectedAccountIds?.length}
                                             className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-lg shadow-lg flex items-center justify-center gap-2"
                                         >
                                             {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}

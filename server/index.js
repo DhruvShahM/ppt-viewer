@@ -11,6 +11,11 @@ const globalErrorHandler = require('./controllers/errorController');
 const metadataManager = require('./utils/metadata');
 const scheduler = require('./services/scheduler');
 const videoRenderer = require('./services/video-renderer');
+const authService = require('./services/auth-service');
+const { ApolloServer } = require('@apollo/server');
+const { expressMiddleware } = require('@apollo/server/express4');
+const typeDefs = require('./graphql/typeDefs');
+const resolvers = require('./graphql/resolvers');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -226,6 +231,68 @@ app.post('/api/feedback', upload.fields([{ name: 'screenshots', maxCount: 10 }, 
 }));
 
 // --- Social Scheduling APIs ---
+
+// --- Real Authentication Routes ---
+
+app.get('/api/auth/:platform', (req, res) => {
+    const { platform } = req.params;
+    const { simulated } = req.query;
+
+    if (simulated === 'true') {
+        const mockCode = 'mock_auth_code_' + Date.now();
+        return res.redirect(`/api/auth/${platform}/callback?code=${mockCode}&simulated=true`);
+    }
+
+    let url;
+
+    try {
+        if (platform === 'linkedin') url = authService.getLinkedinAuthUrl();
+        else if (platform === 'youtube' || platform === 'google') url = authService.getGoogleAuthUrl();
+        else if (platform === 'facebook' || platform === 'instagram') url = authService.getFacebookAuthUrl(); // Instagram Business via Facebook
+        else if (platform === 'reddit') url = authService.getRedditAuthUrl();
+        // else if (platform === 'twitter') url = authService.getTwitterAuthUrl();
+        else return res.status(400).send('Platform not supported for real auth');
+
+        res.redirect(url);
+    } catch (e) {
+        console.error("Auth URL generation failed:", e);
+        res.status(500).send("Failed to generate auth URL. Check server logs/keys.");
+    }
+});
+
+app.get('/api/auth/:platform/callback', async (req, res) => {
+    const { platform } = req.params;
+    const { code, simulated } = req.query;
+
+    try {
+        let userData;
+        if (simulated === 'true') {
+            userData = authService.handleSimulatedCallback(platform);
+        } else {
+            if (platform === 'linkedin') userData = await authService.handleLinkedinCallback(code);
+            else if (platform === 'youtube' || platform === 'google') userData = await authService.handleGoogleCallback(code);
+            else if (platform === 'facebook' || platform === 'instagram') userData = await authService.handleFacebookCallback(code);
+            else if (platform === 'reddit') userData = await authService.handleRedditCallback(code);
+        }
+
+        // Return a script that sends the data back to the main window and closes the popup
+        res.send(`
+            <html>
+                <body>
+                    <h1>Connected!</h1>
+                    <p>You have successfully connected ${platform}. Closing...</p>
+                    <script>
+                        window.opener.postMessage({ type: 'SOCIAL_AUTH_SUCCESS', platform: '${platform}', user: ${JSON.stringify(userData)} }, '*');
+                        window.close();
+                    </script>
+                </body>
+            </html>
+        `);
+    } catch (e) {
+        console.error("Auth Callback failed:", e);
+        res.status(500).send(`Authentication failed: ${e.message}`);
+    }
+});
 
 app.post('/api/upload-media', upload.single('file'), (req, res) => {
     if (!req.file) {
@@ -537,6 +604,60 @@ app.post('/api/restore', catchAsync(async (req, res, next) => {
 
 
 
+
+
+// --- Config Management ---
+app.get('/api/config/keys', (req, res) => {
+    // Return the keys that are relevant
+    const keys = {
+        GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? '••••••••' : '',
+        LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID || '',
+        LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET ? '••••••••' : '',
+        FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID || '',
+        FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET ? '••••••••' : '',
+        REDDIT_CLIENT_ID: process.env.REDDIT_CLIENT_ID || '',
+        REDDIT_CLIENT_SECRET: process.env.REDDIT_CLIENT_SECRET ? '••••••••' : '',
+    };
+    res.json(keys);
+});
+
+app.post('/api/config/keys', catchAsync(async (req, res, next) => {
+    const newKeys = req.body; // { GOOGLE_CLIENT_ID: '...', ... }
+
+    // 1. Update process.env for immediate effect
+    Object.keys(newKeys).forEach(key => {
+        if (newKeys[key]) {
+            process.env[key] = newKeys[key];
+        }
+    });
+
+    // 2. Persist to .env file
+    const envPath = path.join(__dirname, '..', '.env');
+    let envContent = '';
+
+    if (fs.existsSync(envPath)) {
+        envContent = fs.readFileSync(envPath, 'utf8');
+    }
+
+    Object.keys(newKeys).forEach(key => {
+        const value = newKeys[key];
+        // If not empty, update
+        if (value) {
+            const regex = new RegExp(`^${key}=.*$`, 'm');
+            if (regex.test(envContent)) {
+                envContent = envContent.replace(regex, `${key}=${value}`);
+            } else {
+                envContent += `\n${key}=${value}`;
+            }
+        }
+    });
+
+    fs.writeFileSync(envPath, envContent.trim() + '\n');
+
+    console.log('Updated .env file and process.env');
+    res.json({ success: true });
+}));
 
 
 // Configure multer for code uploads
@@ -1062,14 +1183,32 @@ app.post('/api/open-file', catchAsync(async (req, res, next) => {
 }));
 
 
-app.all('*', (req, res, next) => {
-    next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
-});
 
-app.use(globalErrorHandler);
+// Apollo Server Setup
+const startServer = async () => {
+    const apolloServer = new ApolloServer({
+        typeDefs,
+        resolvers,
+    });
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
+    await apolloServer.start();
+
+    // GraphQL Endpoint
+    app.use('/graphql', cors(), express.json(), expressMiddleware(apolloServer));
+
+    // Handle 404 for non-graphql routes
+    app.all('*', (req, res, next) => {
+        next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+    });
+
+    app.use(globalErrorHandler);
+
+    app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+        console.log(`GraphQL ready at http://localhost:${PORT}/graphql`);
+    });
+};
+
+startServer();
 
 

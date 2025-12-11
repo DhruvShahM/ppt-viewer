@@ -20,5 +20,27 @@
         "status": "success"
       }
     ]
+  },
+  {
+    "id": "post_1765456555027_169",
+    "createdAt": "2025-12-11T12:35:55.027Z",
+    "status": "published",
+    "deckId": "rate-limiting",
+    "slideIndex": 4,
+    "caption": "Demo",
+    "platforms": [
+      "youtube"
+    ],
+    "scheduledTime": "2025-12-11T12:35:55.018Z",
+    "mediaType": "video",
+    "mediaPath": "/api/renders/render-rate-limiting-3-1765456506105.mp4",
+    "isCloudRender": true,
+    "publishedAt": "2025-12-11T12:35:56.539Z",
+    "results": [
+      {
+        "platform": "youtube",
+        "status": "success"
+      }
+    ]
   }
 ]
