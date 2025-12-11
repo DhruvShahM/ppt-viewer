@@ -78,7 +78,10 @@ const youtubeService = {
                 rawDuration: item.contentDetails.duration
             }));
         } catch (error) {
-            console.error('YouTube Fetch Videos Error:', error);
+            console.error('YouTube Fetch Videos Error:', error.message);
+            if (error.message && error.message.includes('invalid_client')) {
+                console.error('HINT: The Client ID/Secret in .env might be incorrect or different from the one used to authorize the token. Try disconnecting and reconnecting the account.');
+            }
             throw error;
         }
     },

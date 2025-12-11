@@ -8,7 +8,7 @@ import SocialHub from './SocialHub';
 import SocialExportStudio from './SocialExportStudio';
 
 
-const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient, fonts, currentFont, onFontSelect, isHeadless = false, initialSlideIndex = 0 }) => {
+const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient, fonts, currentFont, onFontSelect, isHeadless = false, initialSlideIndex = 0, onConnect }) => {
     const [currentSlide, setCurrentSlide] = useState(() => {
         if (isHeadless) return initialSlideIndex;
         const saved = localStorage.getItem(`lastSlide_${deckId}`);
@@ -521,7 +521,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
 
                         {/* New Connect Button for Social Studio */}
                         <button
-                            onClick={() => setShowSocialExport('accounts')}
+                            onClick={onConnect}
                             className="p-2 px-4 rounded-full bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-400 text-sm font-medium transition-all backdrop-blur-sm mr-4 flex items-center gap-2"
                             title="Connect & Export"
                         >

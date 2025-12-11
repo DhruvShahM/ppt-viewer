@@ -162,6 +162,7 @@ function App() {
                     onFontSelect={setCurrentFont}
                     isHeadless={isHeadless}
                     initialSlideIndex={initialSlideIndex}
+                    onConnect={() => setView('social')}
                 />
             ) : (
                 <DeckSelector onSelectDeck={handleDeckSelect} />
