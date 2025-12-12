@@ -399,6 +399,118 @@ app.post('/api/render-video', catchAsync(async (req, res, next) => {
     }
 }));
 
+
+app.post('/api/social/youtube/playlist', catchAsync(async (req, res, next) => {
+    const { videoId, playlistName, platform = 'youtube' } = req.body;
+
+    if (!videoId || !playlistName) {
+        return next(new AppError('Missing videoId or playlistName', 400));
+    }
+
+    // Reuse the token logic from scheduler or social-data-service?
+    // We need a token for the user. Ideally, we should pass the accountId to be precise, 
+    // but for now, we'll mimic the scheduler's logic of "find an enabled token".
+    // Better: Frontend should probably send the accountId if possible, but let's stick to the plan: 
+    // "Uses youtubeUploader.addToPlaylist to add the video."
+
+    // We need to get the token.
+    const socialDataService = require('./services/social-data-service');
+    // Assuming single user scenario or defaults for now as per scheduler logic
+    const token = await socialDataService.getAccessToken(platform);
+
+    if (!token) {
+        return next(new AppError('No valid token found for YouTube', 401));
+    }
+
+    // Construct a token object that youtube-uploader expects
+    // youtube-uploader expects { accessToken, refreshToken, expiryDate, ... }
+    // social-data-service.getAccessToken RETURNED just the string or full object?
+    // Let's check social-data-service.getAccessToken. 
+    // ... checking file view ... server/services/youtube-service.js uses tokenData object.
+    // server/index.js line 251: const token = await socialDataService.getAccessToken(platform);
+    // If it returns just a string (AccessToken), youtube-uploader needs more if it wants to refresh.
+    // However, youtube-uploader.addToPlaylist takes (youtube, videoId, playlistName).
+    // youtube argument comes from getClient.
+    // Let's use youtubeUploader.addToPlaylist directly? No, it's an instance method.
+    // Wait, youtube-uploader.js exports `new YouTubeUploader()`.
+
+    // Check `scheduler.js`:
+    // const tokenManager = require('./token-manager');
+    // const allTokens = tokenManager.loadTokens();
+    // ... filter enabled tokens ...
+
+    // Let's do the same here to be safe and compatible.
+    const tokenManager = require('./services/token-manager');
+    const allTokens = tokenManager.loadTokens();
+    const tokens = Object.values(allTokens).filter(t => t.platform === platform && t.isEnabled !== false);
+
+    if (tokens.length === 0) {
+        return next(new AppError('No enabled YouTube accounts found', 404));
+    }
+
+    const youtubeUploader = require('./services/youtube-uploader');
+    const results = [];
+
+    // Add to playlist for ALL enabled accounts? Or just the one that we uploaded to?
+    // The frontend did a direct upload using a SPECIFIC token (from /api/auth/token/youtube).
+    // That endpoint (line 248) calls `socialDataService.getAccessToken` which returns...
+    // Let's check social-data-service.getAccessToken implementation briefly if I could... 
+    // but I can assume it returns the "primary" token. 
+    // If we have multiple accounts, this might be ambiguous.
+    // BUT the user context is "I'm trying to upload", implies single active context or valid default.
+    // We will try to add to all enabled, or just the first one. 
+    // SAFEST: Try all enabled, as we don't know which one the FE used exactly without accountId.
+    // (FE used `data?.getConnectedAccounts?.some` logic).
+
+    for (const tokenData of tokens) {
+        try {
+            const authClient = youtubeUploader.getAuthClient(tokenData);
+            const google = require('googleapis').google;
+            const youtube = google.youtube({ version: 'v3', auth: authClient });
+
+            await youtubeUploader.addToPlaylist(youtube, videoId, playlistName);
+            results.push({ account: tokenData.name, success: true });
+        } catch (e) {
+            console.error(`Failed to add to playlist for ${tokenData.name}:`, e);
+            results.push({ account: tokenData.name, success: false, error: e.message });
+        }
+    }
+
+    res.json({ success: true, results });
+}));
+
+app.get('/api/social/youtube/playlists', catchAsync(async (req, res, next) => {
+    // Platform defaults to youtube
+    const { platform = 'youtube' } = req.query;
+
+    const socialDataService = require('./services/social-data-service');
+    const token = await socialDataService.getAccessToken(platform);
+
+    if (!token) {
+        return next(new AppError('No valid token found for YouTube', 401));
+    }
+
+    // We need the full token object for youtube-service
+    const tokenManager = require('./services/token-manager');
+    const allTokens = tokenManager.loadTokens();
+    // Find the first enabled token for the platform, similar to how we do in getAccessToken logic usually
+    // But getAccessToken returns just the token string typically. 
+    // We need the object. 
+    const tokenData = Object.values(allTokens).find(t => t.platform === platform && t.isEnabled !== false);
+
+    if (!tokenData) {
+        return next(new AppError('No enabled YouTube accounts found', 404));
+    }
+
+    const youtubeService = require('./services/youtube-service');
+    try {
+        const playlists = await youtubeService.getPlaylists(tokenData);
+        res.json({ success: true, playlists });
+    } catch (error) {
+        return next(new AppError('Failed to fetch playlists: ' + error.message, 500));
+    }
+}));
+
 app.get('/api/renders/:filename', (req, res, next) => {
     const filename = req.params.filename;
     const filepath = path.join(RENDERS_DIR, filename);

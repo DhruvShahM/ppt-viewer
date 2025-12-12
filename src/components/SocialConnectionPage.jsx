@@ -17,7 +17,8 @@ import {
     Upload,
     Video,
     FileVideo,
-    Send
+    Send,
+    ChevronDown
 } from 'lucide-react';
 
 const GET_SOCIAL_DATA = gql`
@@ -143,6 +144,9 @@ const SocialConnectionPage = ({ onBack }) => {
     const [ageRestriction, setAgeRestriction] = React.useState(false);
     const [isToogleEnabled, setIsToogleEnabled] = React.useState(true); // New state for Toogle
 
+    const [availablePlaylists, setAvailablePlaylists] = React.useState([]);
+    const [isLoadingPlaylists, setIsLoadingPlaylists] = React.useState(false);
+
     const [postFile, setPostFile] = React.useState(null);
     const [uploading, setUploading] = React.useState(false);
     const [selectedPostAccounts, setSelectedPostAccounts] = React.useState([]);
@@ -151,6 +155,42 @@ const SocialConnectionPage = ({ onBack }) => {
 
     // Check if YouTube is connected to decide Button Visibility
     const youtubeConnected = data?.getConnectedAccounts?.some(a => a.platform === 'youtube' && a.isConnected);
+
+    useEffect(() => {
+        if (showPostModal) {
+            // Reset form
+            setTitle('');
+            setDescription('');
+            setTags('');
+            setCategoryName('Entertainment');
+            setPrivacyStatus('private');
+            setPlaylistName('');
+            setPublishAt('');
+            setMadeForKids(false);
+            setAgeRestriction(false);
+            setPostFile(null);
+            setIsToogleEnabled(true);
+            setAvailablePlaylists([]);
+
+            fetchPlaylists();
+        }
+    }, [showPostModal]);
+
+    const fetchPlaylists = async () => {
+        try {
+            setIsLoadingPlaylists(true);
+            // Default to 'youtube' for now as it's the only one with playlists we care about
+            const res = await fetch('http://localhost:3001/api/social/youtube/playlists?platform=youtube');
+            const data = await res.json();
+            if (data.success && data.playlists) {
+                setAvailablePlaylists(data.playlists);
+            }
+        } catch (e) {
+            console.error("Failed to fetch playlists", e);
+        } finally {
+            setIsLoadingPlaylists(false);
+        }
+    };
 
     const handleFileSelect = (e) => {
         if (e.target.files && e.target.files[0]) {
@@ -192,18 +232,36 @@ const SocialConnectionPage = ({ onBack }) => {
                     const accessToken = tokenData.token;
 
                     // 2. Initiate Resumable Upload
+                    const CATEGORY_MAP = {
+                        "Film & Animation": "1", "Autos & Vehicles": "2", "Music": "10", "Pets & Animals": "15",
+                        "Sports": "17", "Travel & Events": "19", "Gaming": "20", "People & Blogs": "22", "Comedy": "23",
+                        "Entertainment": "24", "News & Politics": "25", "Howto & Style": "26", "Education": "27",
+                        "Science & Technology": "28", "Nonprofits & Activism": "29"
+                    };
+
                     const metadata = {
                         snippet: {
                             title: title,
                             description: description,
                             tags: tags ? tags.split(',').map(t => t.trim()) : [],
-                            categoryId: "22", // Default
+                            categoryId: CATEGORY_MAP[categoryName] || "22",
                         },
                         status: {
                             privacyStatus: privacyStatus || 'private',
                             selfDeclaredMadeForKids: madeForKids
                         }
                     };
+
+                    // Handle Scheduling Logic for Direct Upload
+                    if (publishAt) {
+                        const publishDate = new Date(publishAt);
+                        const now = new Date();
+                        // Only add publishAt if it's in the future (buffer 5 mins)
+                        if (publishDate.getTime() - now.getTime() > 5 * 60 * 1000) {
+                            metadata.status.publishAt = publishDate.toISOString();
+                            metadata.status.privacyStatus = 'private'; // Required by YouTube API for scheduled videos
+                        }
+                    }
 
                     const initRes = await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status', {
                         method: 'POST',
@@ -235,6 +293,28 @@ const SocialConnectionPage = ({ onBack }) => {
                     const uploadResult = await uploadRes.json();
                     console.log("✅ Direct Upload Success:", uploadResult);
 
+                    // --- Post-Upload Actions ---
+
+                    // 1. Add to Playlist (if requested)
+                    if (playlistName) {
+                        try {
+                            console.log(`Adding to playlist: ${playlistName}...`);
+                            await fetch('http://localhost:3001/api/social/youtube/playlist', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    videoId: uploadResult.id,
+                                    playlistName: playlistName,
+                                    platform: 'youtube'
+                                })
+                            });
+                            console.log("✅ Added to playlist");
+                        } catch (plErr) {
+                            console.warn("⚠️ Failed to add to playlist:", plErr);
+                            // Don't fail the whole flow, just warn
+                        }
+                    }
+
                     // Mark as Direct Upload success
                     // We just need to notify server to log it? Or just let Feed sync pick it up?
                     // The 'schedule' endpoint expects a mediaPath. If we already uploaded, we don't need to schedule an upload.
@@ -252,7 +332,12 @@ const SocialConnectionPage = ({ onBack }) => {
                     // Given the request is specifically about YouTube, let's assume YouTube-only flow or we accept double-upload if mixed.
                     // Let's set a flag.
                     isDirectUpload = true;
-                    alert("✅ Video uploaded directly to YouTube!");
+
+                    let msg = "✅ Video uploaded directly to YouTube!";
+                    if (playlistName) msg += ` Added to playlist "${playlistName}".`;
+                    if (publishAt) msg += ` Scheduled for ${new Date(publishAt).toLocaleString()}.`;
+
+                    alert(msg);
 
                 } catch (directErr) {
                     console.warn("⚠️ Direct upload failed, falling back to server:", directErr);
@@ -924,13 +1009,43 @@ const SocialConnectionPage = ({ onBack }) => {
 
                                             {/* Playlist */}
                                             <div>
-                                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Playlist Name</label>
-                                                <input
-                                                    value={playlistName}
-                                                    onChange={(e) => setPlaylistName(e.target.value)}
-                                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm"
-                                                    placeholder="Enter playlist name"
-                                                />
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <label className="block text-xs font-bold text-slate-500 uppercase">Playlist</label>
+                                                    <button
+                                                        onClick={() => fetchPlaylists()}
+                                                        className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1"
+                                                    >
+                                                        <RefreshCw size={10} className={isLoadingPlaylists ? "animate-spin" : ""} /> Refresh
+                                                    </button>
+                                                </div>
+
+                                                <div className="relative">
+                                                    <select
+                                                        value={playlistName}
+                                                        onChange={(e) => setPlaylistName(e.target.value)}
+                                                        disabled={isLoadingPlaylists}
+                                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm appearance-none"
+                                                    >
+                                                        <option value="">Select a Playlist...</option>
+                                                        {availablePlaylists.map(p => (
+                                                            <option key={p.id} value={p.title}>{p.title} ({p.count})</option>
+                                                        ))}
+                                                        <option value="new_playlist_custom">+ Create New Playlist</option>
+                                                    </select>
+                                                    <div className="absolute right-3 top-3 pointer-events-none text-slate-500">
+                                                        <ChevronDown size={14} />
+                                                    </div>
+                                                </div>
+
+                                                {/* Fallback for New Playlist if selected or if generic input needed */}
+                                                {playlistName === 'new_playlist_custom' && (
+                                                    <input
+                                                        autoFocus
+                                                        onChange={(e) => setPlaylistName(e.target.value)}
+                                                        className="w-full mt-2 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm placeholder:italic"
+                                                        placeholder="Enter new playlist name..."
+                                                    />
+                                                )}
                                             </div>
                                         </div>
                                     </div>

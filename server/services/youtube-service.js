@@ -105,6 +105,26 @@ const youtubeService = {
         }
     },
 
+    getPlaylists: async (tokenData, maxResults = 50) => {
+        try {
+            const youtube = youtubeService.getClient(tokenData);
+            const res = await youtube.playlists.list({
+                part: 'snippet,contentDetails',
+                mine: true,
+                maxResults: maxResults
+            });
+            return res.data.items.map(item => ({
+                id: item.id,
+                title: item.snippet.title,
+                count: item.contentDetails.itemCount,
+                thumbnail: item.snippet.thumbnails.default ? item.snippet.thumbnails.default.url : ''
+            }));
+        } catch (error) {
+            console.error('YouTube Fetch Playlists Error:', error.message);
+            throw error;
+        }
+    },
+
     getComments: async (tokenData, videoId, maxResults = 50) => {
         try {
             const youtube = youtubeService.getClient(tokenData);
