@@ -201,6 +201,52 @@ const socialDataService = {
 
             return await youtubeService.addComment(tokenData, postId, text);
         }
+    },
+
+    getAccessToken: async (platform) => {
+        const tokens = loadTokens();
+        // Just grab the first enabled one for now, or we could pass accountId
+        const tokenData = Object.values(tokens).find(t => t.platform === platform && t.isEnabled !== false);
+
+        if (!tokenData) return null;
+
+        // Check expiry (give 5 min buffer)
+        const now = Date.now();
+        if (tokenData.expiryDate && (tokenData.expiryDate - now < 5 * 60 * 1000)) {
+            console.log(`[SocialDataService] Token for ${platform} is expiring soon. Triggering refresh...`);
+            if (platform === 'youtube') {
+                // Trigger refresh by making a dummy call or just using the client
+                // youtubeService.getClient sets credentials which triggers internal refresh if we call a method
+                // But wait, getClient returns a google.youtube object. 
+                // We need to force a refresh. 
+                // The best way is to use the OAuth2 client from the service and calling getAccessToken() on it?
+                // youtubeService.getClient returns the service interface, not the auth client directly unless we expose it.
+                // Let's rely on the fact that if we use it, it refreshes.
+                // Actually, we can just return the current one. If it's expired, the frontend request to Google will fail? 
+                // No, standard Google behaviour is the backend handles refresh.
+                // If we send an expired token to frontend, frontend fails.
+                // We need to REFRESH it here if expired.
+
+                // Reuse youtubeService logic? 
+                // let's just instantiate the client and refresh.
+                try {
+                    const client = youtubeService.getClient(tokenData);
+                    // To force refresh, we might need to call getAccessToken() on the auth client
+                    // But `client` is the youtube API object. `client.context._options.auth` is the oauth2 client.
+                    const authClient = client.context._options.auth;
+                    const res = await authClient.getAccessToken(); // This refreshes if needed!
+
+                    if (res.token) {
+                        return res.token;
+                    }
+                } catch (e) {
+                    console.error("Failed to refresh token:", e);
+                    return null;
+                }
+            }
+        }
+
+        return tokenData.accessToken;
     }
 };
 

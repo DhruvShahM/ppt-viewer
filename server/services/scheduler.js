@@ -130,8 +130,13 @@ class SocialScheduler {
                         }
 
                         await youtubeUploader.uploadVideo(token, absoluteMediaPath, {
-                            title: post.caption || 'New Video',
-                            description: post.content || post.caption || '',
+                            title: post.title || post.caption || 'New Video',
+                            description: post.description || post.content || post.caption || '',
+                            tags: post.tags ? post.tags.split(',').map(t => t.trim()) : [],
+                            privacyStatus: post.privacyStatus,
+                            categoryName: post.categoryName,
+                            playlistName: post.playlistName,
+                            madeForKids: post.madeForKids,
                             scheduledTime: post.scheduledTime
                         });
                         console.log(`[Scheduler] ✅ Published to YouTube (${token.name})`);

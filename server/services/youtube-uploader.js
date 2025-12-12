@@ -2,6 +2,7 @@ const fs = require('fs');
 const { google } = require('googleapis');
 const path = require('path');
 const socialConfig = require('../config/social');
+const tokenManager = require('./token-manager');
 
 // Adapted from video_uploading_v7.py
 const CATEGORY_MAP = {
@@ -29,6 +30,24 @@ class YouTubeUploader {
             scope: this.config.scope.join(' '),
             token_type: 'Bearer',
             expiry_date: tokenData.expiryDate
+        });
+
+        // Listen for token updates (refresh)
+        oauth2Client.on('tokens', (tokens) => {
+            console.log('[YouTubeUploader] 🔄 Tokens refreshed during upload!');
+
+            const updatedTokenData = {
+                ...tokenData,
+                accessToken: tokens.access_token,
+                expiryDate: tokens.expiry_date
+            };
+
+            if (tokens.refresh_token) {
+                updatedTokenData.refreshToken = tokens.refresh_token;
+            }
+
+            const platform = tokenData.platform || 'youtube';
+            tokenManager.savePlatformToken(platform, updatedTokenData);
         });
 
         return oauth2Client;
@@ -74,7 +93,7 @@ class YouTubeUploader {
                 },
                 status: {
                     privacyStatus: metadata.privacyStatus || 'private',
-                    selfDeclaredMadeForKids: false,
+                    selfDeclaredMadeForKids: metadata.madeForKids || false,
                     embeddable: true,
                     publicStatsViewable: true
                 }
@@ -106,6 +125,11 @@ class YouTubeUploader {
             });
 
             console.log(`[YouTube] Upload complete. Video ID: ${res.data.id}`);
+
+            if (metadata.playlistName) {
+                await this.addToPlaylist(youtube, res.data.id, metadata.playlistName);
+            }
+
             return res.data;
 
         } catch (error) {
@@ -114,6 +138,58 @@ class YouTubeUploader {
                 console.error('[YouTube] API Error Data:', error.response.data);
             }
             throw error;
+        }
+    }
+
+    async addToPlaylist(youtube, videoId, playlistName) {
+        try {
+            console.log(`[YouTube] Looking for playlist: ${playlistName}`);
+
+            // 1. Find playlist
+            const playlistsRes = await youtube.playlists.list({
+                part: 'snippet',
+                mine: true,
+                maxResults: 50
+            });
+
+            let playlistId = null;
+            if (playlistsRes.data.items) {
+                const match = playlistsRes.data.items.find(p => p.snippet.title.toLowerCase() === playlistName.toLowerCase());
+                if (match) playlistId = match.id;
+            }
+
+            // 2. Create if not exists
+            if (!playlistId) {
+                console.log(`[YouTube] Playlist '${playlistName}' not found. Creating...`);
+                // Default to private for new playlists to be safe
+                const newPlaylist = await youtube.playlists.insert({
+                    part: 'snippet,status',
+                    requestBody: {
+                        snippet: { title: playlistName },
+                        status: { privacyStatus: 'private' }
+                    }
+                });
+                playlistId = newPlaylist.data.id;
+            }
+
+            // 3. Add video
+            await youtube.playlistItems.insert({
+                part: 'snippet',
+                requestBody: {
+                    snippet: {
+                        playlistId: playlistId,
+                        resourceId: {
+                            kind: 'youtube#video',
+                            videoId: videoId
+                        }
+                    }
+                }
+            });
+            console.log(`[YouTube] Added video ${videoId} to playlist ${playlistName} (${playlistId})`);
+
+        } catch (error) {
+            console.error('[YouTube] Failed to add to playlist:', error.message);
+            // We do NOT throw here, because the video is already uploaded.
         }
     }
 }

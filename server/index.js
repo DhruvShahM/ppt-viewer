@@ -24,6 +24,9 @@ const PORT = process.env.PORT || 3001;
 
 
 
+// Load secrets from local files (if any)
+require('./utils/secrets-loader')();
+
 app.use(cors());
 app.use(express.json());
 
@@ -241,6 +244,19 @@ app.get('/api/social/accounts', (req, res) => {
         res.status(500).json({ error: err.message });
     });
 });
+
+app.get('/api/auth/token/:platform', catchAsync(async (req, res, next) => {
+    const { platform } = req.params;
+    const socialDataService = require('./services/social-data-service');
+    const token = await socialDataService.getAccessToken(platform);
+
+    if (token) {
+        res.json({ token, success: true });
+    } else {
+        // 401 indicates "Unauthorized" / "No Token" -> Frontend triggers fallback
+        res.status(401).json({ success: false, error: 'No valid token available' });
+    }
+}));
 
 
 // --- Real Authentication Routes ---

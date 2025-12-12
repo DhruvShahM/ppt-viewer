@@ -130,12 +130,27 @@ const SocialConnectionPage = ({ onBack }) => {
 
     // Direct Post Modal State
     const [showPostModal, setShowPostModal] = React.useState(false);
-    const [postCaption, setPostCaption] = React.useState('');
+
+    // Form Fields
+    const [title, setTitle] = React.useState('');
+    const [description, setDescription] = React.useState(''); // Replaces plain 'caption'
+    const [tags, setTags] = React.useState('');
+    const [categoryName, setCategoryName] = React.useState('Entertainment');
+    const [privacyStatus, setPrivacyStatus] = React.useState('private');
+    const [playlistName, setPlaylistName] = React.useState('');
+    const [publishAt, setPublishAt] = React.useState('');
+    const [madeForKids, setMadeForKids] = React.useState(false);
+    const [ageRestriction, setAgeRestriction] = React.useState(false);
+    const [isToogleEnabled, setIsToogleEnabled] = React.useState(true); // New state for Toogle
+
     const [postFile, setPostFile] = React.useState(null);
     const [uploading, setUploading] = React.useState(false);
     const [selectedPostAccounts, setSelectedPostAccounts] = React.useState([]);
 
     const fileInputRef = React.useRef(null);
+
+    // Check if YouTube is connected to decide Button Visibility
+    const youtubeConnected = data?.getConnectedAccounts?.some(a => a.platform === 'youtube' && a.isConnected);
 
     const handleFileSelect = (e) => {
         if (e.target.files && e.target.files[0]) {
@@ -144,50 +159,161 @@ const SocialConnectionPage = ({ onBack }) => {
     };
 
     const handleDirectUploadAndPost = async () => {
-        if (!postFile || !postCaption || selectedPostAccounts.length === 0) {
-            alert("Please select a file, add a caption, and choose at least one account.");
+        if (!postFile || !title || selectedPostAccounts.length === 0) {
+            alert("Please select a file, add a title, and choose at least one account.");
             return;
         }
 
         setUploading(true);
+        let uploadUrl = null;
+        let isDirectUpload = false;
+
+        // Determine target platforms
+        const accounts = data?.getConnectedAccounts || [];
+        const selectedAccs = accounts.filter(a => selectedPostAccounts.includes(a.id));
+        const platforms = [...new Set(selectedAccs.map(a => a.platform))];
+
+        // Check if YouTube is the ONLY platform (or we can handle mixed, but optimized for YouTube)
+        const isYouTubeTarget = platforms.includes('youtube');
+
         try {
-            // 1. Upload File
-            const formData = new FormData();
-            formData.append('file', postFile);
+            // STRATEGY 1: Try Direct YouTube Upload if YouTube is involved
+            if (isYouTubeTarget) {
+                try {
+                    console.log("Attempting Direct YouTube Upload...");
+                    // 1. Get Token
+                    const tokenRes = await fetch('http://localhost:3001/api/auth/token/youtube');
+                    const tokenData = await tokenRes.json();
 
-            const uploadRes = await fetch('http://localhost:3001/api/upload-media', {
-                method: 'POST',
-                body: formData
-            });
-            const uploadData = await uploadRes.json();
+                    if (!tokenRes.ok || !tokenData.success || !tokenData.token) {
+                        throw new Error("Assuming no valid token for direct upload. Falling back.");
+                    }
 
-            if (!uploadData.success) throw new Error("Upload failed");
+                    const accessToken = tokenData.token;
 
-            // 2. Schedule Post
-            // Get platforms from selected account IDs
-            const accounts = data?.getConnectedAccounts || [];
-            const selectedAccs = accounts.filter(a => selectedPostAccounts.includes(a.id));
-            const platforms = [...new Set(selectedAccs.map(a => a.platform))];
+                    // 2. Initiate Resumable Upload
+                    const metadata = {
+                        snippet: {
+                            title: title,
+                            description: description,
+                            tags: tags ? tags.split(',').map(t => t.trim()) : [],
+                            categoryId: "22", // Default
+                        },
+                        status: {
+                            privacyStatus: privacyStatus || 'private',
+                            selfDeclaredMadeForKids: madeForKids
+                        }
+                    };
 
-            await fetch('http://localhost:3001/api/social/schedule', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    caption: postCaption,
-                    platforms: platforms,
-                    scheduledTime: new Date().toISOString(),
-                    mediaType: 'video',
-                    mediaPath: uploadData.url,
-                    deckId: 'social-direct-upload', // Generic ID
-                    slideIndex: 0
-                })
-            });
+                    const initRes = await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                            'Content-Type': 'application/json',
+                            'X-Upload-Content-Length': postFile.size,
+                            'X-Upload-Content-Type': postFile.type
+                        },
+                        body: JSON.stringify(metadata)
+                    });
 
-            alert("✅ Post scheduled successfully!");
+                    if (!initRes.ok) throw new Error("Failed to initiate direct upload");
+
+                    const resumeUri = initRes.headers.get('Location');
+                    if (!resumeUri) throw new Error("No upload URI returned");
+
+                    // 3. Upload File
+                    const uploadRes = await fetch(resumeUri, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': postFile.type
+                        },
+                        body: postFile
+                    });
+
+                    if (!uploadRes.ok) throw new Error("Direct upload failed during data transfer");
+
+                    const uploadResult = await uploadRes.json();
+                    console.log("✅ Direct Upload Success:", uploadResult);
+
+                    // Mark as Direct Upload success
+                    // We just need to notify server to log it? Or just let Feed sync pick it up?
+                    // The 'schedule' endpoint expects a mediaPath. If we already uploaded, we don't need to schedule an upload.
+                    // But we might want to schedule posts for OTHER platforms if mixed.
+                    // For now, let's assume if successful, we just alert.
+                    // But if OTHER platforms are selected, we still need to handle them?
+                    // Complexity: If user selects YouTube + LinkedIn. 
+                    // Current User Request: "for youtube only please upload the video directly".
+                    // PROPOSAL: If YouTube is selected, we do direct upload. 
+                    // If others are selected, we ALSO trigger the server flow for THEM? No, that uploads the file to server.
+                    // If we want to avoid server upload, we can't post to LinkedIn (unless we implement direct LinkedIn too).
+
+                    // Simplified: If successful, we consider YouTube done.
+                    // If there are other platforms, we warn or proceed (which would upload file to server).
+                    // Given the request is specifically about YouTube, let's assume YouTube-only flow or we accept double-upload if mixed.
+                    // Let's set a flag.
+                    isDirectUpload = true;
+                    alert("✅ Video uploaded directly to YouTube!");
+
+                } catch (directErr) {
+                    console.warn("⚠️ Direct upload failed, falling back to server:", directErr);
+                    // Fallthrough to Strategy 2
+                }
+            }
+
+            // STRATEGY 2: Server Upload (Fallback or Non-YouTube)
+            if (!isDirectUpload) {
+                console.log("Falling back to Server Upload...");
+                const formData = new FormData();
+                formData.append('file', postFile);
+
+                const uploadRes = await fetch('http://localhost:3001/api/upload-media', {
+                    method: 'POST',
+                    body: formData
+                });
+                const uploadData = await uploadRes.json();
+
+                if (!uploadData.success) throw new Error("Server upload failed");
+                uploadUrl = uploadData.url;
+
+                // Schedule Post
+                await fetch('http://localhost:3001/api/social/schedule', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title,
+                        description,
+                        tags,
+                        categoryName,
+                        privacyStatus,
+                        playlistName,
+                        publishAt: publishAt || new Date().toISOString(),
+                        madeForKids,
+                        ageRestriction,
+                        toogleEnabled: isToogleEnabled,
+                        caption: description,
+                        platforms: platforms,
+                        scheduledTime: publishAt || new Date().toISOString(),
+                        mediaType: 'video',
+                        mediaPath: uploadUrl, // Server path
+                        deckId: 'social-direct-upload',
+                        slideIndex: 0
+                    })
+                });
+
+                alert("✅ Post scheduled via Server (Fallback/Standard)!");
+            }
+
             setShowPostModal(false);
             setPostFile(null);
-            setPostCaption('');
+            setTitle('');
+            setDescription('');
+            setTags('');
+            setPlaylistName('');
+            setPublishAt('');
             setSelectedPostAccounts([]);
+            setMadeForKids(false);
+            setAgeRestriction(false);
+            setIsToogleEnabled(true);
 
         } catch (e) {
             console.error(e);
@@ -471,12 +597,15 @@ const SocialConnectionPage = ({ onBack }) => {
                 >
                     <X size={20} />
                 </button>
-                <button
-                    onClick={() => setShowPostModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold rounded-full shadow-lg hover:shadow-pink-500/25 transition transform hover:scale-105"
-                >
-                    <Video size={18} /> Create Post
-                </button>
+                {/* Only Show Create Post if YouTube is Connected */}
+                {youtubeConnected && (
+                    <button
+                        onClick={() => setShowPostModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-bold rounded-full shadow-lg hover:shadow-red-500/25 transition transform hover:scale-105"
+                    >
+                        <Video size={18} /> Create Post
+                    </button>
+                )}
             </div>
 
             <header className="mb-12 text-center mt-8 relative">
@@ -652,85 +781,222 @@ const SocialConnectionPage = ({ onBack }) => {
             {/* Create Post Modal */}
             {showPostModal && (
                 <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95">
-                        <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-y-auto max-h-[90vh] animate-in zoom-in-95">
+                        <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50 sticky top-0 z-10 backdrop-blur-md">
                             <h3 className="font-bold text-white flex items-center gap-2">
-                                <Video className="text-pink-500" /> Create New Post
+                                <Video className="text-red-500" /> Upload Verification Video (YouTube Only)
                             </h3>
                             <button onClick={() => setShowPostModal(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
                         </div>
 
                         <div className="p-6 space-y-6">
-                            {/* File Upload */}
-                            <div
-                                onClick={() => fileInputRef.current?.click()}
-                                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${postFile ? 'border-green-500 bg-green-500/10' : 'border-slate-700 hover:border-blue-500 hover:bg-slate-800'}`}
-                            >
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    onChange={handleFileSelect}
-                                    accept="video/*"
-                                    className="hidden"
-                                />
-                                {postFile ? (
-                                    <div className="flex flex-col items-center gap-2 text-green-400">
-                                        <FileVideo size={48} />
-                                        <span className="font-medium text-sm">{postFile.name}</span>
-                                        <span className="text-xs opacity-75">Click to change</span>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col items-center gap-2 text-slate-400">
-                                        <Upload size={32} />
-                                        <span className="text-sm">Click to upload video</span>
-                                        <span className="text-[10px] uppercase tracking-wider opacity-50">MP4, WebM (Max 50MB)</span>
-                                    </div>
-                                )}
-                            </div>
 
-                            {/* Caption */}
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Caption</label>
-                                <textarea
-                                    value={postCaption}
-                                    onChange={(e) => setPostCaption(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500 min-h-[100px]"
-                                    placeholder="What's on your mind?"
-                                />
-                            </div>
-
-                            {/* Account Selector */}
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Publish To</label>
-                                <div className="flex flex-wrap gap-2">
-                                    {data?.getConnectedAccounts?.length > 0 ? (
-                                        data.getConnectedAccounts.map(acc => (
-                                            <button
-                                                key={acc.id}
-                                                onClick={() => togglePostAccount(acc.id)}
-                                                disabled={acc.isEnabled === false}
-                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs transition-all ${selectedPostAccounts.includes(acc.id)
-                                                        ? 'bg-blue-600 border-blue-500 text-white'
-                                                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
-                                                    } ${acc.isEnabled === false ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            >
-                                                {/* Simple Icon Map */}
-                                                {acc.platform === 'youtube' && <Youtube size={12} />}
-                                                {acc.platform === 'linkedin' && <LinkedinIcon size={12} />}
-                                                {acc.platform === 'facebook' && <Facebook size={12} />}
-                                                {acc.platform === 'instagram' && <Instagram size={12} />}
-                                                {acc.platform === 'reddit' && <MessageCircle size={12} />}
-                                                {acc.username}
-                                            </button>
-                                        ))
-                                    ) : (
-                                        <div className="text-xs text-slate-500">No connected accounts.</div>
-                                    )}
+                            {/* Global Toggle Control - Always Visible */}
+                            <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
+                                <div>
+                                    <span className="text-sm font-bold text-white block">Form Status</span>
+                                    <span className="text-xs text-slate-500">Enable to fill out details</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <label className="text-sm font-medium text-slate-300">Toogle</label>
+                                    <button
+                                        onClick={() => setIsToogleEnabled(!isToogleEnabled)}
+                                        className={`w-12 h-6 rounded-full relative transition-colors ${isToogleEnabled ? 'bg-green-500' : 'bg-slate-600'}`}
+                                    >
+                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${isToogleEnabled ? 'translate-x-7' : 'translate-x-1'}`} />
+                                    </button>
                                 </div>
                             </div>
+
+                            {/* Conditional Form Content */}
+                            {isToogleEnabled ? (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
+                                    {/* File Upload */}
+                                    <div
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${postFile ? 'border-green-500 bg-green-500/10' : 'border-slate-700 hover:border-red-500 hover:bg-slate-800'}`}
+                                    >
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            onChange={handleFileSelect}
+                                            accept="video/*"
+                                            className="hidden"
+                                        />
+                                        {postFile ? (
+                                            <div className="flex flex-col items-center gap-2 text-green-400">
+                                                <FileVideo size={48} />
+                                                <span className="font-medium text-sm">{postFile.name}</span>
+                                                <span className="text-xs opacity-75">Click to change</span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-2 text-slate-400">
+                                                <Upload size={32} />
+                                                <span className="text-sm">Click to upload video</span>
+                                                <span className="text-[10px] uppercase tracking-wider opacity-50">MP4, WebM (Max 50MB)</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Title - Full Width */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Title <span className='text-red-500'>*</span></label>
+                                        <input
+                                            value={title}
+                                            onChange={(e) => setTitle(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm"
+                                            placeholder="Video Title"
+                                        />
+                                    </div>
+
+                                    {/* Description - Full Width & Larger */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Description</label>
+                                        <textarea
+                                            value={description}
+                                            onChange={(e) => setDescription(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:outline-none focus:border-red-500 text-sm min-h-[250px] overflow-y-auto resize-y scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
+                                            placeholder="Tell viewers about your video"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Left Column: Metadata */}
+                                        <div className="space-y-4">
+                                            {/* Tags */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tags</label>
+                                                <input
+                                                    value={tags}
+                                                    onChange={(e) => setTags(e.target.value)}
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm"
+                                                    placeholder="comma, separated, tags"
+                                                />
+                                            </div>
+
+                                            {/* Publish At */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Publish At</label>
+                                                <div className="relative">
+                                                    <input
+                                                        type="datetime-local"
+                                                        value={publishAt}
+                                                        onChange={(e) => setPublishAt(e.target.value)}
+                                                        style={{ colorScheme: "dark" }}
+                                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Right Column: Settings */}
+                                        <div className="space-y-4">
+                                            {/* Category */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Category</label>
+                                                <select
+                                                    value={categoryName}
+                                                    onChange={(e) => setCategoryName(e.target.value)}
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm appearance-none"
+                                                >
+                                                    <option value="Entertainment">Entertainment</option>
+                                                    <option value="Education">Education</option>
+                                                    <option value="Science & Technology">Science & Technology</option>
+                                                    <option value="Vlog">Vlogs</option>
+                                                    <option value="Music">Music</option>
+                                                    <option value="Gaming">Gaming</option>
+                                                </select>
+                                            </div>
+
+                                            {/* Privacy */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Privacy Status</label>
+                                                <select
+                                                    value={privacyStatus}
+                                                    onChange={(e) => setPrivacyStatus(e.target.value)}
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm appearance-none"
+                                                >
+                                                    <option value="private">Private</option>
+                                                    <option value="unlisted">Unlisted</option>
+                                                    <option value="public">Public</option>
+                                                </select>
+                                            </div>
+
+                                            {/* Playlist */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Playlist Name</label>
+                                                <input
+                                                    value={playlistName}
+                                                    onChange={(e) => setPlaylistName(e.target.value)}
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm"
+                                                    placeholder="Enter playlist name"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Compliance & Settings */}
+                                    <div className="bg-slate-950/50 p-4 rounded-lg border border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="checkbox"
+                                                id="madeForKids"
+                                                checked={madeForKids}
+                                                onChange={(e) => setMadeForKids(e.target.checked)}
+                                                className="w-4 h-4 accent-red-500"
+                                            />
+                                            <label htmlFor="madeForKids" className="text-sm text-slate-300">Made for Kids (COPPA)</label>
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="checkbox"
+                                                id="ageRestriction"
+                                                checked={ageRestriction}
+                                                onChange={(e) => setAgeRestriction(e.target.checked)}
+                                                className="w-4 h-4 accent-red-500"
+                                            />
+                                            <label htmlFor="ageRestriction" className="text-sm text-slate-300">Age Restriction (18+)</label>
+                                        </div>
+                                    </div>
+
+                                    {/* Account Selector */}
+                                    <div className="flex flex-col gap-2 bg-slate-950 p-4 rounded-lg border border-slate-800">
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Publish To</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {data?.getConnectedAccounts?.some(a => a.platform === 'youtube') ? (
+                                                data.getConnectedAccounts.filter(a => a.platform === 'youtube').map(acc => (
+                                                    <button
+                                                        key={acc.id}
+                                                        onClick={() => togglePostAccount(acc.id)}
+                                                        disabled={acc.isEnabled === false}
+                                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs transition-all ${selectedPostAccounts.includes(acc.id)
+                                                            ? 'bg-red-600 border-red-500 text-white'
+                                                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
+                                                            } ${acc.isEnabled === false ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    >
+                                                        <Youtube size={12} />
+                                                        {acc.username}
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <div className="text-xs text-slate-500">No YouTube accounts connected.</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="h-[300px] flex flex-col items-center justify-center text-slate-500 border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/50">
+                                    <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4">
+                                        <Settings className="text-slate-600" size={32} />
+                                    </div>
+                                    <p className="font-medium">Form is disabled</p>
+                                    <p className="text-xs mt-2">Toogle "Form Status" to continue</p>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="p-4 border-t border-slate-800 bg-slate-950/50 flex justify-end gap-3">
+                        <div className="p-4 border-t border-slate-800 bg-slate-950/50 flex justify-end gap-3 sticky bottom-0 z-10 backdrop-blur-md">
                             <button
                                 onClick={() => setShowPostModal(false)}
                                 className="px-4 py-2 text-slate-400 hover:text-white text-sm"
@@ -739,11 +1005,11 @@ const SocialConnectionPage = ({ onBack }) => {
                             </button>
                             <button
                                 onClick={handleDirectUploadAndPost}
-                                disabled={uploading || !postFile || !postCaption || selectedPostAccounts.length === 0}
-                                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold rounded-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                disabled={uploading || !postFile || !title || selectedPostAccounts.length === 0}
+                                className="px-6 py-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-orange-500 text-white font-bold rounded-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
                                 {uploading ? <RefreshCw className="animate-spin" size={16} /> : <Send size={16} />}
-                                {uploading ? 'Uploading...' : 'Schedule Post'}
+                                {uploading ? 'Uploading...' : 'Upload to YouTube'}
                             </button>
                         </div>
                     </div>

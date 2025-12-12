@@ -1,5 +1,6 @@
 const { google } = require('googleapis');
 const socialConfig = require('../config/social');
+const tokenManager = require('./token-manager');
 
 const youtubeService = {
     getClient: (tokenData) => {
@@ -10,9 +11,27 @@ const youtubeService = {
             access_token: tokenData.accessToken,
             refresh_token: tokenData.refreshToken,
             expiry_date: tokenData.expiryDate,
-            // If using latest google-auth-library, keys might differ slightly (refresh_token vs refreshToken), 
-            // but the library is usually lenient or we should map standard names.
-            // Based on auth-service.js: it saves refreshToken.
+        });
+
+        // Listen for token updates (refresh)
+        oauth2Client.on('tokens', (tokens) => {
+            console.log('[YouTubeService] 🔄 Tokens refreshed!');
+
+            // Merge new tokens with existing data to preserve user info
+            const updatedTokenData = {
+                ...tokenData,
+                accessToken: tokens.access_token,
+                expiryDate: tokens.expiry_date
+            };
+
+            if (tokens.refresh_token) {
+                updatedTokenData.refreshToken = tokens.refresh_token;
+            }
+
+            // Save to storage
+            // Ensure platform is set (should be in tokenData, but fallback to 'youtube' if generic google)
+            const platform = tokenData.platform || 'youtube';
+            tokenManager.savePlatformToken(platform, updatedTokenData);
         });
 
         return google.youtube({ version: 'v3', auth: oauth2Client });

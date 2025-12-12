@@ -85,5 +85,29 @@
         "status": "success"
       }
     ]
+  },
+  {
+    "id": "post_1765510685030_173",
+    "createdAt": "2025-12-12T03:38:05.030Z",
+    "status": "pending",
+    "title": "meko",
+    "description": "meko",
+    "tags": "meko",
+    "categoryName": "Education",
+    "privacyStatus": "public",
+    "playlistName": "Top Golang Interview Questions & Answers 🔥 | 1000+ Q&A Series | Crack Go Interviews",
+    "publishAt": "2025-12-12T13:00",
+    "madeForKids": false,
+    "ageRestriction": true,
+    "toogleEnabled": true,
+    "caption": "meko",
+    "platforms": [
+      "youtube"
+    ],
+    "scheduledTime": "2025-12-12T13:00",
+    "mediaType": "video",
+    "mediaPath": "/api/screenshots/1765510685013-270885054-render-rate-limiting-3-1765468157614.mp4",
+    "deckId": "social-direct-upload",
+    "slideIndex": 0
   }
 ]
