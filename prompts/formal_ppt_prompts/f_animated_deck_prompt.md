@@ -24,7 +24,7 @@ The AI is FREE to decide:
 The structure should be logically correct, well-paced, and suitable for teaching the topic.
 
 This deck should feel like:
-"A cinematic tech explainer turned into interactive slides."
+"A high-quality, static technical presentation."
 
 --------------------------------------------------
 
@@ -55,40 +55,35 @@ export default SlideX_DescriptiveName;
 - NO background color (Use transparent background)
 
 3) Animations:
-- Use framer-motion exclusively (motion, AnimatePresence)
-- EVERY slide must include meaningful animation
-- Animation must explain behavior or state, not decoration only
+- DO NOT INCLUDE ANY ANIMATION
+- All slides must be static
 
 4) Icons:
 - Use lucide-react icons where relevant
-- Icons should animate (pulse, scale, rotate, glow)
+- Icons should NOT animate
 
-5) No static slides:
-- Text-only slides are NOT allowed
-- Each slide must have motion or visual feedback
+5) Static Content:
+- Ensure clean layout without motion
 
 --------------------------------------------------
 
-DESIGN & MOTION EXPECTATIONS:
+DESIGN EXPECTATIONS:
 
-- Use animated metaphors for abstract concepts
+- Use visual metaphors for abstract concepts
 - Visualize flows, counters, thresholds, timelines, states
-- Show “problem → solution” transitions visually
-- Prefer simulations over diagrams
+- Show “problem → solution” states visually
+- Prefer diagrams over text
 
 --------------------------------------------------
 
-ANIMATION QUALITY BAR (VERY IMPORTANT):
+VISUAL QUALITY BAR:
 
-Every slide must include at least ONE of:
-- Particle motion or animated background
-- Animated counters, timers, or gauges
-- Moving requests / data packets / flows
-- Pulsing, scaling, rotating icons
-- State-based transitions (error → success)
-- Glow, blur, or gradient motion overlays
+Every slide must include:
+- Clean typography
+- Meaningful iconography
+- Structured layout
 
-If animation does not help understanding, redesign the slide.
+Do not include any animations or background colors.
 
 --------------------------------------------------
 

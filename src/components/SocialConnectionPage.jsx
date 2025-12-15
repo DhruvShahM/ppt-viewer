@@ -18,7 +18,9 @@ import {
     Video,
     FileVideo,
     Send,
-    ChevronDown
+    ChevronDown,
+    Eye,
+    EyeOff
 } from 'lucide-react';
 
 const GET_SOCIAL_DATA = gql`
@@ -126,6 +128,11 @@ const SocialConnectionPage = ({ onBack }) => {
 
     const [showSettings, setShowSettings] = React.useState(false);
     const [configKeys, setConfigKeys] = React.useState({});
+    const [showSecrets, setShowSecrets] = React.useState({});
+
+    const toggleSecret = (key) => {
+        setShowSecrets(prev => ({ ...prev, [key]: !prev[key] }));
+    };
 
     const [testResult, setTestResult] = React.useState(null);
 
@@ -610,20 +617,81 @@ const SocialConnectionPage = ({ onBack }) => {
                                             placeholder="apps.googleusercontent.com"
                                         />
                                     </div>
-                                    <div>
+                                    <div className="relative">
                                         <label className="block text-xs text-slate-500 mb-1">Client Secret</label>
                                         <input
                                             name="GOOGLE_CLIENT_SECRET"
                                             value={configKeys.GOOGLE_CLIENT_SECRET || ''}
                                             onChange={(e) => setConfigKeys(prev => ({ ...prev, GOOGLE_CLIENT_SECRET: e.target.value }))}
-                                            type="password"
-                                            className="w-full bg-slate-800 border-slate-700 rounded p-2 text-sm text-white"
+                                            type={showSecrets.google ? "text" : "password"}
+                                            className="w-full bg-slate-800 border-slate-700 rounded p-2 text-sm text-white pr-10"
                                             placeholder="Secret Key"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleSecret('google')}
+                                            className="absolute right-2 top-8 text-slate-500 hover:text-white"
+                                        >
+                                            {showSecrets.google ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
 
+                            <div className="space-y-4 pt-4 border-t border-slate-800">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Instagram Business</h3>
+                                    <div className="flex gap-2">
+                                        <button type="button" onClick={() => handleDisconnect('instagram')} className="text-xs bg-slate-800 hover:bg-slate-700 text-red-500 px-3 py-1 rounded transition border border-slate-700 hover:border-red-500/50">
+                                            Reset
+                                        </button>
+                                        <button type="button" onClick={() => handleTestConnection('instagram')} className="text-xs bg-slate-800 hover:bg-slate-700 text-blue-400 px-3 py-1 rounded transition border border-slate-700">
+                                            Test Connection
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* List Connected Instagram Accounts */}
+                                {data?.getConnectedAccounts?.filter(a => a.platform === 'instagram').length > 0 && (
+                                    <div className="space-y-2 mb-4 bg-slate-900/50 p-2 rounded border border-slate-700/50">
+                                        <h4 className="text-xs text-slate-500 font-medium mb-2">Connected Accounts:</h4>
+                                        {data.getConnectedAccounts.filter(a => a.platform === 'instagram').map(acc => (
+                                            <div key={acc.id} className="flex items-center justify-between bg-slate-800 p-2 rounded">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-sm ${!acc.isEnabled ? 'text-slate-500 line-through' : 'text-slate-300'}`}>
+                                                        {acc.username}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <button type="button" onClick={() => handleToggleStatus(acc.platform, acc.id, acc.isEnabled)} className={`w-8 h-4 rounded-full p-0.5 transition-colors relative ${acc.isEnabled !== false ? 'bg-green-600' : 'bg-slate-600'}`}>
+                                                        <div className={`w-3 h-3 bg-white rounded-full transition-transform ${acc.isEnabled !== false ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    </button>
+                                                    <button type="button" onClick={() => handleDisconnect(acc.platform, acc.id)} className="text-xs text-red-400 hover:text-red-300 px-2"><LogOut size={14} /></button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs text-slate-500 mb-1">Instagram App ID</label>
+                                        <input name="INSTAGRAM_CLIENT_ID" defaultValue={configKeys.INSTAGRAM_CLIENT_ID} className="w-full bg-slate-800 border-slate-700 rounded p-2 text-sm text-white" />
+                                    </div>
+                                    <div className="relative">
+                                        <label className="block text-xs text-slate-500 mb-1">Instagram App Secret</label>
+                                        <input
+                                            name="INSTAGRAM_CLIENT_SECRET"
+                                            defaultValue={configKeys.INSTAGRAM_CLIENT_SECRET}
+                                            type={showSecrets.instagram ? "text" : "password"}
+                                            className="w-full bg-slate-800 border-slate-700 rounded p-2 text-sm text-white pr-10"
+                                        />
+                                        <button type="button" onClick={() => toggleSecret('instagram')} className="absolute right-2 top-8 text-slate-500 hover:text-white">
+                                            {showSecrets.instagram ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                             <div className="space-y-4 pt-4 border-t border-slate-800">
                                 <div className="flex justify-between items-center">
                                     <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">LinkedIn</h3>
@@ -636,28 +704,98 @@ const SocialConnectionPage = ({ onBack }) => {
                                         <label className="block text-xs text-slate-500 mb-1">Client ID</label>
                                         <input name="LINKEDIN_CLIENT_ID" defaultValue={configKeys.LINKEDIN_CLIENT_ID} className="w-full bg-slate-800 border-slate-700 rounded p-2 text-sm text-white" />
                                     </div>
-                                    <div>
+                                    <div className="relative">
                                         <label className="block text-xs text-slate-500 mb-1">Client Secret</label>
-                                        <input name="LINKEDIN_CLIENT_SECRET" defaultValue={configKeys.LINKEDIN_CLIENT_SECRET} type="password" className="w-full bg-slate-800 border-slate-700 rounded p-2 text-sm text-white" />
+                                        <input
+                                            name="LINKEDIN_CLIENT_SECRET"
+                                            defaultValue={configKeys.LINKEDIN_CLIENT_SECRET}
+                                            type={showSecrets.linkedin ? "text" : "password"}
+                                            className="w-full bg-slate-800 border-slate-700 rounded p-2 text-sm text-white pr-10"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleSecret('linkedin')}
+                                            className="absolute right-2 top-8 text-slate-500 hover:text-white"
+                                        >
+                                            {showSecrets.linkedin ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="space-y-4 pt-4 border-t border-slate-800">
                                 <div className="flex justify-between items-center">
-                                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Facebook / Instagram</h3>
-                                    <button type="button" onClick={() => handleTestConnection('facebook')} className="text-xs bg-slate-800 hover:bg-slate-700 text-blue-400 px-3 py-1 rounded transition border border-slate-700">
-                                        Test Connection
-                                    </button>
+                                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Facebook</h3>
+                                    <div className="flex gap-2">
+                                        <button type="button" onClick={() => handleDisconnect('facebook')} className="text-xs bg-slate-800 hover:bg-slate-700 text-red-500 px-3 py-1 rounded transition border border-slate-700 hover:border-red-500/50" title="Force disconnect all sessions">
+                                            Reset
+                                        </button>
+                                        <button type="button" onClick={() => handleTestConnection('facebook')} className="text-xs bg-slate-800 hover:bg-slate-700 text-blue-400 px-3 py-1 rounded transition border border-slate-700">
+                                            Test Connection
+                                        </button>
+                                    </div>
                                 </div>
+
+                                {/* List Connected Accounts inside Modal for Facebook/Instagram */}
+                                {data?.getConnectedAccounts?.filter(a => a.platform === 'facebook').length > 0 && (
+                                    <div className="space-y-2 mb-4 bg-slate-900/50 p-2 rounded border border-slate-700/50">
+                                        <h4 className="text-xs text-slate-500 font-medium mb-2">Connected Accounts:</h4>
+                                        {data.getConnectedAccounts.filter(a => a.platform === 'facebook').map(acc => (
+                                            <div key={acc.id} className="flex items-center justify-between bg-slate-800 p-2 rounded">
+                                                <div className="flex items-center gap-2">
+                                                    {acc.profilePicture ? (
+                                                        <img src={acc.profilePicture} className="w-6 h-6 rounded-full" />
+                                                    ) : (
+                                                        <div className="w-6 h-6 rounded-full bg-slate-700" />
+                                                    )}
+                                                    <span className={`text-sm ${!acc.isEnabled ? 'text-slate-500 line-through' : 'text-slate-300'}`}>
+                                                        {acc.username} <span className="text-xs text-slate-500">({acc.platform})</span>
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {/* Toggle Switch */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleToggleStatus(acc.platform, acc.id, acc.isEnabled)}
+                                                        className={`w-8 h-4 rounded-full p-0.5 transition-colors relative ${acc.isEnabled !== false ? 'bg-green-600' : 'bg-slate-600'}`}
+                                                        title={acc.isEnabled !== false ? "Disable" : "Enable"}
+                                                    >
+                                                        <div className={`w-3 h-3 bg-white rounded-full transition-transform ${acc.isEnabled !== false ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDisconnect(acc.platform, acc.id)}
+                                                        className="text-xs text-red-400 hover:text-red-300 px-2"
+                                                        title="Logout"
+                                                    >
+                                                        <LogOut size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs text-slate-500 mb-1">App ID</label>
                                         <input name="FACEBOOK_APP_ID" defaultValue={configKeys.FACEBOOK_APP_ID} className="w-full bg-slate-800 border-slate-700 rounded p-2 text-sm text-white" />
                                     </div>
-                                    <div>
+                                    <div className="relative">
                                         <label className="block text-xs text-slate-500 mb-1">App Secret</label>
-                                        <input name="FACEBOOK_APP_SECRET" defaultValue={configKeys.FACEBOOK_APP_SECRET} type="password" className="w-full bg-slate-800 border-slate-700 rounded p-2 text-sm text-white" />
+                                        <input
+                                            name="FACEBOOK_APP_SECRET"
+                                            defaultValue={configKeys.FACEBOOK_APP_SECRET}
+                                            type={showSecrets.facebook ? "text" : "password"}
+                                            className="w-full bg-slate-800 border-slate-700 rounded p-2 text-sm text-white pr-10"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleSecret('facebook')}
+                                            className="absolute right-2 top-8 text-slate-500 hover:text-white"
+                                        >
+                                            {showSecrets.facebook ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -669,8 +807,8 @@ const SocialConnectionPage = ({ onBack }) => {
                                 </button>
                             </div>
                         </form>
-                    </div>
-                </div>
+                    </div >
+                </div >
             )}
 
 
@@ -864,273 +1002,275 @@ const SocialConnectionPage = ({ onBack }) => {
             </div>
 
             {/* Create Post Modal */}
-            {showPostModal && (
-                <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-y-auto max-h-[90vh] animate-in zoom-in-95">
-                        <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50 sticky top-0 z-10 backdrop-blur-md">
-                            <h3 className="font-bold text-white flex items-center gap-2">
-                                <Video className="text-red-500" /> Upload Verification Video (YouTube Only)
-                            </h3>
-                            <button onClick={() => setShowPostModal(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
-                        </div>
-
-                        <div className="p-6 space-y-6">
-
-                            {/* Global Toggle Control - Always Visible */}
-                            <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
-                                <div>
-                                    <span className="text-sm font-bold text-white block">Form Status</span>
-                                    <span className="text-xs text-slate-500">Enable to fill out details</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <label className="text-sm font-medium text-slate-300">Toogle</label>
-                                    <button
-                                        onClick={() => setIsToogleEnabled(!isToogleEnabled)}
-                                        className={`w-12 h-6 rounded-full relative transition-colors ${isToogleEnabled ? 'bg-green-500' : 'bg-slate-600'}`}
-                                    >
-                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${isToogleEnabled ? 'translate-x-7' : 'translate-x-1'}`} />
-                                    </button>
-                                </div>
+            {
+                showPostModal && (
+                    <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+                        <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-y-auto max-h-[90vh] animate-in zoom-in-95">
+                            <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50 sticky top-0 z-10 backdrop-blur-md">
+                                <h3 className="font-bold text-white flex items-center gap-2">
+                                    <Video className="text-red-500" /> Upload Verification Video (YouTube Only)
+                                </h3>
+                                <button onClick={() => setShowPostModal(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
                             </div>
 
-                            {/* Conditional Form Content */}
-                            {isToogleEnabled ? (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
-                                    {/* File Upload */}
-                                    <div
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${postFile ? 'border-green-500 bg-green-500/10' : 'border-slate-700 hover:border-red-500 hover:bg-slate-800'}`}
-                                    >
-                                        <input
-                                            type="file"
-                                            ref={fileInputRef}
-                                            onChange={handleFileSelect}
-                                            accept="video/*"
-                                            className="hidden"
-                                        />
-                                        {postFile ? (
-                                            <div className="flex flex-col items-center gap-2 text-green-400">
-                                                <FileVideo size={48} />
-                                                <span className="font-medium text-sm">{postFile.name}</span>
-                                                <span className="text-xs opacity-75">Click to change</span>
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col items-center gap-2 text-slate-400">
-                                                <Upload size={32} />
-                                                <span className="text-sm">Click to upload video</span>
-                                                <span className="text-[10px] uppercase tracking-wider opacity-50">MP4, WebM (Max 50MB)</span>
-                                            </div>
-                                        )}
-                                    </div>
+                            <div className="p-6 space-y-6">
 
-                                    {/* Title - Full Width */}
+                                {/* Global Toggle Control - Always Visible */}
+                                <div className="flex items-center justify-between bg-slate-950 p-4 rounded-lg border border-slate-800">
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Title <span className='text-red-500'>*</span></label>
-                                        <input
-                                            value={title}
-                                            onChange={(e) => setTitle(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm"
-                                            placeholder="Video Title"
-                                        />
+                                        <span className="text-sm font-bold text-white block">Form Status</span>
+                                        <span className="text-xs text-slate-500">Enable to fill out details</span>
                                     </div>
-
-                                    {/* Description - Full Width & Larger */}
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Description</label>
-                                        <textarea
-                                            value={description}
-                                            onChange={(e) => setDescription(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:outline-none focus:border-red-500 text-sm min-h-[250px] overflow-y-auto resize-y scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
-                                            placeholder="Tell viewers about your video"
-                                        />
+                                    <div className="flex items-center gap-3">
+                                        <label className="text-sm font-medium text-slate-300">Toogle</label>
+                                        <button
+                                            onClick={() => setIsToogleEnabled(!isToogleEnabled)}
+                                            className={`w-12 h-6 rounded-full relative transition-colors ${isToogleEnabled ? 'bg-green-500' : 'bg-slate-600'}`}
+                                        >
+                                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${isToogleEnabled ? 'translate-x-7' : 'translate-x-1'}`} />
+                                        </button>
                                     </div>
+                                </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Left Column: Metadata */}
-                                        <div className="space-y-4">
-                                            {/* Tags */}
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tags</label>
-                                                <input
-                                                    value={tags}
-                                                    onChange={(e) => setTags(e.target.value)}
-                                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm"
-                                                    placeholder="comma, separated, tags"
-                                                />
-                                            </div>
+                                {/* Conditional Form Content */}
+                                {isToogleEnabled ? (
+                                    <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
+                                        {/* File Upload */}
+                                        <div
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${postFile ? 'border-green-500 bg-green-500/10' : 'border-slate-700 hover:border-red-500 hover:bg-slate-800'}`}
+                                        >
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                onChange={handleFileSelect}
+                                                accept="video/*"
+                                                className="hidden"
+                                            />
+                                            {postFile ? (
+                                                <div className="flex flex-col items-center gap-2 text-green-400">
+                                                    <FileVideo size={48} />
+                                                    <span className="font-medium text-sm">{postFile.name}</span>
+                                                    <span className="text-xs opacity-75">Click to change</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center gap-2 text-slate-400">
+                                                    <Upload size={32} />
+                                                    <span className="text-sm">Click to upload video</span>
+                                                    <span className="text-[10px] uppercase tracking-wider opacity-50">MP4, WebM (Max 50MB)</span>
+                                                </div>
+                                            )}
+                                        </div>
 
-                                            {/* Publish At */}
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Publish At</label>
-                                                <div className="relative">
+                                        {/* Title - Full Width */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Title <span className='text-red-500'>*</span></label>
+                                            <input
+                                                value={title}
+                                                onChange={(e) => setTitle(e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm"
+                                                placeholder="Video Title"
+                                            />
+                                        </div>
+
+                                        {/* Description - Full Width & Larger */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Description</label>
+                                            <textarea
+                                                value={description}
+                                                onChange={(e) => setDescription(e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:outline-none focus:border-red-500 text-sm min-h-[250px] overflow-y-auto resize-y scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
+                                                placeholder="Tell viewers about your video"
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {/* Left Column: Metadata */}
+                                            <div className="space-y-4">
+                                                {/* Tags */}
+                                                <div>
+                                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tags</label>
                                                     <input
-                                                        type="datetime-local"
-                                                        value={publishAt}
-                                                        onChange={(e) => setPublishAt(e.target.value)}
-                                                        style={{ colorScheme: "dark" }}
+                                                        value={tags}
+                                                        onChange={(e) => setTags(e.target.value)}
                                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm"
+                                                        placeholder="comma, separated, tags"
                                                     />
+                                                </div>
+
+                                                {/* Publish At */}
+                                                <div>
+                                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Publish At</label>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={publishAt}
+                                                            onChange={(e) => setPublishAt(e.target.value)}
+                                                            style={{ colorScheme: "dark" }}
+                                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Right Column: Settings */}
+                                            <div className="space-y-4">
+                                                {/* Category */}
+                                                <div>
+                                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Category</label>
+                                                    <select
+                                                        value={categoryName}
+                                                        onChange={(e) => setCategoryName(e.target.value)}
+                                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm appearance-none"
+                                                    >
+                                                        <option value="Entertainment">Entertainment</option>
+                                                        <option value="Education">Education</option>
+                                                        <option value="Science & Technology">Science & Technology</option>
+                                                        <option value="Vlog">Vlogs</option>
+                                                        <option value="Music">Music</option>
+                                                        <option value="Gaming">Gaming</option>
+                                                    </select>
+                                                </div>
+
+                                                {/* Privacy */}
+                                                <div>
+                                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Privacy Status</label>
+                                                    <select
+                                                        value={privacyStatus}
+                                                        onChange={(e) => setPrivacyStatus(e.target.value)}
+                                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm appearance-none"
+                                                    >
+                                                        <option value="private">Private</option>
+                                                        <option value="unlisted">Unlisted</option>
+                                                        <option value="public">Public</option>
+                                                    </select>
+                                                </div>
+
+                                                {/* Playlist */}
+                                                <div>
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <label className="block text-xs font-bold text-slate-500 uppercase">Playlist</label>
+                                                        <button
+                                                            onClick={() => fetchPlaylists()}
+                                                            className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1"
+                                                        >
+                                                            <RefreshCw size={10} className={isLoadingPlaylists ? "animate-spin" : ""} /> Refresh
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="relative">
+                                                        <select
+                                                            value={playlistName}
+                                                            onChange={(e) => setPlaylistName(e.target.value)}
+                                                            disabled={isLoadingPlaylists}
+                                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm appearance-none"
+                                                        >
+                                                            <option value="">Select a Playlist...</option>
+                                                            {availablePlaylists.map(p => (
+                                                                <option key={p.id} value={p.title}>{p.title} ({p.count})</option>
+                                                            ))}
+                                                            <option value="new_playlist_custom">+ Create New Playlist</option>
+                                                        </select>
+                                                        <div className="absolute right-3 top-3 pointer-events-none text-slate-500">
+                                                            <ChevronDown size={14} />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Fallback for New Playlist if selected or if generic input needed */}
+                                                    {playlistName === 'new_playlist_custom' && (
+                                                        <input
+                                                            autoFocus
+                                                            onChange={(e) => setPlaylistName(e.target.value)}
+                                                            className="w-full mt-2 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm placeholder:italic"
+                                                            placeholder="Enter new playlist name..."
+                                                        />
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {/* Right Column: Settings */}
-                                        <div className="space-y-4">
-                                            {/* Category */}
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Category</label>
-                                                <select
-                                                    value={categoryName}
-                                                    onChange={(e) => setCategoryName(e.target.value)}
-                                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm appearance-none"
-                                                >
-                                                    <option value="Entertainment">Entertainment</option>
-                                                    <option value="Education">Education</option>
-                                                    <option value="Science & Technology">Science & Technology</option>
-                                                    <option value="Vlog">Vlogs</option>
-                                                    <option value="Music">Music</option>
-                                                    <option value="Gaming">Gaming</option>
-                                                </select>
+                                        {/* Compliance & Settings */}
+                                        <div className="bg-slate-950/50 p-4 rounded-lg border border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    id="madeForKids"
+                                                    checked={madeForKids}
+                                                    onChange={(e) => setMadeForKids(e.target.checked)}
+                                                    className="w-4 h-4 accent-red-500"
+                                                />
+                                                <label htmlFor="madeForKids" className="text-sm text-slate-300">Made for Kids (COPPA)</label>
                                             </div>
 
-                                            {/* Privacy */}
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Privacy Status</label>
-                                                <select
-                                                    value={privacyStatus}
-                                                    onChange={(e) => setPrivacyStatus(e.target.value)}
-                                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm appearance-none"
-                                                >
-                                                    <option value="private">Private</option>
-                                                    <option value="unlisted">Unlisted</option>
-                                                    <option value="public">Public</option>
-                                                </select>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    id="ageRestriction"
+                                                    checked={ageRestriction}
+                                                    onChange={(e) => setAgeRestriction(e.target.checked)}
+                                                    className="w-4 h-4 accent-red-500"
+                                                />
+                                                <label htmlFor="ageRestriction" className="text-sm text-slate-300">Age Restriction (18+)</label>
                                             </div>
+                                        </div>
 
-                                            {/* Playlist */}
-                                            <div>
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase">Playlist</label>
-                                                    <button
-                                                        onClick={() => fetchPlaylists()}
-                                                        className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1"
-                                                    >
-                                                        <RefreshCw size={10} className={isLoadingPlaylists ? "animate-spin" : ""} /> Refresh
-                                                    </button>
-                                                </div>
-
-                                                <div className="relative">
-                                                    <select
-                                                        value={playlistName}
-                                                        onChange={(e) => setPlaylistName(e.target.value)}
-                                                        disabled={isLoadingPlaylists}
-                                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm appearance-none"
-                                                    >
-                                                        <option value="">Select a Playlist...</option>
-                                                        {availablePlaylists.map(p => (
-                                                            <option key={p.id} value={p.title}>{p.title} ({p.count})</option>
-                                                        ))}
-                                                        <option value="new_playlist_custom">+ Create New Playlist</option>
-                                                    </select>
-                                                    <div className="absolute right-3 top-3 pointer-events-none text-slate-500">
-                                                        <ChevronDown size={14} />
-                                                    </div>
-                                                </div>
-
-                                                {/* Fallback for New Playlist if selected or if generic input needed */}
-                                                {playlistName === 'new_playlist_custom' && (
-                                                    <input
-                                                        autoFocus
-                                                        onChange={(e) => setPlaylistName(e.target.value)}
-                                                        className="w-full mt-2 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm placeholder:italic"
-                                                        placeholder="Enter new playlist name..."
-                                                    />
+                                        {/* Account Selector */}
+                                        <div className="flex flex-col gap-2 bg-slate-950 p-4 rounded-lg border border-slate-800">
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Publish To</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {data?.getConnectedAccounts?.some(a => a.platform === 'youtube') ? (
+                                                    data.getConnectedAccounts.filter(a => a.platform === 'youtube').map(acc => (
+                                                        <button
+                                                            key={acc.id}
+                                                            onClick={() => togglePostAccount(acc.id)}
+                                                            disabled={acc.isEnabled === false}
+                                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs transition-all ${selectedPostAccounts.includes(acc.id)
+                                                                ? 'bg-red-600 border-red-500 text-white'
+                                                                : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
+                                                                } ${acc.isEnabled === false ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                        >
+                                                            <Youtube size={12} />
+                                                            {acc.username}
+                                                        </button>
+                                                    ))
+                                                ) : (
+                                                    <div className="text-xs text-slate-500">No YouTube accounts connected.</div>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Compliance & Settings */}
-                                    <div className="bg-slate-950/50 p-4 rounded-lg border border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="checkbox"
-                                                id="madeForKids"
-                                                checked={madeForKids}
-                                                onChange={(e) => setMadeForKids(e.target.checked)}
-                                                className="w-4 h-4 accent-red-500"
-                                            />
-                                            <label htmlFor="madeForKids" className="text-sm text-slate-300">Made for Kids (COPPA)</label>
+                                ) : (
+                                    <div className="h-[300px] flex flex-col items-center justify-center text-slate-500 border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/50">
+                                        <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4">
+                                            <Settings className="text-slate-600" size={32} />
                                         </div>
-
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="checkbox"
-                                                id="ageRestriction"
-                                                checked={ageRestriction}
-                                                onChange={(e) => setAgeRestriction(e.target.checked)}
-                                                className="w-4 h-4 accent-red-500"
-                                            />
-                                            <label htmlFor="ageRestriction" className="text-sm text-slate-300">Age Restriction (18+)</label>
-                                        </div>
+                                        <p className="font-medium">Form is disabled</p>
+                                        <p className="text-xs mt-2">Toogle "Form Status" to continue</p>
                                     </div>
+                                )}
+                            </div>
 
-                                    {/* Account Selector */}
-                                    <div className="flex flex-col gap-2 bg-slate-950 p-4 rounded-lg border border-slate-800">
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Publish To</label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {data?.getConnectedAccounts?.some(a => a.platform === 'youtube') ? (
-                                                data.getConnectedAccounts.filter(a => a.platform === 'youtube').map(acc => (
-                                                    <button
-                                                        key={acc.id}
-                                                        onClick={() => togglePostAccount(acc.id)}
-                                                        disabled={acc.isEnabled === false}
-                                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs transition-all ${selectedPostAccounts.includes(acc.id)
-                                                            ? 'bg-red-600 border-red-500 text-white'
-                                                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
-                                                            } ${acc.isEnabled === false ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                    >
-                                                        <Youtube size={12} />
-                                                        {acc.username}
-                                                    </button>
-                                                ))
-                                            ) : (
-                                                <div className="text-xs text-slate-500">No YouTube accounts connected.</div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="h-[300px] flex flex-col items-center justify-center text-slate-500 border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/50">
-                                    <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4">
-                                        <Settings className="text-slate-600" size={32} />
-                                    </div>
-                                    <p className="font-medium">Form is disabled</p>
-                                    <p className="text-xs mt-2">Toogle "Form Status" to continue</p>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="p-4 border-t border-slate-800 bg-slate-950/50 flex justify-end gap-3 sticky bottom-0 z-10 backdrop-blur-md">
-                            <button
-                                onClick={() => setShowPostModal(false)}
-                                className="px-4 py-2 text-slate-400 hover:text-white text-sm"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleDirectUploadAndPost}
-                                disabled={uploading || !postFile || !title || selectedPostAccounts.length === 0}
-                                className="px-6 py-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-orange-500 text-white font-bold rounded-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                                {uploading ? <RefreshCw className="animate-spin" size={16} /> : <Send size={16} />}
-                                {uploading ? 'Uploading...' : 'Upload to YouTube'}
-                            </button>
+                            <div className="p-4 border-t border-slate-800 bg-slate-950/50 flex justify-end gap-3 sticky bottom-0 z-10 backdrop-blur-md">
+                                <button
+                                    onClick={() => setShowPostModal(false)}
+                                    className="px-4 py-2 text-slate-400 hover:text-white text-sm"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDirectUploadAndPost}
+                                    disabled={uploading || !postFile || !title || selectedPostAccounts.length === 0}
+                                    className="px-6 py-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-orange-500 text-white font-bold rounded-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {uploading ? <RefreshCw className="animate-spin" size={16} /> : <Send size={16} />}
+                                    {uploading ? 'Uploading...' : 'Upload to YouTube'}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 

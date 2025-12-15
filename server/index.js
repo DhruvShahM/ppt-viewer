@@ -275,13 +275,31 @@ app.get('/api/auth/:platform', (req, res) => {
     try {
         if (platform === 'linkedin') url = authService.getLinkedinAuthUrl();
         else if (platform === 'youtube' || platform === 'google') url = authService.getGoogleAuthUrl();
-        else if (platform === 'facebook' || platform === 'instagram') url = authService.getFacebookAuthUrl(); // Instagram Business via Facebook
+        else if (platform === 'facebook') url = authService.getFacebookAuthUrl();
+        else if (platform === 'instagram') url = authService.getInstagramAuthUrl();
         else if (platform === 'reddit') url = authService.getRedditAuthUrl();
         // else if (platform === 'twitter') url = authService.getTwitterAuthUrl();
         else return res.status(400).send('Platform not supported for real auth');
 
         res.redirect(url);
     } catch (e) {
+        if (e.message.includes('Invalid configuration')) {
+            console.warn(`⚠️  Auth blocked: ${e.message}`);
+            return res.send(`
+                <html>
+                <body style="font-family: system-ui, sans-serif; background: #0f172a; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center;">
+                    <h2 style="color: #ef4444;">Configuration Required</h2>
+                    <p style="color: #94a3b8; max-w-md;">${e.message}</p>
+                    <p>This window will close automatically.</p>
+                    <button onclick="window.close()" style="margin-top: 20px; padding: 10px 20px; background: #334155; border: none; color: white; border-radius: 6px; cursor: pointer;">Close Window</button>
+                    <script>
+                        setTimeout(() => window.close(), 5000);
+                    </script>
+                </body>
+                </html>
+            `);
+        }
+
         console.error("Auth URL generation failed:", e);
         res.status(500).send("Failed to generate auth URL. Check server logs/keys.");
     }
@@ -298,7 +316,8 @@ app.get('/api/auth/:platform/callback', async (req, res) => {
         } else {
             if (platform === 'linkedin') userData = await authService.handleLinkedinCallback(code);
             else if (platform === 'youtube' || platform === 'google') userData = await authService.handleGoogleCallback(code);
-            else if (platform === 'facebook' || platform === 'instagram') userData = await authService.handleFacebookCallback(code);
+            else if (platform === 'facebook') userData = await authService.handleFacebookCallback(code);
+            else if (platform === 'instagram') userData = await authService.handleInstagramCallback(code);
             else if (platform === 'reddit') userData = await authService.handleRedditCallback(code);
         }
 
@@ -320,6 +339,40 @@ app.get('/api/auth/:platform/callback', async (req, res) => {
         res.status(500).send(`Authentication failed: ${e.message}`);
     }
 });
+
+// Instagram Routes (Separate)
+app.get('/api/auth/instagram', catchAsync(async (req, res) => {
+    if (req.query.simulated) {
+        const userData = authService.handleSimulatedCallback('instagram');
+        res.send(`
+            <script>
+                window.opener.postMessage({ type: 'SOCIAL_AUTH_SUCCESS', platform: 'instagram', user: ${JSON.stringify(userData)} }, '*');
+                window.close();
+            </script>
+        `);
+    } else {
+        res.redirect(authService.getInstagramAuthUrl());
+    }
+}));
+
+app.get('/api/auth/instagram/callback', catchAsync(async (req, res) => {
+    const { code, error, error_reason, error_description } = req.query;
+    if (error) {
+        return res.status(400).send(`Error: ${error} - ${error_reason} - ${error_description}`);
+    }
+    try {
+        const userData = await authService.handleInstagramCallback(code);
+        res.send(`
+            <script>
+                window.opener.postMessage({ type: 'SOCIAL_AUTH_SUCCESS', platform: 'instagram', user: ${JSON.stringify(userData)} }, '*');
+                window.close();
+            </script>
+        `);
+    } catch (error) {
+        console.error('Instagram Auth Error:', error);
+        res.status(500).send('Authentication failed: ' + error.message);
+    }
+}));
 
 app.post('/api/upload-media', upload.single('file'), (req, res) => {
     if (!req.file) {
@@ -747,16 +800,18 @@ app.post('/api/restore', catchAsync(async (req, res, next) => {
 
 // --- Config Management ---
 app.get('/api/config/keys', (req, res) => {
-    // Return the keys that are relevant
+    // Return the keys (Unmasked for local convenience as per user request)
     const keys = {
         GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
-        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? '••••••••' : '',
+        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
         LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID || '',
-        LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET ? '••••••••' : '',
+        LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET || '',
         FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID || '',
-        FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET ? '••••••••' : '',
+        FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET || '',
+        INSTAGRAM_CLIENT_ID: process.env.INSTAGRAM_CLIENT_ID || '',
+        INSTAGRAM_CLIENT_SECRET: process.env.INSTAGRAM_CLIENT_SECRET || '',
         REDDIT_CLIENT_ID: process.env.REDDIT_CLIENT_ID || '',
-        REDDIT_CLIENT_SECRET: process.env.REDDIT_CLIENT_SECRET ? '••••••••' : '',
+        REDDIT_CLIENT_SECRET: process.env.REDDIT_CLIENT_SECRET || '',
     };
     res.json(keys);
 });

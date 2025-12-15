@@ -49,21 +49,34 @@ const socialDataService = {
         const tokens = loadTokens();
         let changed = false;
 
+        // Helper to check platform match (including handling shared creds like fb/insta)
+        const isPlatformMatch = (tokenPlatform, targetPlatform) => {
+            if (tokenPlatform === targetPlatform) return true;
+            if ((targetPlatform === 'facebook' || targetPlatform === 'instagram') &&
+                (tokenPlatform === 'facebook' || tokenPlatform === 'instagram')) {
+                return true;
+            }
+            return false;
+        };
+
         // If specific account ID provided
         if (accountId) {
+            console.log(`[Social] Disconnecting specific account ${accountId} for ${platform}`);
             Object.keys(tokens).forEach(key => {
                 const token = tokens[key];
-                // Check if this token matches platform AND the account ID (which we stored as userId or id)
-                // token structure from auth-service/token-manager: { id: "...", ... }
-                if (token.platform === platform && (token.id === accountId || key.includes(accountId))) {
+                if (isPlatformMatch(token.platform, platform) && (token.id === accountId || key.includes(accountId))) {
+                    console.log(`[Social] Deleting token ${key}`);
                     delete tokens[key];
                     changed = true;
                 }
             });
         } else {
-            // Remove all tokens for this platform (legacy behavior / "Disconnect All")
+            console.log(`[Social] Resetting ALL accounts for ${platform} (and linked)`);
             Object.keys(tokens).forEach(key => {
-                if (key.startsWith(platform) || tokens[key].platform === platform) {
+                const token = tokens[key];
+                console.log(`[Social] Checking token ${key}: platform=${token.platform}, target=${platform}, match=${isPlatformMatch(token.platform, platform)}`);
+                if (isPlatformMatch(token.platform, platform)) {
+                    console.log(`[Social] Deleting token ${key}`);
                     delete tokens[key];
                     changed = true;
                 }
@@ -71,7 +84,10 @@ const socialDataService = {
         }
 
         if (changed) {
+            console.log(`[Social] Saving updated tokens to disk`);
             saveTokens(tokens);
+        } else {
+            console.log(`[Social] No changes made (no matching tokens found)`);
         }
         return true;
     },

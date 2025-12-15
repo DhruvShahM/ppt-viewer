@@ -89,7 +89,7 @@
   {
     "id": "post_1765510685030_173",
     "createdAt": "2025-12-12T03:38:05.030Z",
-    "status": "pending",
+    "status": "published",
     "title": "meko",
     "description": "meko",
     "tags": "meko",
@@ -108,6 +108,13 @@
     "mediaType": "video",
     "mediaPath": "/api/screenshots/1765510685013-270885054-render-rate-limiting-3-1765468157614.mp4",
     "deckId": "social-direct-upload",
-    "slideIndex": 0
+    "slideIndex": 0,
+    "publishedAt": "2025-12-12T07:37:46.618Z",
+    "results": [
+      {
+        "platform": "youtube",
+        "status": "success"
+      }
+    ]
   }
 ]

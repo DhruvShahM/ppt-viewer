@@ -28,8 +28,15 @@ const authService = {
         return userData;
     },
 
+    validateConfig: (config, platformName) => {
+        if (!config.clientId || config.clientId.includes('YOUR_') || !config.clientSecret || config.clientSecret.includes('YOUR_')) {
+            throw new Error(`Invalid configuration for ${platformName}. Please go to Settings > Configure API Credentials and enter your Client ID and Secret.`);
+        }
+    },
+
     // --- LINKEDIN ---
     getLinkedinAuthUrl: () => {
+        authService.validateConfig(socialConfig.linkedin, 'LinkedIn');
         const { clientId, callbackUrl, scope } = socialConfig.linkedin;
         const state = Math.random().toString(36).substring(7);
         return `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&state=${state}&scope=${scope.join('%20')}`;
@@ -71,6 +78,7 @@ const authService = {
 
     // --- GOOGLE / YOUTUBE ---
     getGoogleAuthUrl: () => {
+        authService.validateConfig(socialConfig.google, 'Google/YouTube');
         const { clientId, clientSecret, callbackUrl, scope } = socialConfig.google;
         const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, callbackUrl);
 
@@ -113,9 +121,10 @@ const authService = {
     // We will assume "Confidential Client" flow for simplicity if keys are provided.
     // --- FACEBOOK / INSTAGRAM ---
     getFacebookAuthUrl: () => {
+        authService.validateConfig(socialConfig.facebook, 'Facebook');
         const { clientId, callbackUrl, scope } = socialConfig.facebook;
         const state = Math.random().toString(36).substring(7);
-        return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&state=${state}&scope=${scope.join(',')}&response_type=code`;
+        return `https://www.facebook.com/v21.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&state=${state}&scope=${scope.join(',')}&response_type=code`;
     },
 
     handleFacebookCallback: async (code) => {
@@ -123,7 +132,7 @@ const authService = {
 
         // 1. Exchange code for access token
         // Facebook requires a GET request usually
-        const tokenResponse = await axios.get('https://graph.facebook.com/v18.0/oauth/access_token', {
+        const tokenResponse = await axios.get('https://graph.facebook.com/v21.0/oauth/access_token', {
             params: {
                 client_id: clientId,
                 redirect_uri: callbackUrl,
@@ -157,8 +166,61 @@ const authService = {
         return userData;
     },
 
+    // --- INSTAGRAM (Business Login) ---
+    getInstagramAuthUrl: () => {
+        authService.validateConfig(socialConfig.instagram, 'Instagram');
+        const { clientId, callbackUrl, scope } = socialConfig.instagram;
+        const state = Math.random().toString(36).substring(7);
+        // Instagram for Business Login URL
+        // Using the standard OAuth URL without legacy params
+        return `https://www.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&response_type=code&scope=${scope.join(',')}&state=${state}`;
+    },
+
+    handleInstagramCallback: async (code) => {
+        const { clientId, clientSecret, callbackUrl } = socialConfig.instagram;
+
+        // 1. Exchange code for short-lived access token
+        const formData = new URLSearchParams();
+        formData.append('client_id', clientId);
+        formData.append('client_secret', clientSecret);
+        formData.append('grant_type', 'authorization_code');
+        formData.append('redirect_uri', callbackUrl);
+        formData.append('code', code);
+
+        const tokenResponse = await axios.post('https://api.instagram.com/oauth/access_token', formData);
+
+        let accessToken = tokenResponse.data.access_token;
+        const userId = tokenResponse.data.user_id; // Int returned here
+
+        // 2. (Optional) Exchange for Long-Lived Token if needed
+        // For now, use the token we got.
+
+        // 3. Get User Profile via Graph API
+        // Note: For Instagram Business Login, we use graph.instagram.com
+        const profileResponse = await axios.get(`https://graph.instagram.com/me`, {
+            params: {
+                fields: 'id,username,account_type',
+                access_token: accessToken
+            }
+        });
+
+        const userData = {
+            id: profileResponse.data.id,
+            name: profileResponse.data.username, // Instagram doesn't always give 'name'
+            username: profileResponse.data.username,
+            picture: null, // Basic API might not give URL directly without more calls
+            platform: 'instagram',
+            accessToken: accessToken,
+            expiryDate: Date.now() + (3600 * 1000) // Approx 1 hour usually
+        };
+
+        saveToken('instagram', userData);
+        return userData;
+    },
+
     // --- REDDIT ---
     getRedditAuthUrl: () => {
+        authService.validateConfig(socialConfig.reddit, 'Reddit');
         const { clientId, callbackUrl, scope } = socialConfig.reddit;
         const state = Math.random().toString(36).substring(7);
         // Reddit requires Basic Auth for the token request, but standard URL for auth
