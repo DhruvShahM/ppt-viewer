@@ -69,6 +69,8 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const [annotations, setAnnotations] = useState({}); // { [slideIndex]: { image, texts } }
     const annotationRef = useRef(null);
 
+    const [direction, setDirection] = useState(0);
+
     const saveCurrentAnnotations = () => {
         if (annotationRef.current) {
             const data = annotationRef.current.getData();
@@ -83,6 +85,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const nextSlide = () => {
         if (currentSlide < totalSlides - 1) {
             saveCurrentAnnotations();
+            setDirection(1);
             setCurrentSlide(c => c + 1);
         }
     };
@@ -90,6 +93,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const prevSlide = () => {
         if (currentSlide > 0) {
             saveCurrentAnnotations();
+            setDirection(-1);
             setCurrentSlide(c => c - 1);
         }
     };
@@ -229,10 +233,10 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
         >
             {/* Slides */}
             <div className="relative z-10 w-full h-full">
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence initial={false} custom={direction} mode="popLayout">
                     {slides.map((SlideComponent, index) => (
                         index === currentSlide && (
-                            <Slide key={index} isActive={true}>
+                            <Slide key={index} isActive={true} custom={direction}>
                                 <SlideComponent />
                             </Slide>
                         )

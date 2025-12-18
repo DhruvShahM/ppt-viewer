@@ -433,5 +433,19 @@
     "version": 1,
     "hasLargeAssets": false,
     "importedAt": "2025-12-15T07:45:06.006Z"
+  },
+  {
+    "id": "mentally_healthier",
+    "title": "mentally_healthier",
+    "repoId": "stress-test",
+    "repoTitle": "Imported Decks",
+    "description": "mentally_healthier",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/mentally_healthier",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-15T08:00:35.627Z"
   }
 ]

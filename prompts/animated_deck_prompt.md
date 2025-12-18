@@ -67,6 +67,10 @@ export default SlideX_DescriptiveName;
 - Text-only slides are NOT allowed
 - Each slide must have motion or visual feedback
 
+6) Screen Resolution:
+- Design for a 1920x1080 laptop screen
+- Content must fit within the screen strictly
+
 --------------------------------------------------
 
 DESIGN & MOTION EXPECTATIONS:

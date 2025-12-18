@@ -452,6 +452,37 @@ app.post('/api/render-video', catchAsync(async (req, res, next) => {
     }
 }));
 
+app.post('/api/obs/record', catchAsync(async (req, res, next) => {
+    const { deckId, slideIndex, duration } = req.body;
+
+    if (!deckId || slideIndex === undefined || !duration) {
+        return next(new AppError('Missing required fields', 400));
+    }
+
+    const obsService = require('./services/obs-service');
+
+    // Construct local URL for the slide
+    // Assuming the app is running on localhost:5173
+    const slideUrl = `http://localhost:5173/?deckId=${deckId}&slide=${slideIndex}&mode=present`;
+
+    try {
+        const outputPath = await obsService.record(deckId, slideIndex, duration, slideUrl);
+
+        // We need to make this file accessible to the frontend/uploader
+        // OBS saves it to its own Output path. We might want to move it or just reference it.
+        // For simplicity, we'll assume the server can read the path OBS returns.
+
+        res.json({
+            success: true,
+            path: outputPath,
+            message: "OBS Recording Complete"
+        });
+    } catch (error) {
+        console.error("OBS Record failed", error);
+        return next(new AppError('OBS Record failed: ' + error.message, 500));
+    }
+}));
+
 
 app.post('/api/social/youtube/playlist', catchAsync(async (req, res, next) => {
     const { videoId, playlistName, platform = 'youtube' } = req.body;

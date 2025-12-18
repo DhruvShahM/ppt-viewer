@@ -347,6 +347,32 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
         }
     };
 
+    const handleOBSRecord = async () => {
+        setIsRendering(true);
+        try {
+            const response = await fetch('http://localhost:3001/api/obs/record', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    deckId: currentSlideNode.deckId || new URLSearchParams(window.location.search).get('deckId') || localStorage.getItem('lastDeckId'),
+                    slideIndex: slideIndex - 1,
+                    duration,
+                })
+            });
+            const data = await response.json();
+            if (data.success) {
+                alert(`OBS Recording Complete! Saved to: ${data.path}`);
+            } else {
+                alert('OBS Record failed: ' + data.message);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('OBS Record error');
+        } finally {
+            setIsRendering(false);
+        }
+    };
+
     const handleInitiateConnection = (platform) => {
         setConnectingPlatform(platform);
         setConnectionStep('details');
@@ -1144,6 +1170,15 @@ const SocialExportStudio = ({ slideIndex, currentSlideNode, onClose, onRecording
                                 >
                                     {isRendering ? <Loader2 className="animate-spin" /> : <Video size={18} />}
                                     {isRendering ? 'Rendering...' : 'Cloud Render (Best Quality)'}
+                                </button>
+
+                                <button
+                                    onClick={handleOBSRecord}
+                                    disabled={isRendering}
+                                    className="w-full py-3 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg"
+                                >
+                                    {isRendering ? <Loader2 className="animate-spin" /> : <Monitor size={18} />}
+                                    {isRendering ? 'Recording...' : 'Record with OBS'}
                                 </button>
                             </div>
                         )}
