@@ -13,6 +13,7 @@
   "dependencies": {
     "@apollo/client": "^3.10.0",
     "@apollo/server": "^4.10.0",
+    "@google/generative-ai": "^0.24.1",
     "adm-zip": "^0.5.16",
     "axios": "^1.13.2",
     "clsx": "^2.1.0",

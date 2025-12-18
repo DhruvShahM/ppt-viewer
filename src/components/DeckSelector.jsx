@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw, Upload, Download, FileText } from 'lucide-react';
+import { Play, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw, Upload, Download, FileText, Bot } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef } from 'react';
 
 import { REPOSITORIES } from '../data/repositories';
@@ -670,6 +670,46 @@ const DeckSelector = ({ onSelectDeck }) => {
         }
     };
 
+    const handleAgentContext = async () => {
+        if (selectedDecks.size === 0) return;
+
+        setIsProcessing(true);
+        try {
+            const deckIds = Array.from(selectedDecks);
+            // Default to educational style for context
+            // Request ZIP format (merge: false is default)
+            const response = await fetch('/api/script/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deckIds, style: 'educational', merge: false })
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `agent-scripts-bundle.zip`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                setIsSelectionMode(false);
+                setSelectedDecks(new Set());
+                alert("Agent Scripts ZIP downloaded!");
+            } else {
+                const err = await response.json();
+                alert(`Generation failed: ${err.message}`);
+            }
+        } catch (error) {
+            console.error('Context generation failed:', error);
+            alert('Context generation failed');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     const handleDownloadFeedbackSelected = async () => {
         if (selectedDecks.size === 0) return;
 
@@ -1042,10 +1082,20 @@ const DeckSelector = ({ onSelectDeck }) => {
                                 onClick={handleScriptGeneration}
                                 disabled={isProcessing || selectedDecks.size === 0}
                                 className="px-4 py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Generate YouTube Script"
+                                title="Generate YouTube Scripts (ZIP)"
                             >
                                 {isProcessing ? <Loader2 className="animate-spin" /> : <FileText size={20} />}
                                 Script ({selectedDecks.size})
+                            </button>
+
+                            <button
+                                onClick={handleAgentContext}
+                                disabled={isProcessing || selectedDecks.size === 0}
+                                className="px-4 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Get One-Click Context for Agent"
+                            >
+                                {isProcessing ? <Loader2 className="animate-spin" /> : <Bot size={20} />}
+                                Agent Context
                             </button>
                         </>
 
