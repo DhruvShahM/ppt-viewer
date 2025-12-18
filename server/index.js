@@ -817,13 +817,77 @@ app.post('/api/restore', catchAsync(async (req, res, next) => {
             });
             res.json({ success: true });
         } catch (error) {
-            console.error('Restore process failed:', error);
             return next(new AppError('Restore process failed', 500));
         }
     };
 
     runRestore();
 }));
+
+app.post('/api/script/download', catchAsync(async (req, res, next) => {
+    const { deckIds, style = 'educational' } = req.body;
+
+    if (!deckIds || !Array.isArray(deckIds) || deckIds.length === 0) {
+        return next(new AppError('Invalid deckIds', 400));
+    }
+
+    const AdmZip = require('adm-zip');
+    const { exec } = require('child_process');
+
+    const zip = new AdmZip();
+    const scriptsDir = path.join(__dirname, '..', 'scripts');
+
+    // Helper to run script generation
+    const processDeck = async (deckId) => {
+        return new Promise((resolve) => {
+            // 1. Extract content
+            exec(`node extract_deck_content.js ${deckId}`, { cwd: scriptsDir }, (err) => {
+                if (err) {
+                    console.error(`Extraction failed for ${deckId}:`, err);
+                    return resolve(null);
+                }
+
+                // 2. Generate Prompt
+                exec(`node generate_script_prompt.js --style=${style}`, { cwd: scriptsDir }, (err, stdout) => {
+                    if (err) {
+                        console.error(`Generation failed for ${deckId}:`, err);
+                        return resolve(null);
+                    }
+                    resolve({ deckId, content: stdout });
+                });
+            });
+        });
+    };
+
+    console.log(`Generating scripts for ${deckIds.length} decks (Style: ${style})...`);
+
+    try {
+        const results = [];
+        for (const id of deckIds) {
+            const result = await processDeck(id);
+            if (result) {
+                results.push(result);
+                zip.addFile(`${id}-script-prompt.txt`, Buffer.from(result.content, 'utf8'));
+            }
+        }
+
+        if (results.length === 0) {
+            return next(new AppError('Failed to generate any scripts', 500));
+        }
+
+        const zipBuffer = zip.toBuffer();
+
+        res.set('Content-Type', 'application/zip');
+        res.set('Content-Disposition', `attachment; filename="scripts-bundle-${style}.zip"`);
+        res.set('Content-Length', zipBuffer.length);
+        res.send(zipBuffer);
+
+    } catch (error) {
+        console.error("Script generation failed:", error);
+        return next(new AppError("Script generation failed", 500));
+    }
+}));
+
 
 
 

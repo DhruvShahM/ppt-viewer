@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw, Upload, Download } from 'lucide-react';
+import { Play, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw, Upload, Download, FileText } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef } from 'react';
 
 import { REPOSITORIES } from '../data/repositories';
@@ -629,6 +629,47 @@ const DeckSelector = ({ onSelectDeck }) => {
         }
     };
 
+    const handleScriptGeneration = async () => {
+        if (selectedDecks.size === 0) return;
+
+        const style = prompt("Enter script style (educational, promotional, podcaster):", "educational");
+        if (!style) return;
+
+        setIsProcessing(true);
+        try {
+            const deckIds = Array.from(selectedDecks);
+            const response = await fetch('/api/script/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deckIds, style })
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `scripts-bundle-${style}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                setIsSelectionMode(false);
+                setSelectedDecks(new Set());
+                alert("Scripts generated and downloaded!");
+            } else {
+                const err = await response.json();
+                alert(`Generation failed: ${err.message}`);
+            }
+        } catch (error) {
+            console.error('Script generation failed:', error);
+            alert('Script generation failed');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     const handleDownloadFeedbackSelected = async () => {
         if (selectedDecks.size === 0) return;
 
@@ -996,7 +1037,18 @@ const DeckSelector = ({ onSelectDeck }) => {
                                 {isProcessing ? <Loader2 className="animate-spin" /> : <Trash2 size={20} />}
                                 Delete ({selectedDecks.size})
                             </button>
+
+                            <button
+                                onClick={handleScriptGeneration}
+                                disabled={isProcessing || selectedDecks.size === 0}
+                                className="px-4 py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Generate YouTube Script"
+                            >
+                                {isProcessing ? <Loader2 className="animate-spin" /> : <FileText size={20} />}
+                                Script ({selectedDecks.size})
+                            </button>
                         </>
+
                     )}
                 </div>
             </motion.div >
