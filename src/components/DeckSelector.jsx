@@ -17,7 +17,7 @@ const ICON_MAP = {
     Heart
 };
 
-const DeckCard = ({ title, description, icon, onClick, color, isEditMode, repositories, currentRepoId, onMove, isSelectionMode, isSelected, onToggleSelect, onDelete, onArchive, onRestore, onExport, status }) => {
+const DeckCard = ({ title, description, icon, onClick, color, isEditMode, repositories, currentRepoId, onMove, isSelectionMode, isSelected, onToggleSelect, onDelete, onArchive, onRestore, onExport, onReplace, status }) => {
     // Resolve icon component from string name or use default
     const IconComponent = ICON_MAP[icon] || Layers;
 
@@ -60,7 +60,7 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
                     ARCHIVED
                 </div>
             ) : (
-                <div className="w-full mt-auto pt-4 border-t border-white/10 flex items-end gap-2">
+                <div className="w-full mt-auto pt-4 border-t border-white/10 flex items-end gap-2 text w-full">
                     {!isEditMode && !isSelectionMode && (
                         <div className="flex-grow"></div>
                     )}
@@ -131,6 +131,17 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
                                     <Archive size={16} />
                                 </button>
                             )}
+
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onReplace();
+                                }}
+                                className="p-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded border border-purple-500/20 transition-colors"
+                                title="Replace Code/Slides"
+                            >
+                                <Upload size={16} />
+                            </button>
                         </>
                     )}
                 </div>
@@ -154,6 +165,8 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
         repoId: '',
         files: null
     });
+    const [replaceDeckId, setReplaceDeckId] = useState(null);
+    const [replaceFiles, setReplaceFiles] = useState(null);
 
 
     const [searchQuery, setSearchQuery] = useState(() => {
@@ -802,6 +815,49 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
             setIsProcessing(false);
         }
     };
+
+    const handleReplaceSubmit = async (e) => {
+        e.preventDefault();
+        if (!replaceDeckId || !replaceFiles || replaceFiles.length === 0) {
+            alert("Please select files to upload.");
+            return;
+        }
+
+        if (!confirm("WARNING: This will replace the current deck content with the uploaded files. A backup will be created, but any unsaved changes might be lost. Continue?")) {
+            return;
+        }
+
+        setIsProcessing(true);
+        const formData = new FormData();
+        formData.append('deckId', replaceDeckId);
+
+        for (let i = 0; i < replaceFiles.length; i++) {
+            formData.append('files', replaceFiles[i]);
+        }
+
+        try {
+            const response = await fetch('/api/replace-deck-content', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                alert("Deck content replaced successfully!");
+                setReplaceDeckId(null);
+                setReplaceFiles(null);
+                window.location.reload();
+            } else {
+                const err = await response.json();
+                alert(`Replacement failed: ${err.message}`);
+            }
+        } catch (error) {
+            console.error("Replacement error:", error);
+            alert("Replacement failed");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     const handleImportSubmit = async (e) => {
         e.preventDefault();
         // Auto-generate ID if empty from title
@@ -1155,9 +1211,11 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
                                             isSelectionMode={isSelectionMode}
                                             isSelected={selectedDecks.has(deck.id)}
                                             onToggleSelect={() => toggleSelection(deck.id)}
+
                                             onDelete={() => handleDeleteDeck(deck.id)}
                                             onArchive={() => handleArchiveDeck(deck.id)}
                                             onRestore={() => handleRestoreDeck(deck.id)}
+                                            onReplace={() => setReplaceDeckId(deck.id)}
                                             status={deck.status}
                                         />
                                     ))}
@@ -1333,6 +1391,77 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
                                 >
                                     {isProcessing && <Loader2 className="animate-spin" size={16} />}
                                     Import Deck
+                                </button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </div>
+            )}
+
+            {/* Replace Modal */}
+            {replaceDeckId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative"
+                    >
+                        <button
+                            onClick={() => {
+                                setReplaceDeckId(null);
+                                setReplaceFiles(null);
+                            }}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                        >
+                            <X size={24} />
+                        </button>
+
+                        <h2 className="text-2xl font-bold mb-2 text-white flex items-center gap-2">
+                            <Upload className="text-purple-400" /> Replace Deck Content
+                        </h2>
+                        <p className="text-gray-400 mb-6 text-sm">
+                            Upload a new <code>.md</code> or <code>.zip</code> file. This will replace existing slides.
+                            A backup will be created automatically.
+                        </p>
+
+                        <form onSubmit={handleReplaceSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">New Slide Files (.zip, .md, .jsx, .js) <span className="text-red-500">*</span></label>
+                                <div className="border-2 border-dashed border-white/20 rounded-lg p-6 text-center hover:border-purple-500/50 hover:bg-purple-500/5 transition-all text-gray-400 relative">
+                                    <input
+                                        type="file"
+                                        multiple
+                                        accept=".jsx,.js,.zip,.md"
+                                        required
+                                        className="w-full h-full opacity-0 absolute inset-0 cursor-pointer z-10"
+                                        onChange={e => setReplaceFiles(e.target.files)}
+                                    />
+                                    <div className="flex flex-col items-center gap-2 pointer-events-none">
+                                        <Upload size={32} className="text-gray-500" />
+                                        <p className="text-sm font-medium">Click to upload files (or .zip)</p>
+                                        <p className="text-xs text-gray-500">{replaceFiles ? `${replaceFiles.length} files selected` : 'Drag & drop or click'}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setReplaceDeckId(null);
+                                        setReplaceFiles(null);
+                                    }}
+                                    className="px-4 py-2 rounded-lg hover:bg-white/10 text-white transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isProcessing}
+                                    className="px-6 py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white font-bold transition-all disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    {isProcessing && <Loader2 className="animate-spin" size={16} />}
+                                    Replace
                                 </button>
                             </div>
                         </form>

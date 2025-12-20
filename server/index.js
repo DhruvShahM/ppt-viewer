@@ -1173,6 +1173,233 @@ app.post('/api/import-deck', codeUpload.array('files'), catchAsync(async (req, r
 
 }));
 
+app.post('/api/replace-deck-content', codeUpload.array('files'), catchAsync(async (req, res, next) => {
+    const { deckId } = req.body;
+
+    if (!deckId || !req.files || req.files.length === 0) {
+        return next(new AppError('Missing deckId or files', 400));
+    }
+
+    const deckDir = path.join(__dirname, '..', 'src', 'decks', deckId);
+    const backupDir = path.join(__dirname, '..', 'src', 'decks', `${deckId}_backup_${Date.now()}`);
+
+    // Check if deck exists
+    if (!fs.existsSync(deckDir)) {
+        return next(new AppError('Deck not found', 404));
+    }
+
+    console.log(`Starting replacement for deck: ${deckId}`);
+    console.log(`Creating backup at: ${backupDir}`);
+
+    // 1. BACKUP
+    try {
+        fs.renameSync(deckDir, backupDir);
+    } catch (err) {
+        console.error("Backup failed:", err);
+        return next(new AppError('Failed to create backup. Aborting replacement.', 500));
+    }
+
+    // Function to rollback
+    const rollback = () => {
+        console.warn(`Rolling back replacement for ${deckId}...`);
+        try {
+            if (fs.existsSync(deckDir)) {
+                // Use rmSync with force and recursive (Node 14.14+)
+                fs.rmSync(deckDir, { recursive: true, force: true });
+            }
+            fs.renameSync(backupDir, deckDir);
+            console.log("Rollback successful.");
+        } catch (err) {
+            console.error("CRITICAL: Rollback failed!", err);
+        }
+    };
+
+    // 2. PREPARE NEW DIRECTORY
+    try {
+        fs.mkdirSync(deckDir, { recursive: true });
+    } catch (err) {
+        console.error("Failed to create new deck directory:", err);
+        rollback();
+        return next(new AppError('Failed to create new deck directory', 500));
+    }
+
+    // 3. PROCESS FILES (Copied logic from import-deck mostly)
+    const importedFiles = [];
+    const AdmZip = require('adm-zip');
+
+    try {
+        for (const file of req.files) {
+            if (file.mimetype === 'application/zip' || file.mimetype === 'application/x-zip-compressed' || file.originalname.endsWith('.zip')) {
+                // Handle Zip File
+                try {
+                    const zip = new AdmZip(file.path);
+                    const zipEntries = zip.getEntries();
+
+                    zipEntries.forEach(entry => {
+                        if (!entry.isDirectory && (entry.entryName.endsWith('.jsx') || entry.entryName.endsWith('.js'))) {
+                            const fileName = path.basename(entry.entryName);
+                            if (fileName.startsWith('.')) return;
+
+                            const targetPath = path.join(deckDir, fileName);
+
+                            if (!entry.entryName.includes('__MACOSX')) {
+                                fs.writeFileSync(targetPath, entry.getData());
+                                importedFiles.push(fileName);
+                            }
+                        }
+                    });
+                    try { fs.unlinkSync(file.path); } catch (e) { }
+                } catch (zipErr) {
+                    console.error("Error extracting zip:", zipErr);
+                    throw new Error("Zip extraction failed");
+                }
+            } else {
+                // Handle Regular File
+                const targetPath = path.join(deckDir, file.originalname);
+                fs.renameSync(file.path, targetPath);
+                importedFiles.push(file.originalname);
+            }
+        }
+    } catch (err) {
+        console.error("Failed to process uploaded files:", err);
+        rollback();
+        return next(new AppError('Failed to process uploaded files', 500));
+    }
+
+    // Process Markdown if any
+    const mdFiles = importedFiles.filter(f => f.endsWith('.md'));
+    for (const mdFile of mdFiles) {
+        try {
+            const mdPath = path.join(deckDir, mdFile);
+            const content = fs.readFileSync(mdPath, 'utf8');
+            const sections = content.split(/(?=^##\s+)/m);
+            let extractedCount = 0;
+
+            sections.forEach(section => {
+                const trimmed = section.trim();
+                if (!trimmed.startsWith('##')) return;
+                const firstLineEnd = trimmed.indexOf('\n');
+                if (firstLineEnd === -1) return;
+                let filenameLine = trimmed.substring(2, firstLineEnd).trim();
+                const codeBlockRegex = /```(?:jsx|js|javascript|typescript|ts)?\s*([\s\S]*?)```/;
+                const match = trimmed.match(codeBlockRegex);
+
+                if (match && match[1]) {
+                    let code = match[1].trim();
+                    let filename = filenameLine.replace(/[^\w\d\-\.]/g, '_');
+                    if (!filename.match(/\.(js|jsx)$/i)) filename += '.jsx';
+
+                    const targetPath = path.join(deckDir, filename);
+                    fs.writeFileSync(targetPath, code);
+                    importedFiles.push(filename);
+                    extractedCount++;
+                }
+            });
+
+            // Fallback for simple slide format
+            if (extractedCount === 0) {
+                const codeBlockRegexGlobal = /```(?:jsx|js|javascript|typescript|ts)?\s*([\s\S]*?)```/g;
+                let match;
+                let idx = 1;
+                while ((match = codeBlockRegexGlobal.exec(content)) !== null) {
+                    if (match[1]) {
+                        let code = match[1].trim();
+                        // Relaxed check: allows named exports too
+                        if (code.includes('import') && (code.includes('export default') || code.includes('export const') || code.includes('export function') || code.includes('export class'))) {
+
+                            // Try to extract filename from comment like "// Slide1_Title.jsx"
+                            let filename = `Slide_${idx}.jsx`;
+                            const firstLine = code.split('\n')[0].trim();
+                            if (firstLine.startsWith('//') && firstLine.includes('.jsx')) {
+                                const probableName = firstLine.replace('//', '').trim();
+                                if (/^[\w\-\.]+\.jsx$/.test(probableName)) {
+                                    filename = probableName;
+                                }
+                            }
+
+                            // Ensure default export exists
+                            if (!code.includes('export default')) {
+                                const nameMatch = code.match(/export\s+(?:const|function|class)\s+([A-Za-z0-9_]+)/);
+                                if (nameMatch && nameMatch[1]) {
+                                    code += `\n\nexport default ${nameMatch[1]};`;
+                                }
+                            }
+
+                            const targetPath = path.join(deckDir, filename);
+                            fs.writeFileSync(targetPath, code);
+                            importedFiles.push(filename);
+                            extractedCount++;
+                            idx++;
+                        }
+                    }
+                }
+            }
+
+        } catch (err) {
+            console.error(`Error processing markdown ${mdFile}:`, err);
+            // Non-critical, but good to have
+        }
+    }
+
+    // 4. VERIFY & GENERATE DECK.JS
+    const slideFiles = fs.readdirSync(deckDir).filter(f => f.endsWith('.jsx') || (f.endsWith('.js') && f !== 'deck.js'));
+
+    if (slideFiles.length === 0) {
+        console.error("No valid slide files found after processing.");
+        rollback();
+        return next(new AppError('No valid slide files found (jsx/js). Replacement aborted.', 400));
+    }
+
+    slideFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+    let allComponents = [];
+    let importStatements = [];
+
+    for (const file of slideFiles) {
+        const filePath = path.join(deckDir, file);
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        const fileName = path.parse(file).name;
+
+        // Find all named exports (e.g. export const Slide1...)
+        const exportRegex = /export\s+(?:const|function|class)\s+([A-Za-z0-9_]+)/g;
+        let match;
+        let exportedNames = [];
+        while ((match = exportRegex.exec(fileContent)) !== null) {
+            exportedNames.push(match[1]);
+        }
+
+        if (exportedNames.length > 0) {
+            // Use named exports
+            importStatements.push(`import { ${exportedNames.join(', ')} } from './${file}';`);
+            allComponents.push(...exportedNames);
+        } else {
+            // Fallback: Default import
+            importStatements.push(`import ${fileName} from './${file}';`);
+            allComponents.push(fileName);
+        }
+    }
+
+    const deckJsContent = `${importStatements.join('\n')}\n\nexport default [\n    ${allComponents.join(',\n    ')}\n];`;
+
+    try {
+        fs.writeFileSync(path.join(deckDir, 'deck.js'), deckJsContent);
+    } catch (err) {
+        console.error("Failed to write deck.js:", err);
+        rollback();
+        return next(new AppError('Failed to write deck.js', 500));
+    }
+
+    // 5. SUCCESS - DELETE BACKUP
+    try {
+        fs.rmSync(backupDir, { recursive: true, force: true });
+        console.log("Replacement successful. Backup deleted.");
+    } catch (err) {
+        console.warn("Replacement successful but failed to delete backup:", err);
+    }
+
+    res.json({ success: true, message: "Deck content replaced successfully" });
+}));
+
 const archiver = require('archiver');
 
 app.post('/api/export', catchAsync(async (req, res, next) => {
@@ -1392,8 +1619,33 @@ app.post('/api/open-file', catchAsync(async (req, res, next) => {
     // Try parsing deck.js first to get accurate file path
     if (fs.existsSync(deckJsPath)) {
         try {
-            const deckContent = fs.readFileSync(deckJsPath, 'utf8');
-            const exportMatch = deckContent.match(/export\s+default\s*\[([\s\S]*?)\]/);
+            let deckContent = fs.readFileSync(deckJsPath, 'utf8');
+            let exportMatch = deckContent.match(/export\s+default\s*\[([\s\S]*?)\]/);
+            let currentDeckDir = deckDir;
+
+            // Handle indirect export: export default SomeVar;
+            if (!exportMatch) {
+                const varMatch = deckContent.match(/export\s+default\s+([A-Za-z0-9_]+)/);
+                if (varMatch) {
+                    const varName = varMatch[1];
+                    const imports = Array.from(deckContent.matchAll(/import\s+([\s\S]+?)\s+from\s+['"](.+)['"]/g));
+                    for (const m of imports) {
+                        if (new RegExp(`\\b${varName}\\b`).test(m[1])) {
+                            const indirectPath = path.resolve(deckDir, m[2]);
+                            const fullIndirectPath = fs.existsSync(indirectPath + '.jsx') ? indirectPath + '.jsx' : (fs.existsSync(indirectPath + '.js') ? indirectPath + '.js' : (fs.existsSync(indirectPath) ? indirectPath : null));
+
+                            if (fullIndirectPath && fs.existsSync(fullIndirectPath)) {
+                                deckContent = fs.readFileSync(fullIndirectPath, 'utf8');
+                                currentDeckDir = path.dirname(fullIndirectPath);
+                                // Look for either named array export or default array export in the indirect file
+                                exportMatch = deckContent.match(new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+\\b${varName}\\b\\s*=\\s*\\[([\\s\\S]*?)\\]`)) ||
+                                    deckContent.match(/export\s+default\s*\[([\s\S]*?)\]/);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
 
             if (exportMatch) {
                 const exportBody = exportMatch[1];
@@ -1405,14 +1657,20 @@ app.post('/api/open-file', catchAsync(async (req, res, next) => {
 
                 if (slideIndex < componentNames.length) {
                     const componentName = componentNames[slideIndex];
+                    let importPath;
                     const safeName = componentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    const importRegex = new RegExp(`import\\s+${safeName}\\s+from\\s+['"](.+)['"]`);
-                    const importMatch = deckContent.match(importRegex);
+                    const imports = Array.from(deckContent.matchAll(/import\s+([\s\S]+?)\s+from\s+['"](.+)['"]/g));
 
-                    if (importMatch) {
-                        const importPath = importMatch[1];
-                        // Resolve path relative to deckDir
-                        let resolvedPath = path.resolve(deckDir, importPath);
+                    for (const m of imports) {
+                        if (new RegExp(`\\b${safeName}\\b`).test(m[1])) {
+                            importPath = m[2];
+                            break;
+                        }
+                    }
+
+                    if (importPath) {
+                        // Resolve path relative to current resolved directory
+                        let resolvedPath = path.resolve(currentDeckDir, importPath);
 
                         // Attach extension if missing
                         if (!resolvedPath.match(/\.(js|jsx)$/)) {
@@ -1425,6 +1683,7 @@ app.post('/api/open-file', catchAsync(async (req, res, next) => {
 
                         // Verify existence
                         if (fs.existsSync(resolvedPath)) {
+                            console.log(`Open-file: Resolved slide to ${resolvedPath}`);
                             filepath = resolvedPath;
                             filename = path.basename(resolvedPath);
                         }
@@ -1441,7 +1700,13 @@ app.post('/api/open-file', catchAsync(async (req, res, next) => {
         console.warn('Falling back to directory listing for open-file');
 
         const files = fs.readdirSync(deckDir);
-        const slideFiles = files.filter(f => (f.endsWith('.jsx') || f.endsWith('.js')) && f !== 'deck.js');
+        // Exclude deck definition files and common non-slide patterns
+        const slideFiles = files.filter(f =>
+            (f.endsWith('.jsx') || f.endsWith('.js')) &&
+            f !== 'deck.js' &&
+            !f.toLowerCase().includes('deck') &&
+            !f.startsWith('utils')
+        );
         slideFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
         filename = slideFiles[slideIndex];

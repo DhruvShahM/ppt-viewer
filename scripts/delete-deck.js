@@ -37,10 +37,38 @@ async function deleteDeck(deckId) {
     } else {
         // Delete source code
         const sourcePath = deck.path ? path.join(ROOT_DIR, deck.path) : path.join(ROOT_DIR, 'src/decks', deckId);
+        console.log(`[Delete Deck] Resolved source path: "${sourcePath}"`);
+        console.log(`[Delete Deck] Exists? ${fs.existsSync(sourcePath)}`);
+
         if (fs.existsSync(sourcePath)) {
             console.log(`[Delete Deck] Deleting source code at ${sourcePath}`);
-            fs.rmSync(sourcePath, { recursive: true, force: true });
+            const deleteWithRetry = async (retries = 3) => {
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        fs.rmSync(sourcePath, { recursive: true, force: true });
+
+                        // Verification
+                        if (!fs.existsSync(sourcePath)) return;
+
+                        // If still exists, wait and retry
+                        console.log(`[Delete Deck] Directory still exists, retrying (${i + 1}/${retries})...`);
+                        await new Promise(r => setTimeout(r, 1000));
+                    } catch (err) {
+                        console.error(`[Delete Deck] Delete attempt ${i + 1} failed:`, err.message);
+                        if (i === retries - 1) throw err;
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
+                }
+                if (fs.existsSync(sourcePath)) {
+                    throw new Error(`Failed to delete directory ${sourcePath} after multiple attempts.`);
+                }
+            };
+
+            await deleteWithRetry();
+            console.log(`[Delete Deck] Successfully deleted directory.`);
             itemsToDelete.push(deck.path || `src/decks/${deckId}`);
+        } else {
+            console.warn(`[Delete Deck] WARNING: Directory does not exist, skipping file deletion.`);
         }
     }
 
