@@ -105,7 +105,7 @@ const Slide11_YourRole = () => {
               We have to build it together.
             </span>
           </p>
-
+{/* 
           <motion.div
             className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-500/20 to-purple-500/20 px-8 py-4 rounded-full border border-blue-500/50 backdrop-blur"
             animate={{ y: [0, -10, 0] }}
@@ -115,7 +115,7 @@ const Slide11_YourRole = () => {
             <motion.span animate={{ x: [0, 5, 0] }} transition={{ duration: 2, repeat: Infinity }}>
               →
             </motion.span>
-          </motion.div>
+          </motion.div> */}
         </motion.div>
       </div>
     </div>

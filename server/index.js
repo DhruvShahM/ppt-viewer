@@ -1637,12 +1637,18 @@ app.post('/api/repositories/rename', catchAsync(async (req, res, next) => {
         return next(new AppError('Failed to rename repository', 500));
     }
 }));
-
 app.post('/api/open-file', catchAsync(async (req, res, next) => {
     const { deckId, slideIndex } = req.body;
 
     if (!deckId || slideIndex === undefined) {
         return next(new AppError('Missing required fields', 400));
+    }
+
+    // Update lastOpenedAt
+    try {
+        metadataManager.updateDeck(deckId, { lastOpenedAt: new Date().toISOString() });
+    } catch (err) {
+        console.warn(`Failed to update lastOpenedAt for ${deckId}:`, err.message);
     }
 
     const deckDir = path.join(__dirname, '..', 'src', 'decks', deckId);

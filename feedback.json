@@ -490,21 +490,5 @@
     "screenshots": [
       "1765255570747-6455139-image.png"
     ]
-  },
-  {
-    "id": 1766240057218,
-    "timestamp": "2025-12-20T14:14:17.218Z",
-    "deckId": "mentally_healthier",
-    "slideIndex": 12,
-    "instruction": "please remove the background color ",
-    "status": "pending"
-  },
-  {
-    "id": 1766240074317,
-    "timestamp": "2025-12-20T14:14:34.317Z",
-    "deckId": "mentally_healthier",
-    "slideIndex": 11,
-    "instruction": "please remove the background color\r\n",
-    "status": "pending"
   }
 ]

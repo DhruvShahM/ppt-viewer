@@ -229,6 +229,36 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
                 ...repo,
                 decks: [...repo.decks].sort((a, b) => (a.title || "").localeCompare(b.title || ""))
             }));
+        } else {
+            // Sort by lastOpenedAt or importedAt (latest first)
+            processed = processed.map(repo => ({
+                ...repo,
+                decks: [...repo.decks].sort((a, b) => {
+                    const dateA = Math.max(
+                        a.lastOpenedAt ? new Date(a.lastOpenedAt).getTime() : 0,
+                        a.importedAt ? new Date(a.importedAt).getTime() : 0
+                    );
+                    const dateB = Math.max(
+                        b.lastOpenedAt ? new Date(b.lastOpenedAt).getTime() : 0,
+                        b.importedAt ? new Date(b.importedAt).getTime() : 0
+                    );
+                    return dateB - dateA;
+                })
+            }));
+
+            // Also sort repositories by their latest deck
+            processed.sort((a, b) => {
+                const getLatestDate = (repo) => {
+                    return repo.decks.reduce((latest, deck) => {
+                        const deckDate = Math.max(
+                            deck.lastOpenedAt ? new Date(deck.lastOpenedAt).getTime() : 0,
+                            deck.importedAt ? new Date(deck.importedAt).getTime() : 0
+                        );
+                        return Math.max(latest, deckDate);
+                    }, 0);
+                };
+                return getLatestDate(b) - getLatestDate(a);
+            });
         }
 
         return processed;
@@ -241,11 +271,16 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
         );
 
         if (!isSortedAsc) {
-            // Sort by importedAt (latest first)
-            // If importedAt is missing, treat as older (put at the end/bottom)
+            // Sort by lastOpenedAt or importedAt (latest first)
             return flattened.sort((a, b) => {
-                const dateA = a.importedAt ? new Date(a.importedAt).getTime() : 0;
-                const dateB = b.importedAt ? new Date(b.importedAt).getTime() : 0;
+                const dateA = Math.max(
+                    a.lastOpenedAt ? new Date(a.lastOpenedAt).getTime() : 0,
+                    a.importedAt ? new Date(a.importedAt).getTime() : 0
+                );
+                const dateB = Math.max(
+                    b.lastOpenedAt ? new Date(b.lastOpenedAt).getTime() : 0,
+                    b.importedAt ? new Date(b.importedAt).getTime() : 0
+                );
                 return dateB - dateA;
             });
         }
