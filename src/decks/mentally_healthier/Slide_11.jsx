@@ -1,5 +1,4 @@
-
-
+// Slide_11.jsx
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Zap, Hand, Lightbulb, Share2 } from 'lucide-react';
@@ -33,13 +32,13 @@ const Slide11_YourRole = () => {
   ];
 
   return (
-    <div className="w-full h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-12 relative overflow-hidden">
-      {/* Background animated elements */}
-      <motion.div
+    <div className="w-full h-screen flex items-center justify-center p-12 relative overflow-hidden">
+      {/* Background animated elements (optional – remove if you want zero background visuals) */}
+      {/* <motion.div
         className="absolute top-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"
         animate={{ x: [-100, 100], y: [-100, 100] }}
         transition={{ duration: 8, repeat: Infinity, repeatType: "reverse" }}
-      />
+      /> */}
 
       <div className="max-w-6xl mx-auto w-full relative z-10">
         <motion.h2
@@ -65,7 +64,7 @@ const Slide11_YourRole = () => {
             return (
               <motion.div
                 key={i}
-                className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8 hover:border-slate-600 transition-all group"
+                className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8 hover:border-slate-600 transition-all group relative"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 + i * 0.1, duration: 0.5 }}

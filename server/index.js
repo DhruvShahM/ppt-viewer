@@ -1341,7 +1341,46 @@ app.post('/api/replace-deck-content', codeUpload.array('files'), catchAsync(asyn
         }
     }
 
-    // 4. VERIFY & GENERATE DECK.JS
+    // 4. SMART MERGE - Restore missing files from backup
+    // This allows for partial updates (e.g. updating only 3 slides in a 12-slide deck)
+    const isMerge = String(req.body.merge) === 'true';
+
+    if (isMerge) {
+        console.log(`Performing smart merge for ${deckId}...`);
+        try {
+            const backupFiles = fs.readdirSync(backupDir);
+            for (const file of backupFiles) {
+                // Only restore slides/code files, not the old deck.js which we'll regenerate
+                if ((file.endsWith('.jsx') || file.endsWith('.js')) && file !== 'deck.js') {
+                    const targetPath = path.join(deckDir, file);
+                    if (!fs.existsSync(targetPath)) {
+                        fs.copyFileSync(path.join(backupDir, file), targetPath);
+                        console.log(`  Restored ${file} from backup`);
+                    }
+                }
+                // Also restore other assets like images/videos if they exist in subdirectories
+                const backupFilePath = path.join(backupDir, file);
+                if (fs.statSync(backupFilePath).isDirectory()) {
+                    const targetPath = path.join(deckDir, file);
+                    if (!fs.existsSync(targetPath)) {
+                        // Primitive directory copy
+                        fs.mkdirSync(targetPath, { recursive: true });
+                        const subFiles = fs.readdirSync(backupFilePath);
+                        for (const subFile of subFiles) {
+                            fs.copyFileSync(path.join(backupFilePath, subFile), path.join(targetPath, subFile));
+                        }
+                        console.log(`  Restored directory ${file} from backup`);
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn("Smart merge had some issues, but continuing:", err);
+        }
+    } else {
+        console.log(`Performing full replacement for ${deckId} (merge disabled)`);
+    }
+
+    // 5. VERIFY & GENERATE DECK.JS
     const slideFiles = fs.readdirSync(deckDir).filter(f => f.endsWith('.jsx') || (f.endsWith('.js') && f !== 'deck.js'));
 
     if (slideFiles.length === 0) {
@@ -1389,7 +1428,7 @@ app.post('/api/replace-deck-content', codeUpload.array('files'), catchAsync(asyn
         return next(new AppError('Failed to write deck.js', 500));
     }
 
-    // 5. SUCCESS - DELETE BACKUP
+    // 6. SUCCESS - DELETE BACKUP
     try {
         fs.rmSync(backupDir, { recursive: true, force: true });
         console.log("Replacement successful. Backup deleted.");

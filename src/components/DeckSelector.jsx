@@ -167,6 +167,7 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
     });
     const [replaceDeckId, setReplaceDeckId] = useState(null);
     const [replaceFiles, setReplaceFiles] = useState(null);
+    const [isSmartReplace, setIsSmartReplace] = useState(true);
 
 
     const [searchQuery, setSearchQuery] = useState(() => {
@@ -830,6 +831,7 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
         setIsProcessing(true);
         const formData = new FormData();
         formData.append('deckId', replaceDeckId);
+        formData.append('merge', isSmartReplace ? 'true' : 'false');
 
         for (let i = 0; i < replaceFiles.length; i++) {
             formData.append('files', replaceFiles[i]);
@@ -1419,10 +1421,23 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
                         <h2 className="text-2xl font-bold mb-2 text-white flex items-center gap-2">
                             <Upload className="text-purple-400" /> Replace Deck Content
                         </h2>
-                        <p className="text-gray-400 mb-6 text-sm">
+                        <p className="text-gray-400 mb-4 text-sm">
                             Upload a new <code>.md</code> or <code>.zip</code> file. This will replace existing slides.
                             A backup will be created automatically.
                         </p>
+
+                        <div
+                            className="flex items-center gap-3 p-3 mb-6 rounded-xl bg-purple-500/10 border border-purple-500/20 cursor-pointer hover:bg-purple-500/20 transition-all select-none"
+                            onClick={() => setIsSmartReplace(!isSmartReplace)}
+                        >
+                            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isSmartReplace ? 'bg-purple-500 border-purple-500' : 'border-white/20'}`}>
+                                {isSmartReplace && <CheckSquare size={16} className="text-white" />}
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-sm font-bold text-purple-300">Smart Replace (Recommended)</span>
+                                <span className="text-xs text-gray-500">Updates slides found in files, preserves the rest.</span>
+                            </div>
+                        </div>
 
                         <form onSubmit={handleReplaceSubmit} className="space-y-4">
                             <div>

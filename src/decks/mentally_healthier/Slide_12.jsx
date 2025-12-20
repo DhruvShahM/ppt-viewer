@@ -1,12 +1,13 @@
+// Slide_12.jsx
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Heart, Brain } from 'lucide-react';
 
 const Slide12_Conclusion = () => {
   return (
-    <div className="w-full h-screen bg-gradient-to-br from-slate-950 via-purple-900 to-slate-950 flex items-center justify-center p-12 relative overflow-hidden">
-      {/* Animated gradient orb */}
-      <motion.div
+    <div className="w-full h-screen flex items-center justify-center p-12 relative overflow-hidden">
+      {/* Animated gradient orb (optional – remove if you want zero background visuals) */}
+      {/* <motion.div
         className="absolute inset-0 flex items-center justify-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.1 }}
@@ -19,11 +20,11 @@ const Slide12_Conclusion = () => {
             rotate: 360
           }}
           transition={{
-            scale: { duration: 4, repeat: Infinity, repeatType: "reverse" },
-            rotate: { duration: 20, repeat: Infinity, ease: "linear" }
+            scale: { duration: 4, repeat: Infinity, repeatType: 'reverse' },
+            rotate: { duration: 20, repeat: Infinity, ease: 'linear' }
           }}
         />
-      </motion.div>
+      </motion.div> */}
 
       <div className="max-w-4xl mx-auto w-full text-center relative z-10">
         {/* Icons trio */}
@@ -34,9 +35,9 @@ const Slide12_Conclusion = () => {
           transition={{ duration: 0.6 }}
         >
           {[
-            { icon: Heart, color: "text-pink-400" },
-            { icon: Brain, color: "text-purple-400" },
-            { icon: Sparkles, color: "text-blue-400" }
+            { icon: Heart, color: 'text-pink-400' },
+            { icon: Brain, color: 'text-purple-400' },
+            { icon: Sparkles, color: 'text-blue-400' }
           ].map((item, i) => {
             const Icon = item.icon;
             return (
@@ -62,7 +63,7 @@ const Slide12_Conclusion = () => {
           <br />
           <motion.span
             className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400"
-            animate={{ backgroundPosition: ["0%", "100%"] }}
+            animate={{ backgroundPosition: ['0%', '100%'] }}
             transition={{ duration: 3, repeat: Infinity }}
           >
             Will Be Healthier
@@ -89,14 +90,14 @@ const Slide12_Conclusion = () => {
           transition={{ delay: 0.8, duration: 0.6 }}
         >
           {[
-            { value: "54%", label: "Already improving" },
-            { value: "24/7", label: "Support availability" },
-            { value: "87%", label: "Intervention success" }
+            { value: '54%', label: 'Already improving' },
+            { value: '24/7', label: 'Support availability' },
+            { value: '87%', label: 'Intervention success' }
           ].map((stat, i) => (
             <motion.div
               key={i}
               className="bg-slate-800/50 border border-slate-700 rounded-xl p-4"
-              whileHover={{ scale: 1.05, borderColor: "rgba(148, 163, 184, 1)" }}
+              whileHover={{ scale: 1.05, borderColor: 'rgba(148, 163, 184, 1)' }}
             >
               <motion.div
                 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400"
@@ -119,7 +120,8 @@ const Slide12_Conclusion = () => {
           transition={{ delay: 1.2, duration: 0.6 }}
         >
           <p className="text-gray-200 text-lg italic leading-relaxed">
-            "A positive future isn't determined by the absence of challenges, but by our willingness to imagine one, and the tools we build to make it real."
+            "A positive future isn't determined by the absence of challenges, but by our willingness
+            to imagine one, and the tools we build to make it real."
           </p>
         </motion.div>
 
