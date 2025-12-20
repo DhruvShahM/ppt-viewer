@@ -54,6 +54,29 @@ const PromptManager = ({ onBack }) => {
         }).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
     }, [prompts, searchQuery, filterStatus]);
 
+    // Group prompts by category
+    const groupedPrompts = useMemo(() => {
+        const groups = {};
+        if (filteredPrompts.length === 0) return {};
+
+        filteredPrompts.forEach(p => {
+            const cat = p.category || 'Uncategorized';
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(p);
+        });
+
+        // Sort keys: Uncategorized last, others alphabetically
+        const sortedKeys = Object.keys(groups).sort((a, b) => {
+            if (a === 'Uncategorized') return 1;
+            if (b === 'Uncategorized') return -1;
+            return a.localeCompare(b);
+        });
+
+        const sortedGroups = {};
+        sortedKeys.forEach(key => sortedGroups[key] = groups[key]);
+        return sortedGroups;
+    }, [filteredPrompts]);
+
     const handleCreateNew = () => {
         setCurrentPrompt({
             name: '',
@@ -287,65 +310,72 @@ const PromptManager = ({ onBack }) => {
                                     No prompts found. Create one to get started.
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {filteredPrompts.map(prompt => (
-                                        <div
-                                            key={prompt.id}
-                                            onClick={() => handleEdit(prompt)}
-                                            className="group bg-white/5 border border-white/10 hover:border-blue-500/50 p-5 rounded-xl cursor-pointer transition-all hover:bg-white/10 relative overflow-hidden"
-                                        >
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="p-3 bg-blue-500/10 text-blue-400 rounded-lg">
-                                                    <FileText size={20} />
-                                                </div>
-                                                <span className={`px-2 py-1 rounded text-xs font-medium border ${prompt.status === 'Active' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                                                    prompt.status === 'Archived' ? 'bg-gray-500/10 text-gray-400 border-gray-500/20' :
-                                                        'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
-                                                    }`}>
-                                                    {prompt.status}
-                                                </span>
-                                            </div>
-
-                                            <h3 className="text-lg font-bold mb-1 truncate">{prompt.name}</h3>
-                                            <p className="text-xs text-gray-400 mb-4 flex items-center gap-2">
-                                                <span className="bg-white/10 px-1.5 py-0.5 rounded">{prompt.type}</span>
-                                                {prompt.category && <span className="bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded">{prompt.category}</span>}
-                                                <span>v{(prompt.versions || []).length}</span>
-                                                <span className="w-1 h-1 bg-gray-500 rounded-full" />
-                                                <span>{new Date(prompt.updatedAt).toLocaleDateString()}</span>
-                                            </p>
-
-                                            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                                                <button
-                                                    onClick={(e) => handleCopyContent(prompt.id, prompt.name, e)}
-                                                    className="p-2 bg-black/50 hover:bg-green-600 rounded-lg text-white backdrop-blur-sm transition-colors"
-                                                    title="Copy Content"
-                                                >
-                                                    <Clipboard size={14} />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => handleDuplicate(prompt.id, e)}
-                                                    className="p-2 bg-black/50 hover:bg-blue-600 rounded-lg text-white backdrop-blur-sm transition-colors"
-                                                    title="Duplicate"
-                                                >
-                                                    <Copy size={14} />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => handleArchive(prompt, e)}
-                                                    className="p-2 bg-black/50 hover:bg-yellow-600 rounded-lg text-white backdrop-blur-sm transition-colors"
-                                                    title={prompt.status === 'Archived' ? "Restore" : "Archive"}
-                                                >
-                                                    <Archive size={14} />
-                                                </button>
-                                                {prompt.status === 'Draft' && (
-                                                    <button
-                                                        onClick={(e) => handleDelete(prompt.id, e)}
-                                                        className="p-2 bg-black/50 hover:bg-red-600 rounded-lg text-white backdrop-blur-sm transition-colors"
-                                                        title="Delete"
+                                <div className="space-y-8">
+                                    {Object.entries(groupedPrompts).map(([category, categoryPrompts]) => (
+                                        <div key={category}>
+                                            <h2 className="text-xl font-bold text-white mb-4 pl-2 border-l-4 border-blue-500">{category} ({categoryPrompts.length})</h2>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {categoryPrompts.map(prompt => (
+                                                    <div
+                                                        key={prompt.id}
+                                                        onClick={() => handleEdit(prompt)}
+                                                        className="group bg-white/5 border border-white/10 hover:border-blue-500/50 p-5 rounded-xl cursor-pointer transition-all hover:bg-white/10 relative overflow-hidden"
                                                     >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                )}
+                                                        <div className="flex justify-between items-start mb-4">
+                                                            <div className="p-3 bg-blue-500/10 text-blue-400 rounded-lg">
+                                                                <FileText size={20} />
+                                                            </div>
+                                                            <span className={`px-2 py-1 rounded text-xs font-medium border ${prompt.status === 'Active' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                                                prompt.status === 'Archived' ? 'bg-gray-500/10 text-gray-400 border-gray-500/20' :
+                                                                    'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                                                                }`}>
+                                                                {prompt.status}
+                                                            </span>
+                                                        </div>
+
+                                                        <h3 className="text-lg font-bold mb-1 truncate">{prompt.name}</h3>
+                                                        <p className="text-xs text-gray-400 mb-4 flex items-center gap-2">
+                                                            <span className="bg-white/10 px-1.5 py-0.5 rounded">{prompt.type}</span>
+                                                            {prompt.category && <span className="bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded">{prompt.category}</span>}
+                                                            <span>v{(prompt.versions || []).length}</span>
+                                                            <span className="w-1 h-1 bg-gray-500 rounded-full" />
+                                                            <span>{new Date(prompt.updatedAt).toLocaleDateString()}</span>
+                                                        </p>
+
+                                                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                                            <button
+                                                                onClick={(e) => handleCopyContent(prompt.id, prompt.name, e)}
+                                                                className="p-2 bg-black/50 hover:bg-green-600 rounded-lg text-white backdrop-blur-sm transition-colors"
+                                                                title="Copy Content"
+                                                            >
+                                                                <Clipboard size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => handleDuplicate(prompt.id, e)}
+                                                                className="p-2 bg-black/50 hover:bg-blue-600 rounded-lg text-white backdrop-blur-sm transition-colors"
+                                                                title="Duplicate"
+                                                            >
+                                                                <Copy size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => handleArchive(prompt, e)}
+                                                                className="p-2 bg-black/50 hover:bg-yellow-600 rounded-lg text-white backdrop-blur-sm transition-colors"
+                                                                title={prompt.status === 'Archived' ? "Restore" : "Archive"}
+                                                            >
+                                                                <Archive size={14} />
+                                                            </button>
+                                                            {prompt.status === 'Draft' && (
+                                                                <button
+                                                                    onClick={(e) => handleDelete(prompt.id, e)}
+                                                                    className="p-2 bg-black/50 hover:bg-red-600 rounded-lg text-white backdrop-blur-sm transition-colors"
+                                                                    title="Delete"
+                                                                >
+                                                                    <Trash2 size={14} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     ))}
