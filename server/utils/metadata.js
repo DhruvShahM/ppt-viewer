@@ -8,7 +8,7 @@ const path = require('path');
 
 class MetadataManager {
     constructor() {
-        this.metadataFile = path.join(__dirname, '../../src/data/deck-index.json');
+        this.metadataFile = path.join(__dirname, '../data/deck-index.json');
     }
 
     /**

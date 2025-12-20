@@ -2,8 +2,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw, Upload, Download, FileText } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef } from 'react';
 
-import { REPOSITORIES } from '../data/repositories';
-import deckIndex from '../data/deck-index.json';
 
 import { createRoot } from 'react-dom/client';
 import Slide from './Slide';
@@ -186,26 +184,34 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
     const [editPage, setEditPage] = useState(1);
     const ITEMS_PER_PAGE = 6;
 
-    const [repositories, setRepositories] = useState(() => {
-        const repoMap = new Map();
-        deckIndex.forEach(deck => {
-            const safeRepoId = deck.repoId || 'uncategorized';
-            if (!repoMap.has(safeRepoId)) {
-                repoMap.set(safeRepoId, {
-                    id: safeRepoId,
-                    title: deck.repoTitle || 'Uncategorized',
-                    decks: []
+    const [repositories, setRepositories] = useState([]);
+    const refreshDecks = async () => {
+        try {
+            const response = await fetch('/api/decks', { cache: 'no-cache' });
+            if (response.ok) {
+                const data = await response.json();
+                const repoMap = new Map();
+                data.forEach(deck => {
+                    const safeRepoId = deck.repoId || 'uncategorized';
+                    if (!repoMap.has(safeRepoId)) {
+                        repoMap.set(safeRepoId, {
+                            id: safeRepoId,
+                            title: deck.repoTitle || 'Uncategorized',
+                            decks: []
+                        });
+                    }
+                    repoMap.get(safeRepoId).decks.push(deck);
                 });
+                setRepositories(Array.from(repoMap.values()));
             }
-            repoMap.get(safeRepoId).decks.push(deck);
-        });
-        return Array.from(repoMap.values());
-    });
+        } catch (error) {
+            console.error("Failed to fetch decks:", error);
+        }
+    };
 
-    // ... (This part was not in the replace block target but we must match the existing file to restart the useEffect if we want to replace it too, but better to stick to the block)
-    // Actually, I should target the useEffect below it too if I want to fix that as well.
-
-    // Filter and Sort Logic
+    useEffect(() => {
+        refreshDecks();
+    }, []);
     const processedRepositories = useMemo(() => {
         let processed = repositories.map(repo => ({
             ...repo,
@@ -234,30 +240,30 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
             processed = processed.map(repo => ({
                 ...repo,
                 decks: [...repo.decks].sort((a, b) => {
-                    const dateA = Math.max(
-                        a.lastOpenedAt ? new Date(a.lastOpenedAt).getTime() : 0,
-                        a.importedAt ? new Date(a.importedAt).getTime() : 0
+                    const getLatest = (d) => Math.max(
+                        d.lastOpenedAt ? new Date(d.lastOpenedAt).getTime() : 0,
+                        d.importedAt ? new Date(d.importedAt).getTime() : 0,
+                        d.restoredAt ? new Date(d.restoredAt).getTime() : 0,
+                        d.archivedAt ? new Date(d.archivedAt).getTime() : 0
                     );
-                    const dateB = Math.max(
-                        b.lastOpenedAt ? new Date(b.lastOpenedAt).getTime() : 0,
-                        b.importedAt ? new Date(b.importedAt).getTime() : 0
-                    );
-                    return dateB - dateA;
+                    return getLatest(b) - getLatest(a);
                 })
             }));
 
             // Also sort repositories by their latest deck
             processed.sort((a, b) => {
-                const getLatestDate = (repo) => {
-                    return repo.decks.reduce((latest, deck) => {
+                const getRepoLatest = (repo) => {
+                    return repo.decks.reduce((latest, d) => {
                         const deckDate = Math.max(
-                            deck.lastOpenedAt ? new Date(deck.lastOpenedAt).getTime() : 0,
-                            deck.importedAt ? new Date(deck.importedAt).getTime() : 0
+                            d.lastOpenedAt ? new Date(d.lastOpenedAt).getTime() : 0,
+                            d.importedAt ? new Date(d.importedAt).getTime() : 0,
+                            d.restoredAt ? new Date(d.restoredAt).getTime() : 0,
+                            d.archivedAt ? new Date(d.archivedAt).getTime() : 0
                         );
                         return Math.max(latest, deckDate);
                     }, 0);
                 };
-                return getLatestDate(b) - getLatestDate(a);
+                return getRepoLatest(b) - getRepoLatest(a);
             });
         }
 
@@ -271,17 +277,15 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
         );
 
         if (!isSortedAsc) {
-            // Sort by lastOpenedAt or importedAt (latest first)
+            // Sort by latest activity (latest first)
             return flattened.sort((a, b) => {
-                const dateA = Math.max(
-                    a.lastOpenedAt ? new Date(a.lastOpenedAt).getTime() : 0,
-                    a.importedAt ? new Date(a.importedAt).getTime() : 0
+                const getLatest = (d) => Math.max(
+                    d.lastOpenedAt ? new Date(d.lastOpenedAt).getTime() : 0,
+                    d.importedAt ? new Date(d.importedAt).getTime() : 0,
+                    d.restoredAt ? new Date(d.restoredAt).getTime() : 0,
+                    d.archivedAt ? new Date(d.archivedAt).getTime() : 0
                 );
-                const dateB = Math.max(
-                    b.lastOpenedAt ? new Date(b.lastOpenedAt).getTime() : 0,
-                    b.importedAt ? new Date(b.importedAt).getTime() : 0
-                );
-                return dateB - dateA;
+                return getLatest(b) - getLatest(a);
             });
         }
 
@@ -998,14 +1002,17 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
                     {/* Edit Mode Button */}
                     <button
                         onClick={() => {
-                            if (!isEditMode && currentItems.length > 0) {
-                                // Contextual Navigation: Find the repo of the first visible deck
-                                const firstDeck = currentItems[0];
-                                const repoIndex = processedRepositories.findIndex(r => r.id === firstDeck.repoId);
+                            if (!isEditMode) {
+                                refreshDecks(); // Refresh when entering edit mode
+                                if (currentItems.length > 0) {
+                                    // Contextual Navigation: Find the repo of the first visible deck
+                                    const firstDeck = currentItems[0];
+                                    const repoIndex = processedRepositories.findIndex(r => r.id === firstDeck.repoId);
 
-                                if (repoIndex !== -1) {
-                                    const targetPage = Math.floor(repoIndex / ITEMS_PER_PAGE) + 1;
-                                    setEditPage(targetPage);
+                                    if (repoIndex !== -1) {
+                                        const targetPage = Math.floor(repoIndex / ITEMS_PER_PAGE) + 1;
+                                        setEditPage(targetPage);
+                                    }
                                 }
                             }
                             setIsEditMode(!isEditMode);

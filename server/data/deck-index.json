@@ -85,7 +85,8 @@
     "version": 1,
     "hasLargeAssets": false,
     "archivedAt": "2025-12-05T14:31:55.606Z",
-    "restoredAt": "2025-12-05T14:32:25.188Z"
+    "restoredAt": "2025-12-05T14:32:25.188Z",
+    "lastOpenedAt": "2025-12-20T15:32:18.967Z"
   },
   {
     "id": "load-balancer",
@@ -115,7 +116,8 @@
     "version": 1,
     "hasLargeAssets": false,
     "archivedAt": "2025-12-05T13:52:03.932Z",
-    "restoredAt": "2025-12-05T13:53:50.001Z"
+    "restoredAt": "2025-12-05T13:53:50.001Z",
+    "lastOpenedAt": "2025-12-20T15:34:20.777Z"
   },
   {
     "id": "dummy-12",
@@ -446,6 +448,7 @@
     "path": "src/decks/mentally_healthier",
     "version": 1,
     "hasLargeAssets": false,
-    "importedAt": "2025-12-15T08:00:35.627Z"
+    "importedAt": "2025-12-15T08:00:35.627Z",
+    "lastOpenedAt": "2025-12-20T15:32:10.796Z"
   }
 ]

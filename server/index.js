@@ -1593,6 +1593,15 @@ app.post('/api/feedback/download-docx', catchAsync(async (req, res, next) => {
 }));
 
 
+app.get('/api/decks', catchAsync(async (req, res, next) => {
+    try {
+        const metadata = metadataManager.readMetadata();
+        res.json(metadata);
+    } catch (error) {
+        return next(new AppError('Failed to fetch decks', 500));
+    }
+}));
+
 app.patch('/api/decks/:deckId', catchAsync(async (req, res, next) => {
     const { deckId } = req.params;
     const updates = req.body;

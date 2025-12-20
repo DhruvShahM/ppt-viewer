@@ -66,6 +66,13 @@ function App() {
 
             setIsLoading(true);
             try {
+                // Update lastOpenedAt on load
+                fetch(`/api/decks/${encodeURIComponent(currentDeckId)}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lastOpenedAt: new Date().toISOString() })
+                }).catch(err => console.warn("Failed to update lastOpenedAt:", err));
+
                 const slides = await getDeck(currentDeckId);
                 setCurrentSlides(slides);
             } catch (error) {
@@ -83,6 +90,12 @@ function App() {
         setCurrentDeckId(deckId);
         if (deckId) {
             localStorage.setItem('lastDeckId', deckId);
+            // Update lastOpenedAt on selection
+            fetch(`/api/decks/${encodeURIComponent(deckId)}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lastOpenedAt: new Date().toISOString() })
+            }).catch(err => console.warn("Failed to update lastOpenedAt:", err));
         } else {
             localStorage.removeItem('lastDeckId');
         }

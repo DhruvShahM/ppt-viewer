@@ -1,14 +1,6 @@
-
-import deckIndex from './deck-index.json';
-
 const modules = import.meta.glob('../decks/**/deck.js');
 
 export const getDeck = async (id) => {
-    // Check index first
-    const deckEntry = deckIndex.find(d => d.id === id);
-
-
-
     // Fallback to local loading for active decks
     const path = `../decks/${id}/deck.js`;
     const loader = modules[path];
