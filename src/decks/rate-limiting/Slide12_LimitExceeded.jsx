@@ -30,7 +30,7 @@ const Slide12_LimitExceeded = () => {
                             initial={{ x: -50, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
                             transition={{ delay: index * 0.2 }}
-                            className="flex items-center gap-4 bg-slate-800 p-4 rounded-lg border border-slate-700"
+                            className="flex items-center gap-4 p-4 rounded-lg border border-slate-700"
                         >
                             <item.icon className="text-red-400" size={28} />
                             <span className="text-xl">{item.text}</span>
@@ -39,8 +39,7 @@ const Slide12_LimitExceeded = () => {
                 </div>
 
                 {/* Right: Animation */}
-                <div className="flex flex-col items-center justify-center bg-red-900/10 rounded-2xl p-8 border border-red-500/30 relative h-[400px]">
-
+                <div className="flex flex-col items-center justify-center rounded-2xl p-8 border border-red-500/30 relative h-[400px]">
                     {/* 429 Shake Animation */}
                     <motion.div
                         className="text-8xl font-bold text-red-500 mb-8"
@@ -53,7 +52,7 @@ const Slide12_LimitExceeded = () => {
                     <div className="text-2xl font-semibold mb-8">Too Many Requests</div>
 
                     {/* Retry Timer */}
-                    <div className="flex items-center gap-4 bg-slate-800 px-6 py-3 rounded-full border border-slate-600">
+                    <div className="flex items-center gap-4 px-6 py-3 rounded-full border border-slate-600">
                         <Clock className="text-yellow-400 animate-pulse" />
                         <span className="text-xl font-mono text-gray-300">
                             Retry-After: <span className="text-white font-bold">{retryTime}s</span>
@@ -62,7 +61,7 @@ const Slide12_LimitExceeded = () => {
 
                     {/* Alert Overlay */}
                     <motion.div
-                        className="absolute inset-0 bg-red-500/10 z-0"
+                        className="absolute inset-0 z-0"
                         animate={{ opacity: [0, 0.5, 0] }}
                         transition={{ duration: 2, repeat: Infinity }}
                     />

@@ -21,7 +21,7 @@ const Slide2_WhatIs = () => {
     }, []);
 
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center bg-slate-900 text-white p-8">
+        <div className="h-full w-full flex flex-col items-center justify-center text-white p-8">
             <h2 className="text-4xl font-bold mb-12 text-blue-400">What is Rate Limiting?</h2>
 
             <div className="grid grid-cols-2 gap-12 w-full max-w-6xl">
@@ -31,7 +31,7 @@ const Slide2_WhatIs = () => {
                         initial={{ opacity: 0, x: -50 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.8 }}
-                        className="bg-slate-800 p-6 rounded-xl border border-slate-700"
+                        className="p-6 rounded-xl border border-slate-700"
                     >
                         <p className="text-xl leading-relaxed">
                             Rate Limiting is a technique used to control how many requests a user or service can make in a given time period.
@@ -46,18 +46,18 @@ const Slide2_WhatIs = () => {
                     >
                         <h3 className="text-2xl font-semibold text-gray-300">Examples:</h3>
                         <ul className="space-y-3">
-                            <li className="flex items-center gap-3 text-lg bg-slate-800/50 p-3 rounded-lg">
-                                <span className="text-green-400">✓</span> “Max 100 requests per minute”
+                            <li className="flex items-center gap-3 text-lg p-3 rounded-lg">
+                                <span className="text-green-400">✓</span> "Max 100 requests per minute"
                             </li>
-                            <li className="flex items-center gap-3 text-lg bg-slate-800/50 p-3 rounded-lg">
-                                <span className="text-green-400">✓</span> “Only 5 login attempts per hour”
+                            <li className="flex items-center gap-3 text-lg p-3 rounded-lg">
+                                <span className="text-green-400">✓</span> "Only 5 login attempts per hour"
                             </li>
                         </ul>
                     </motion.div>
                 </div>
 
                 {/* Right: Animation */}
-                <div className="flex flex-col items-center justify-center bg-slate-800/30 rounded-2xl p-8 border border-slate-700 relative overflow-hidden">
+                <div className="flex flex-col items-center justify-center rounded-2xl p-8 border border-slate-700 relative overflow-hidden">
                     <div className="absolute top-4 right-4 text-sm text-gray-400">
                         Requests: {count} / 10
                     </div>

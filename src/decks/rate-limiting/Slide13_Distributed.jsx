@@ -4,13 +4,13 @@ import { Server, Database, Network, Globe } from 'lucide-react';
 
 const Slide13_Distributed = () => {
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center bg-slate-900 text-white p-8">
+        <div className="h-full w-full flex flex-col items-center justify-center text-white p-8">
             <h2 className="text-4xl font-bold mb-12 text-blue-400">Distributed Rate Limiting</h2>
 
             <div className="grid grid-cols-2 gap-12 w-full max-w-6xl">
                 {/* Left: Text Content */}
                 <div className="space-y-8">
-                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                    <div className="p-6 rounded-xl border border-slate-700">
                         <h3 className="text-2xl font-semibold mb-4 text-purple-400">Needed for:</h3>
                         <ul className="space-y-3 text-lg text-gray-300">
                             <li className="flex items-center gap-3"><Globe size={20} /> Microservices</li>
@@ -19,7 +19,7 @@ const Slide13_Distributed = () => {
                         </ul>
                     </div>
 
-                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                    <div className="p-6 rounded-xl border border-slate-700">
                         <h3 className="text-2xl font-semibold mb-4 text-green-400">Usually uses:</h3>
                         <ul className="space-y-3 text-lg text-gray-300">
                             <li className="flex items-center gap-3"><Database size={20} /> Redis / Memcached</li>
@@ -30,11 +30,11 @@ const Slide13_Distributed = () => {
                 </div>
 
                 {/* Right: Animation */}
-                <div className="flex flex-col items-center justify-center bg-slate-800/30 rounded-2xl p-8 border border-slate-700 relative h-[450px]">
+                <div className="flex flex-col items-center justify-center rounded-2xl p-8 border border-slate-700 relative h-[450px]">
 
                     {/* Central Redis */}
                     <motion.div
-                        className="z-20 bg-red-900/80 p-4 rounded-lg border border-red-500 flex flex-col items-center"
+                        className="z-20 p-4 rounded-lg border border-red-500 flex flex-col items-center"
                         animate={{ boxShadow: ["0 0 0px rgba(239,68,68,0)", "0 0 20px rgba(239,68,68,0.5)", "0 0 0px rgba(239,68,68,0)"] }}
                         transition={{ duration: 2, repeat: Infinity }}
                     >
@@ -42,11 +42,11 @@ const Slide13_Distributed = () => {
                         <span className="text-sm font-bold mt-2">Shared Redis</span>
                     </motion.div>
 
-                    {/* Servers */}
+                    {/* Left Servers */}
                     {[0, 1, 2].map((i) => (
                         <motion.div
                             key={i}
-                            className="absolute bg-slate-700 p-3 rounded-lg border border-slate-600 z-10"
+                            className="absolute p-3 rounded-lg border border-slate-600 z-10"
                             style={{
                                 top: i === 0 ? '20%' : i === 1 ? '50%' : '80%',
                                 left: i === 1 ? '10%' : '20%',
@@ -61,10 +61,11 @@ const Slide13_Distributed = () => {
                         </motion.div>
                     ))}
 
+                    {/* Right Servers */}
                     {[0, 1, 2].map((i) => (
                         <motion.div
                             key={i}
-                            className="absolute bg-slate-700 p-3 rounded-lg border border-slate-600 z-10"
+                            className="absolute p-3 rounded-lg border border-slate-600 z-10"
                             style={{
                                 top: i === 0 ? '20%' : i === 1 ? '50%' : '80%',
                                 right: i === 1 ? '10%' : '20%',
@@ -83,7 +84,6 @@ const Slide13_Distributed = () => {
                     <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
                         {[0, 1, 2].map(i => (
                             <React.Fragment key={i}>
-                                {/* Left Lines */}
                                 <motion.line
                                     x1={i === 1 ? "15%" : "25%"}
                                     y1={i === 0 ? "20%" : i === 1 ? "50%" : "80%"}
@@ -95,7 +95,6 @@ const Slide13_Distributed = () => {
                                     animate={{ pathLength: 1 }}
                                     transition={{ duration: 1, delay: 0.5 }}
                                 />
-                                {/* Right Lines */}
                                 <motion.line
                                     x1={i === 1 ? "85%" : "75%"}
                                     y1={i === 0 ? "20%" : i === 1 ? "50%" : "80%"}

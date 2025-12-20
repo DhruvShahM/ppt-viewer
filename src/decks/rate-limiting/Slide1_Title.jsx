@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 const Slide1_Title = () => {
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden">
             {/* Background Particles */}
             {[...Array(20)].map((_, i) => (
                 <motion.div
@@ -61,7 +61,7 @@ const Slide1_Title = () => {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.8, duration: 0.8 }}
             >
-                “How systems control and limit traffic safely”
+                "How systems control and limit traffic safely"
             </motion.p>
         </div>
     );

@@ -9,27 +9,22 @@ const Slide9_LeakyBucket = () => {
   const CAPACITY = 5;
 
   useEffect(() => {
-    // Bursty input: create "in‑flight" droplets that fall into the bucket
     const inputInterval = setInterval(() => {
       if (Math.random() > 0.3) {
         const id = Date.now();
         setInFlight(prev => [...prev, { id }]);
-        // After fall duration, try to add to bucket
         setTimeout(() => {
           setBucket(prev => {
             if (prev.length < CAPACITY) {
               return [...prev, id];
             }
-            // dropped (overflow) – just ignore
             return prev;
           });
-          // remove from in‑flight
           setInFlight(prev => prev.filter(d => d.id !== id));
         }, 600);
       }
     }, 700);
 
-    // Constant leak
     const leakInterval = setInterval(() => {
       setBucket(prev => {
         if (prev.length === 0) return prev;
@@ -74,7 +69,7 @@ const Slide9_LeakyBucket = () => {
   };
 
   return (
-    <div className="h-full w-full flex flex-col items-center justify-center bg-slate-900 text-white p-8">
+    <div className="h-full w-full flex flex-col items-center justify-center text-white p-8">
       <h2 className="text-4xl font-bold mb-12 text-cyan-400">
         Leaky Bucket Algorithm
       </h2>
@@ -82,7 +77,7 @@ const Slide9_LeakyBucket = () => {
       <div className="grid grid-cols-2 gap-12 w-full max-w-6xl">
         {/* Explanation */}
         <div className="space-y-8">
-          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4">
+          <div className="p-6 rounded-xl border border-slate-700 space-y-4">
             <h3 className="text-2xl font-semibold flex items-center gap-3">
               <Droplets className="text-cyan-400" /> Concept
             </h3>
@@ -94,7 +89,7 @@ const Slide9_LeakyBucket = () => {
             </ul>
           </div>
 
-          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-3 text-gray-300 text-sm">
+          <div className="p-6 rounded-xl border border-slate-700 space-y-3 text-gray-300 text-sm">
             <p>
               Top animation: random bursts of requests fall into the bucket.
             </p>
@@ -110,7 +105,7 @@ const Slide9_LeakyBucket = () => {
         </div>
 
         {/* Animation */}
-        <div className="relative h-[500px] bg-slate-800/30 rounded-2xl p-8 border border-slate-700 flex flex-col items-center overflow-hidden">
+        <div className="relative h-[500px] rounded-2xl p-8 border border-slate-700 flex flex-col items-center overflow-hidden">
           {/* Input label */}
           <div className="text-gray-400 text-sm mb-1">Bursty Input</div>
           <motion.div
@@ -139,10 +134,10 @@ const Slide9_LeakyBucket = () => {
           </div>
 
           {/* Bucket */}
-          <div className="relative w-40 h-48 mt-16 border-4 border-slate-500 border-t-0 rounded-b-xl overflow-hidden bg-slate-900">
+          <div className="relative w-40 h-48 mt-16 border-4 border-slate-500 border-t-0 rounded-b-xl overflow-hidden">
             {/* Water */}
             <motion.div
-              className="absolute bottom-0 left-0 right-0 bg-cyan-500/30 z-0"
+              className="absolute bottom-0 left-0 right-0 z-0"
               animate={{ height: waterHeight }}
               transition={{ duration: 0.4, ease: 'easeOut' }}
             />
@@ -167,7 +162,7 @@ const Slide9_LeakyBucket = () => {
 
           {/* Output */}
           <div className="flex flex-col items-center mt-6 gap-2">
-            <div className="w-2 h-8 bg-cyan-500/50 rounded-full" />
+            <div className="w-2 h-8 rounded-full" />
             <div className="text-gray-400 text-sm">Constant Output</div>
 
             <div className="flex gap-2 mt-2">

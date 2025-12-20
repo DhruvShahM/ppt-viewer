@@ -8,7 +8,7 @@ const Slide4_BasicFlow = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             const id = Date.now();
-            const isAllowed = Math.random() > 0.3; // 70% allowed
+            const isAllowed = Math.random() > 0.3;
             setRequests(prev => [...prev, { id, isAllowed, step: 0 }]);
         }, 1500);
 
@@ -16,7 +16,7 @@ const Slide4_BasicFlow = () => {
     }, []);
 
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center bg-slate-900 text-white p-8">
+        <div className="h-full w-full flex flex-col items-center justify-center text-white p-8">
             <h2 className="text-4xl font-bold mb-16 text-blue-400">Basic Flow of Rate Limiting</h2>
 
             <div className="flex items-center justify-between w-full max-w-6xl relative h-[400px]">
@@ -28,7 +28,7 @@ const Slide4_BasicFlow = () => {
                 </div>
 
                 <div className="flex flex-col items-center z-10">
-                    <div className="bg-slate-800 p-6 rounded-lg border border-slate-600">
+                    <div className="p-6 rounded-lg border border-slate-600">
                         <ShieldCheck size={64} className="text-purple-400 mb-4" />
                     </div>
                     <span className="text-xl font-semibold mt-4">API Gateway / Rate Limiter</span>

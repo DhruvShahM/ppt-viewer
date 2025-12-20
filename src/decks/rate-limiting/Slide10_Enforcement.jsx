@@ -47,7 +47,7 @@ const techniques = [
 
 const Slide10_Enforcement = () => {
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center bg-slate-900 text-white p-8">
+        <div className="h-full w-full flex flex-col items-center justify-center text-white p-8">
             <h2 className="text-4xl font-bold mb-16 text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400">
                 How Systems Enforce Rate Limits
             </h2>

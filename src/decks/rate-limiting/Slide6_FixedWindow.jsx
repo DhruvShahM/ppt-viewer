@@ -11,7 +11,7 @@ const Slide6_FixedWindow = () => {
         const interval = setInterval(() => {
             setWindowTime(prev => {
                 if (prev >= 100) {
-                    setRequests([]); // Reset window
+                    setRequests([]);
                     setBurst(false);
                     return 0;
                 }
@@ -23,15 +23,12 @@ const Slide6_FixedWindow = () => {
     }, []);
 
     useEffect(() => {
-        // Add requests
         if (windowTime > 80 && windowTime < 95) {
-            // Simulate burst near end of window
             setBurst(true);
             if (Math.random() > 0.5) {
                 setRequests(prev => [...prev, { id: Date.now(), x: Math.random() * 80 }]);
             }
         } else if (windowTime % 10 === 0 && windowTime < 80) {
-            // Regular traffic
             setRequests(prev => [...prev, { id: Date.now(), x: Math.random() * 80 }]);
         }
     }, [windowTime]);
@@ -43,7 +40,7 @@ const Slide6_FixedWindow = () => {
             <div className="grid grid-cols-2 gap-12 w-full max-w-6xl">
                 {/* Left: Explanation */}
                 <div className="space-y-8">
-                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4">
+                    <div className="p-6 rounded-xl border border-slate-700 space-y-4">
                         <h3 className="text-2xl font-semibold flex items-center gap-3">
                             <Clock className="text-blue-400" /> Concept
                         </h3>
@@ -55,7 +52,7 @@ const Slide6_FixedWindow = () => {
                     </div>
 
                     <motion.div
-                        className="bg-red-900/20 p-6 rounded-xl border border-red-500/30"
+                        className="p-6 rounded-xl border border-red-500/30"
                         animate={{ scale: burst ? 1.05 : 1 }}
                     >
                         <h3 className="text-2xl font-semibold flex items-center gap-3 text-red-400">
@@ -68,10 +65,10 @@ const Slide6_FixedWindow = () => {
                 </div>
 
                 {/* Right: Animation */}
-                <div className="flex flex-col items-center justify-center bg-slate-800/30 rounded-2xl p-8 border border-slate-700 relative h-[400px]">
+                <div className="flex flex-col items-center justify-center rounded-2xl p-8 border border-slate-700 relative h-[400px]">
 
                     {/* Window Container */}
-                    <div className="w-full h-64 border-2 border-dashed border-slate-500 rounded-lg relative overflow-hidden bg-slate-900/50">
+                    <div className="w-full h-64 border-2 border-dashed border-slate-500 rounded-lg relative overflow-hidden">
                         <div className="absolute top-2 right-2 text-xs text-gray-400">Current Window</div>
 
                         {/* Progress Bar */}
@@ -94,7 +91,7 @@ const Slide6_FixedWindow = () => {
 
                     {/* Timer */}
                     <div className="mt-6 flex items-center gap-4">
-                        <Clock className="animate-spin-slow text-blue-400" size={32} />
+                        <Clock className="animate-spin text-blue-400" size={32} />
                         <span className="text-2xl font-mono">{windowTime}%</span>
                         {burst && <span className="text-red-500 font-bold animate-pulse">BURST DETECTED!</span>}
                     </div>
