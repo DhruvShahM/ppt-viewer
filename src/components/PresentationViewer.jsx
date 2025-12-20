@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Slide from './Slide';
 import AnnotationLayer from './AnnotationLayer';
-import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock, FileCode, Stamp, X } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock, FileCode, Stamp, X, Bot } from 'lucide-react';
 import DesignFeedback from './DesignFeedback';
 import SocialHub from './SocialHub';
 import SocialExportStudio from './SocialExportStudio';
+import AgentChat from './AgentChat';
 
 
 const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient, fonts, currentFont, onFontSelect, isHeadless = false, initialSlideIndex = 0, onConnect }) => {
@@ -27,6 +28,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const [trademarkPosition, setTrademarkPosition] = useState(() => localStorage.getItem(`trademark_pos_${deckId}`) || 'top-right');
     const [showTrademarkModal, setShowTrademarkModal] = useState(false);
     const [showSocialExport, setShowSocialExport] = useState(false); // false | 'studio' | 'accounts'
+    const [showAgentChat, setShowAgentChat] = useState(false);
     const [isExportRecording, setIsExportRecording] = useState(isHeadless);
 
     useEffect(() => {
@@ -562,6 +564,14 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                         >
                             <Video size={24} />
                         </button>
+
+                        <button
+                            onClick={() => setShowAgentChat(true)}
+                            className="p-3 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 hover:shadow-lg hover:scale-105 transition-all backdrop-blur-sm mr-4"
+                            title="AI Co-Pilot"
+                        >
+                            <Bot size={24} />
+                        </button>
                     </>
                 )}
 
@@ -699,6 +709,15 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                     onConnect={onConnect}
                 />
             )}
+
+            <AnimatePresence>
+                {showAgentChat && (
+                    <AgentChat
+                        onClose={() => setShowAgentChat(false)}
+                        onRefreshDeck={() => window.location.reload()}
+                    />
+                )}
+            </AnimatePresence>
         </div >
     );
 };

@@ -222,10 +222,22 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
 
     // Flatten decks for global view
     const allDecks = useMemo(() => {
-        return processedRepositories.flatMap(repo =>
+        const flattened = processedRepositories.flatMap(repo =>
             repo.decks.map(deck => ({ ...deck, repoId: repo.id, repoTitle: repo.title }))
         );
-    }, [processedRepositories]);
+
+        if (!isSortedAsc) {
+            // Sort by importedAt (latest first)
+            // If importedAt is missing, treat as older (put at the end/bottom)
+            return flattened.sort((a, b) => {
+                const dateA = a.importedAt ? new Date(a.importedAt).getTime() : 0;
+                const dateB = b.importedAt ? new Date(b.importedAt).getTime() : 0;
+                return dateB - dateA;
+            });
+        }
+
+        return flattened;
+    }, [processedRepositories, isSortedAsc]);
 
     // Derived State
     const currentPage = isEditMode ? editPage : viewPage;

@@ -1651,6 +1651,51 @@ app.delete('/api/prompts/:id', (req, res) => {
 
 
 
+// --- AI Agent Route ---
+app.post('/api/agent/chat', (req, res) => {
+    const { prompt } = req.body;
+    if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    console.log(`Agent received prompt: ${prompt}`);
+
+    // Adjust python command if necessary based on environment
+    const pythonCommand = 'python';
+    const scriptPath = path.join(__dirname, '..', 'agent_service.py');
+
+    // Basic sanitization to prevent breaking the shell command structure
+    // We wrap the prompt in double quotes, so we need to escape internal double quotes.
+    const safePrompt = prompt.replace(/"/g, '\\"');
+
+    exec(`${pythonCommand} "${scriptPath}" "${safePrompt}"`, { maxBuffer: 1024 * 1024 * 5 }, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Agent execution error: ${error.message}`);
+            console.error(`Stderr: ${stderr}`);
+            return res.status(500).json({ success: false, error: error.message, details: stderr });
+        }
+
+        try {
+            // The python script prints JSON to stdout
+            // We need to find the JSON object in the output (in case of other prints)
+            // But our script strictly prints one JSON line at the end ideally.
+            // Let's assume stdout contains the JSON.
+            const jsonStart = stdout.indexOf('{');
+            const jsonEnd = stdout.lastIndexOf('}');
+            if (jsonStart !== -1 && jsonEnd !== -1) {
+                const jsonStr = stdout.substring(jsonStart, jsonEnd + 1);
+                const result = JSON.parse(jsonStr);
+                res.json(result);
+            } else {
+                throw new Error("No JSON found in output");
+            }
+        } catch (e) {
+            console.error("Failed to parse agent output:", stdout);
+            res.status(500).json({ success: false, error: 'Invalid response from agent', raw: stdout });
+        }
+    });
+});
+
 // Apollo Server Setup
 const startServer = async () => {
     const apolloServer = new ApolloServer({

@@ -147,7 +147,7 @@ function App() {
     }
 
     return (
-        <div className={`w-screen h-screen text-white relative overflow-hidden selection:bg-go-blue selection:text-white select-none ${currentGradient} ${currentFont}`}>
+        <div className={`w-screen h-screen text-white relative overflow-hidden selection:bg-go-blue selection:text-white ${currentGradient} ${currentFont}`}>
             {/* Background Elements */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
                 {showVideo && (
