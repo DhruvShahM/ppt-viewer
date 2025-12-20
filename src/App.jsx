@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import DeckSelector from './components/DeckSelector';
 import PresentationViewer from './components/PresentationViewer';
 import SocialConnectionPage from './components/SocialConnectionPage';
+import PromptManager from './components/PromptManager';
 import { Share2 } from 'lucide-react';
 
 import { getDeck } from './data/decks';
@@ -18,14 +19,35 @@ function App() {
     const isHeadless = new URLSearchParams(window.location.search).get('mode') === 'export';
     const initialSlideIndex = parseInt(new URLSearchParams(window.location.search).get('slide') || '0');
     const [view, setView] = useState(() => {
-        if (window.location.pathname === '/social') return 'social';
+        const params = new URLSearchParams(window.location.search);
+        const viewParam = params.get('view');
+        if (viewParam === 'social' || window.location.pathname === '/social') return 'social';
+        if (viewParam === 'prompts') return 'prompts';
         return 'main';
     });
 
+    // Sync URL with view state
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (view === 'main') {
+            params.delete('view');
+        } else {
+            params.set('view', view);
+        }
+
+        const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+        window.history.replaceState({ path: newUrl }, '', newUrl);
+    }, [view]);
+
     useEffect(() => {
         const handlePopState = () => {
-            if (window.location.pathname === '/social') {
+            const params = new URLSearchParams(window.location.search);
+            const viewParam = params.get('view');
+
+            if (viewParam === 'social' || window.location.pathname === '/social') {
                 setView('social');
+            } else if (viewParam === 'prompts') {
+                setView('prompts');
             } else {
                 setView('main');
             }
@@ -74,7 +96,7 @@ function App() {
 
     const [showVideo, setShowVideo] = useState(true);
     // Dynamically import all mp4 files from src/assets/backgrounds
-    const videoModules = import.meta.glob('/src/assets/backgrounds/*.mp4', { eager: true, query: '?url', import: 'default' });
+    const videoModules = import.meta.glob('./assets/backgrounds/*.mp4', { eager: true, query: '?url', import: 'default' });
 
     const videos = Object.entries(videoModules).map(([path, src], index) => {
         // Extract filename from path for the name
@@ -145,6 +167,8 @@ function App() {
 
             {view === 'social' ? (
                 <SocialConnectionPage onBack={() => setView('main')} />
+            ) : view === 'prompts' ? (
+                <PromptManager onBack={() => setView('main')} />
             ) : currentDeckId && currentSlides ? (
                 <PresentationViewer
                     slides={currentSlides}
@@ -165,10 +189,10 @@ function App() {
                     onConnect={() => setView('social')}
                 />
             ) : (
-                <DeckSelector onSelectDeck={handleDeckSelect} />
+                <DeckSelector onSelectDeck={handleDeckSelect} onManagePrompts={() => setView('prompts')} />
             )}
 
-            {view !== 'social' && !currentDeckId && (
+            {view !== 'social' && view !== 'prompts' && !currentDeckId && (
                 <button
                     onClick={() => setView('social')}
                     className="absolute top-4 right-4 z-50 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:shadow-lg hover:scale-105 transition font-medium text-sm"

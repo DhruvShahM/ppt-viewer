@@ -1,0 +1,108 @@
+[
+  {
+    "id": "animated-deck-prompt",
+    "name": "Animated Deck Prompt",
+    "type": "Template",
+    "status": "Active",
+    "filename": "animated_deck_prompt.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2025-12-20T07:03:01.330Z",
+    "category": "Animated"
+  },
+  {
+    "id": "bento-grid-prompt",
+    "name": "Bento Grid Prompt",
+    "type": "Template",
+    "status": "Active",
+    "filename": "bento_grid_prompt.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "glassmorphism-prompt",
+    "name": "Glassmorphism Prompt",
+    "type": "Template",
+    "status": "Active",
+    "filename": "glassmorphism_prompt.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "kinetic-typography-prompt",
+    "name": "Kinetic Typography Prompt",
+    "type": "Template",
+    "status": "Active",
+    "filename": "kinetic_typography_prompt.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "slide-prompt",
+    "name": "Slide Prompt",
+    "type": "Template",
+    "status": "Active",
+    "filename": "slide_prompt.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "ai-generation-guide",
+    "name": "AI Generation Guide",
+    "type": "System",
+    "status": "Archived",
+    "filename": "ai_generation_guide.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2025-12-20T06:43:22.083Z"
+  },
+  {
+    "id": "test-prompt-1766210002672",
+    "name": "Test Prompt",
+    "type": "User",
+    "status": "Draft",
+    "filename": "test-prompt-1766210002672.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2025-12-20T05:53:22.672Z"
+      }
+    ],
+    "createdAt": "2025-12-20T05:53:22.672Z",
+    "updatedAt": "2025-12-20T05:53:22.672Z"
+  }
+]

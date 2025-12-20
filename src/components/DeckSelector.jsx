@@ -139,7 +139,7 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
     );
 };
 
-const DeckSelector = ({ onSelectDeck }) => {
+const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
 
     const [viewMode, setViewMode] = useState('active'); // 'active' | 'archived'
     const [isEditMode, setIsEditMode] = useState(false);
@@ -922,6 +922,18 @@ const DeckSelector = ({ onSelectDeck }) => {
                         <Upload size={20} />
                         <span className="hidden sm:inline text-sm font-medium">Import</span>
                     </button>
+
+
+                    {/* Manage Prompts Button */}
+                    <button
+                        onClick={onManagePrompts}
+                        className="px-4 py-3 rounded-xl border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white transition-all flex items-center gap-2"
+                        title="Manage AI Prompts"
+                    >
+                        <Sparkles size={20} />
+                        <span className="hidden sm:inline text-sm font-medium">Prompts</span>
+                    </button>
+
 
                     {/* Archive Toggle */}
                     {/* Archive Toggle */}

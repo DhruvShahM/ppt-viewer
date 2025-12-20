@@ -1473,6 +1473,184 @@ app.post('/api/open-file', catchAsync(async (req, res, next) => {
 
 
 
+// --- Prompt Management APIs ---
+const PROMPTS_FILE = path.join(__dirname, '..', 'prompts', 'index.json');
+const PROMPTS_DIR = path.join(__dirname, '..', 'prompts');
+
+// Helper to read prompts
+const getPrompts = () => {
+    if (!fs.existsSync(PROMPTS_FILE)) return [];
+    try {
+        return JSON.parse(fs.readFileSync(PROMPTS_FILE, 'utf8'));
+    } catch (e) {
+        console.error("Error reading prompts index:", e);
+        return [];
+    }
+};
+
+// Helper to save prompts
+const savePrompts = (prompts) => {
+    fs.writeFileSync(PROMPTS_FILE, JSON.stringify(prompts, null, 2));
+};
+
+app.get('/api/prompts', (req, res) => {
+    const prompts = getPrompts();
+    res.json(prompts);
+});
+
+app.get('/api/prompts/:id', (req, res) => {
+    const prompts = getPrompts();
+    const prompt = prompts.find(p => p.id === req.params.id);
+    if (!prompt) return res.status(404).json({ error: 'Prompt not found' });
+
+    // Read content from file
+    const contentPath = path.join(PROMPTS_DIR, prompt.filename);
+    let content = "";
+    if (fs.existsSync(contentPath)) {
+        content = fs.readFileSync(contentPath, 'utf8');
+    }
+
+    res.json({ ...prompt, content });
+});
+
+app.post('/api/prompts', (req, res) => {
+    const { name, type, content, status, category } = req.body;
+    if (!name || !content) return res.status(400).json({ error: 'Name and content are required' });
+
+    const prompts = getPrompts();
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
+    const filename = `${id}.md`;
+
+    const newPrompt = {
+        id,
+        name,
+        type: type || 'User',
+        category: category || '',
+        status: status || 'Draft',
+        filename,
+        versions: [{ version: 1, createdAt: new Date().toISOString() }],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+
+    prompts.push(newPrompt);
+    savePrompts(prompts);
+
+    // Save content file
+    fs.writeFileSync(path.join(PROMPTS_DIR, filename), content);
+
+    res.status(201).json(newPrompt);
+});
+
+app.put('/api/prompts/:id', (req, res) => {
+    const { id } = req.params;
+    const { name, type, content, status, category } = req.body;
+
+    const prompts = getPrompts();
+    const index = prompts.findIndex(p => p.id === id);
+    if (index === -1) return res.status(404).json({ error: 'Prompt not found' });
+
+    const prompt = prompts[index];
+    const oldContentPath = path.join(PROMPTS_DIR, prompt.filename);
+    let oldContent = "";
+    if (fs.existsSync(oldContentPath)) {
+        oldContent = fs.readFileSync(oldContentPath, 'utf8');
+    }
+
+    // Check if content changed to bump version
+    let versionBump = false;
+    if (content !== undefined && content !== oldContent) {
+        versionBump = true;
+    }
+
+    const updatedPrompt = {
+        ...prompt,
+        name: name || prompt.name,
+        type: type || prompt.type,
+        category: category !== undefined ? category : prompt.category,
+        status: status || prompt.status,
+        updatedAt: new Date().toISOString()
+    };
+
+    if (versionBump) {
+        const nextVersion = (prompt.versions && prompt.versions.length > 0)
+            ? Math.max(...prompt.versions.map(v => v.version)) + 1
+            : 1;
+
+        if (!updatedPrompt.versions) updatedPrompt.versions = [];
+        updatedPrompt.versions.push({
+            version: nextVersion,
+            createdAt: new Date().toISOString()
+        });
+
+        // Save content
+        fs.writeFileSync(oldContentPath, content);
+    }
+
+    prompts[index] = updatedPrompt;
+    savePrompts(prompts);
+
+    res.json(updatedPrompt);
+});
+
+app.post('/api/prompts/:id/duplicate', (req, res) => {
+    const { id } = req.params;
+    const prompts = getPrompts();
+    const original = prompts.find(p => p.id === id);
+    if (!original) return res.status(404).json({ error: 'Prompt not found' });
+
+    const newId = original.id + '-copy-' + Date.now();
+    const newFilename = `${newId}.md`;
+
+    // Copy content
+    const originalContentPath = path.join(PROMPTS_DIR, original.filename);
+    if (fs.existsSync(originalContentPath)) {
+        const content = fs.readFileSync(originalContentPath, 'utf8');
+        fs.writeFileSync(path.join(PROMPTS_DIR, newFilename), content);
+    }
+
+    const newPrompt = {
+        ...original,
+        id: newId,
+        name: `${original.name} (Copy)`,
+        status: 'Draft',
+        filename: newFilename,
+        versions: [{ version: 1, createdAt: new Date().toISOString() }],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+
+    prompts.push(newPrompt);
+    savePrompts(prompts);
+
+    res.status(201).json(newPrompt);
+});
+
+app.delete('/api/prompts/:id', (req, res) => {
+    const { id } = req.params;
+    let prompts = getPrompts();
+    const prompt = prompts.find(p => p.id === id);
+
+    if (!prompt) return res.status(404).json({ error: 'Prompt not found' });
+
+    // Delete file
+    const contentPath = path.join(PROMPTS_DIR, prompt.filename);
+    if (fs.existsSync(contentPath)) {
+        try {
+            fs.unlinkSync(contentPath);
+        } catch (e) {
+            console.error("Failed to delete prompt file:", e);
+        }
+    }
+
+    prompts = prompts.filter(p => p.id !== id);
+    savePrompts(prompts);
+
+    res.json({ success: true });
+});
+
+
+
 // Apollo Server Setup
 const startServer = async () => {
     const apolloServer = new ApolloServer({
