@@ -4,8 +4,10 @@ import { motion } from 'framer-motion';
 const Slide = React.forwardRef(({ children, isActive = true, noAnimation = false, custom }, ref) => {
     if (noAnimation) {
         return (
-            <div ref={ref} className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-12 z-10">
-                {children}
+            <div ref={ref} className="absolute inset-0 w-full h-full overflow-y-auto overflow-x-hidden custom-scrollbar z-10">
+                <div className="min-h-full w-full flex flex-col items-center justify-center p-12 relative slide-content-wrapper">
+                    {children}
+                </div>
             </div>
         );
     }
@@ -39,9 +41,11 @@ const Slide = React.forwardRef(({ children, isActive = true, noAnimation = false
                 x: { type: "spring", stiffness: 300, damping: 30 },
                 opacity: { duration: 0.2 }
             }}
-            className={`absolute inset-0 w-full h-full flex flex-col items-center justify-center p-12 ${isActive ? 'z-10' : 'z-0'}`}
+            className={`absolute inset-0 w-full h-full overflow-y-auto overflow-x-hidden custom-scrollbar ${isActive ? 'z-10' : 'z-0'}`}
         >
-            {children}
+            <div className="min-h-full w-full flex flex-col items-center justify-center p-12 relative slide-content-wrapper">
+                {children}
+            </div>
         </motion.div>
     );
 });

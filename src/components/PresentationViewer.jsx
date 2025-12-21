@@ -72,6 +72,29 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const annotationRef = useRef(null);
 
     const [direction, setDirection] = useState(0);
+    const [slideContentHeight, setSlideContentHeight] = useState(0);
+    const slideWrapperRef = useRef(null);
+
+    useEffect(() => {
+        if (!slideWrapperRef.current) return;
+
+        const updateHeight = () => {
+            if (slideWrapperRef.current) {
+                // Get the scroll height of the slide content
+                const wrapper = slideWrapperRef.current.querySelector('.slide-content-wrapper');
+                if (wrapper) {
+                    setSlideContentHeight(wrapper.scrollHeight);
+                }
+            }
+        };
+
+        const ro = new ResizeObserver(updateHeight);
+        const wrapper = slideWrapperRef.current.querySelector('.slide-content-wrapper');
+        if (wrapper) ro.observe(wrapper);
+
+        updateHeight();
+        return () => ro.disconnect();
+    }, [currentSlide]);
 
     const saveCurrentAnnotations = () => {
         if (annotationRef.current) {
@@ -234,12 +257,22 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
             className={`w-full h-full relative group ${isPresenting && !showCursor ? 'cursor-none' : ''}`}
         >
             {/* Slides */}
-            <div className="relative z-10 w-full h-full">
+            <div className="relative z-10 w-full h-full" ref={slideWrapperRef}>
                 <AnimatePresence initial={false} custom={direction} mode="popLayout">
                     {slides.map((SlideComponent, index) => (
                         index === currentSlide && (
                             <Slide key={index} isActive={true} custom={direction}>
                                 <SlideComponent />
+                                <AnnotationLayer
+                                    ref={annotationRef}
+                                    key={currentSlide}
+                                    activeTool={activeTool}
+                                    color={activeTool === 'eraser' ? '#000000' : activeColor}
+                                    clearTrigger={clearTrigger}
+                                    width={containerRef.current?.offsetWidth || 1920}
+                                    height={Math.max(slideContentHeight, containerRef.current?.offsetHeight || 1080)}
+                                    initialData={annotations[currentSlide]}
+                                />
                             </Slide>
                         )
                     ))}
@@ -256,17 +289,6 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                 </div>
             )}
 
-            {/* Annotation Layer */}
-            <AnnotationLayer
-                ref={annotationRef}
-                key={currentSlide}
-                activeTool={activeTool}
-                color={activeTool === 'eraser' ? '#000000' : activeColor}
-                clearTrigger={clearTrigger}
-                width={containerRef.current?.offsetWidth || 1920}
-                height={containerRef.current?.offsetHeight || 1080}
-                initialData={annotations[currentSlide]}
-            />
 
             {/* Trademark Popup Modal */}
             {isPresenting && showTrademarkModal && (

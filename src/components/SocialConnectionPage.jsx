@@ -531,11 +531,11 @@ const SocialConnectionPage = ({ onBack }) => {
     if (loading && !data) return <div className="flex justify-center items-center h-full"><RefreshCw className="animate-spin" /></div>;
 
     return (
-        <div className="w-full h-full overflow-y-auto p-8 relative z-10">
+        <div className="w-full h-full overflow-y-auto custom-scrollbar p-8 relative z-10">
             {/* Settings Modal */}
             {showSettings && (
                 <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar relative">
                         {testResult && (
                             <div className={`absolute top-0 left-0 w-full p-3 text-center text-sm font-medium ${testResult.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
                                 {testResult.message}
@@ -1005,7 +1005,7 @@ const SocialConnectionPage = ({ onBack }) => {
             {
                 showPostModal && (
                     <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-                        <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-y-auto max-h-[90vh] animate-in zoom-in-95">
+                        <div className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar animate-in zoom-in-95">
                             <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50 sticky top-0 z-10 backdrop-blur-md">
                                 <h3 className="font-bold text-white flex items-center gap-2">
                                     <Video className="text-red-500" /> Upload Verification Video (YouTube Only)

@@ -28,7 +28,8 @@
     "version": 1,
     "hasLargeAssets": false,
     "archivedAt": "2025-12-05T14:31:54.533Z",
-    "restoredAt": "2025-12-05T14:32:24.099Z"
+    "restoredAt": "2025-12-05T14:32:24.099Z",
+    "lastOpenedAt": "2025-12-21T12:57:27.222Z"
   },
   {
     "id": "interview",
@@ -87,7 +88,7 @@
     "hasLargeAssets": false,
     "archivedAt": "2025-12-05T14:31:55.606Z",
     "restoredAt": "2025-12-05T14:32:25.188Z",
-    "lastOpenedAt": "2025-12-21T12:17:21.598Z"
+    "lastOpenedAt": "2025-12-21T13:02:08.152Z"
   },
   {
     "id": "load-balancer",

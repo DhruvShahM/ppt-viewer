@@ -972,7 +972,7 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
 
 
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center p-12 relative z-10">
+        <div className="w-full h-full flex flex-col items-center justify-start pt-24 pb-12 px-12 relative z-10 overflow-y-auto custom-scrollbar">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1206,7 +1206,7 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
                 </div>
             </motion.div >
 
-            <div className={`w-full max-w-7xl max-h-[60vh] overflow-y-auto pr-4 pb-4 custom-scrollbar min-h-[400px] ${!isEditMode ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 content-start' : 'space-y-12'}`}>
+            <div className={`w-full max-w-7xl pr-4 pb-4 min-h-[400px] ${!isEditMode ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 content-start' : 'space-y-12'}`}>
                 <AnimatePresence mode="wait">
                     {/* Default Flat View */}
                     {!isEditMode && currentItems.map((deck) => (
@@ -1368,7 +1368,7 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative"
+                        className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar"
                     >
                         <button
                             onClick={() => setIsImportModalOpen(false)}
@@ -1477,7 +1477,7 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative"
+                        className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar"
                     >
                         <button
                             onClick={() => {

@@ -391,6 +391,17 @@ const PromptManager = ({ onBack }) => {
                         exit={{ opacity: 0, x: -20 }}
                         className="flex-grow flex flex-col gap-6"
                     >
+                        {/* Back Button */}
+                        <div className="flex items-center">
+                            <button
+                                onClick={() => setView('list')}
+                                className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors group px-2 py-1 rounded-lg hover:bg-white/5"
+                            >
+                                <ChevronLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
+                                <span className="text-sm font-medium">Back to List</span>
+                            </button>
+                        </div>
+
                         {/* Editor Header */}
                         <div className="flex items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
                             <div className="flex-grow grid grid-cols-2 lg:grid-cols-5 gap-4">
