@@ -483,6 +483,25 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
         setSelectedDecks(newSelected);
     };
 
+    const handleSelectAll = () => {
+        if (allDecks.length === 0) return;
+
+        const allIds = allDecks.map(d => d.id);
+        const allAlreadySelected = allIds.every(id => selectedDecks.has(id));
+
+        if (allAlreadySelected) {
+            // If all are selected, deselect only those in the current view
+            const newSelected = new Set(selectedDecks);
+            allIds.forEach(id => newSelected.delete(id));
+            setSelectedDecks(newSelected);
+        } else {
+            // Otherwise, select all in current view
+            const newSelected = new Set(selectedDecks);
+            allIds.forEach(id => newSelected.add(id));
+            setSelectedDecks(newSelected);
+        }
+    };
+
 
 
 
@@ -1124,6 +1143,16 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
 
                     {isSelectionMode && (
                         <>
+                            <button
+                                onClick={handleSelectAll}
+                                className="px-4 py-3 rounded-xl border border-green-500/50 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all flex items-center gap-2"
+                                title={allDecks.length > 0 && allDecks.every(d => selectedDecks.has(d.id)) ? "Deselect All Visible" : "Select All Visible"}
+                            >
+                                <CheckSquare size={20} />
+                                <span className="hidden sm:inline text-sm font-medium">
+                                    {allDecks.length > 0 && allDecks.every(d => selectedDecks.has(d.id)) ? 'Deselect All' : 'Select All'}
+                                </span>
+                            </button>
                             <button
                                 onClick={handleExportSelected}
                                 disabled={isProcessing || selectedDecks.size === 0}
