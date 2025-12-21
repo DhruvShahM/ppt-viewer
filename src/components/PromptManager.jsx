@@ -65,11 +65,11 @@ const PromptManager = ({ onBack }) => {
             groups[cat].push(p);
         });
 
-        // Sort keys: Uncategorized last, others alphabetically
+        // Sort categories by the latest updatedAt within each category
         const sortedKeys = Object.keys(groups).sort((a, b) => {
-            if (a === 'Uncategorized') return 1;
-            if (b === 'Uncategorized') return -1;
-            return a.localeCompare(b);
+            const latestA = Math.max(...groups[a].map(p => new Date(p.updatedAt).getTime()));
+            const latestB = Math.max(...groups[b].map(p => new Date(p.updatedAt).getTime()));
+            return latestB - latestA;
         });
 
         const sortedGroups = {};
@@ -210,6 +210,14 @@ const PromptManager = ({ onBack }) => {
                 if (data.content) {
                     await navigator.clipboard.writeText(data.content);
                     showNotification(`"${promptName}" copied to clipboard!`);
+
+                    // Update timestamp to move to top
+                    await fetch(`/api/prompts/${promptId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: data.name }) // Minimal update to trigger updatedAt
+                    });
+                    fetchPrompts();
                 } else {
                     showNotification("No content to copy.", "error");
                 }
@@ -339,7 +347,10 @@ const PromptManager = ({ onBack }) => {
                                                             {prompt.category && <span className="bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded">{prompt.category}</span>}
                                                             <span>v{(prompt.versions || []).length}</span>
                                                             <span className="w-1 h-1 bg-gray-500 rounded-full" />
-                                                            <span>{new Date(prompt.updatedAt).toLocaleDateString()}</span>
+                                                            <span className="flex items-center gap-1">
+                                                                <Clock size={10} />
+                                                                {new Date(prompt.updatedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                                                            </span>
                                                         </p>
 
                                                         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
