@@ -75,6 +75,11 @@ For EACH slide:
 - Full React component code
 - Uses `motion.div` for both layout and decorative background elements
 - Clean, production-ready formatting
+- **PascalCase naming:** Use PascalCase for all React components and filenames (e.g., `SlideTitleCard.jsx`).
+- **Valid Identifiers:** All component names and import variables MUST be valid JS identifiers. **NO DOTS** in variable names (e.g., `import Slide1_Title from './Slide1_Title.jsx'`).
+- **No Messy Filenames:** DO NOT use double underscores (e.g., `__Slide1.jsx__`) or double extensions (e.g., `Slide1.jsx.jsx`).
+- **Single Extension:** Use exactly one `.jsx` extension.
+- **DO NOT generate Setup_Instructions.jsx** - All dependencies are already installed in the project.
 
 File naming example:
 Slide1_Ethereal.jsx

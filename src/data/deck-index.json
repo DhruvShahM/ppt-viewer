@@ -1,0 +1,44 @@
+[
+  {
+    "id": "golang-string-methods",
+    "title": "Golang String Methods",
+    "repoId": "go-programming",
+    "repoTitle": "Imported Decks",
+    "description": "Golang String Methods",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/golang-string-methods",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-22T12:56:11.998Z"
+  },
+  {
+    "id": "array_method_v1",
+    "title": "array_methods_v1",
+    "repoId": "go-programming",
+    "repoTitle": "Imported Decks",
+    "description": "array_methods",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/array_method_v1",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-22T13:22:33.207Z"
+  },
+  {
+    "id": "channels_go",
+    "title": "channels_go",
+    "repoId": "go-programming",
+    "repoTitle": "Imported Decks",
+    "description": "channels_go",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/channels_go",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-22T13:44:26.513Z"
+  }
+]

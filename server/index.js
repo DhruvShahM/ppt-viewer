@@ -1139,15 +1139,28 @@ app.post('/api/import-deck', codeUpload.array('files'), catchAsync(async (req, r
     fs.writeFileSync(path.join(deckDir, 'deck.js'), deckJsContent);
 
 
-    // Update deck-index.json
-    const DECK_INDEX_FILE = path.join(__dirname, '..', 'src', 'data', 'deck-index.json');
-    let deckIndex = [];
+    // Update BOTH deck-index.json files (frontend and backend)
+    const FRONTEND_DECK_INDEX = path.join(__dirname, '..', 'src', 'data', 'deck-index.json');
+    const BACKEND_DECK_INDEX = path.join(__dirname, 'data', 'deck-index.json');
+
+    // Read frontend deck index
+    let frontendDeckIndex = [];
     try {
-        if (fs.existsSync(DECK_INDEX_FILE)) {
-            deckIndex = JSON.parse(fs.readFileSync(DECK_INDEX_FILE, 'utf8'));
+        if (fs.existsSync(FRONTEND_DECK_INDEX)) {
+            frontendDeckIndex = JSON.parse(fs.readFileSync(FRONTEND_DECK_INDEX, 'utf8'));
         }
     } catch (e) {
-        console.error("Error reading deck index", e);
+        console.error("Error reading frontend deck index", e);
+    }
+
+    // Read backend deck index
+    let backendDeckIndex = [];
+    try {
+        if (fs.existsSync(BACKEND_DECK_INDEX)) {
+            backendDeckIndex = JSON.parse(fs.readFileSync(BACKEND_DECK_INDEX, 'utf8'));
+        }
+    } catch (e) {
+        console.error("Error reading backend deck index", e);
     }
 
     const newDeck = {
@@ -1165,8 +1178,24 @@ app.post('/api/import-deck', codeUpload.array('files'), catchAsync(async (req, r
         importedAt: new Date().toISOString()
     };
 
-    deckIndex.push(newDeck);
-    fs.writeFileSync(DECK_INDEX_FILE, JSON.stringify(deckIndex, null, 2));
+    // Add to both indexes
+    frontendDeckIndex.push(newDeck);
+    backendDeckIndex.push(newDeck);
+
+    // Write to both files
+    try {
+        fs.writeFileSync(FRONTEND_DECK_INDEX, JSON.stringify(frontendDeckIndex, null, 2));
+        console.log(`Updated frontend deck index: ${FRONTEND_DECK_INDEX}`);
+    } catch (e) {
+        console.error("Error writing frontend deck index", e);
+    }
+
+    try {
+        fs.writeFileSync(BACKEND_DECK_INDEX, JSON.stringify(backendDeckIndex, null, 2));
+        console.log(`Updated backend deck index: ${BACKEND_DECK_INDEX}`);
+    } catch (e) {
+        console.error("Error writing backend deck index", e);
+    }
 
     console.log(`Deck imported successfully: ${deckId}`);
     res.status(201).json({ success: true, deck: newDeck });

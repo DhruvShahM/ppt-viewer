@@ -1,5 +1,35 @@
 [
   {
+    "id": "golang-string-methods",
+    "title": "Golang String Methods",
+    "repoId": "go-programming",
+    "repoTitle": "Go Programming",
+    "description": "Master the String Manipulation Toolkit - Complete guide to Go's strings package",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/golang-string-methods",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-22T12:56:11.998Z",
+    "lastOpenedAt": "2025-12-22T13:17:17.568Z"
+  },
+  {
+    "id": "array_method_v1",
+    "title": "Array Methods v1",
+    "repoId": "go-programming",
+    "repoTitle": "Go Programming",
+    "description": "Master Go arrays and slices - operations, patterns, and performance",
+    "icon": "Layers",
+    "color": "green",
+    "status": "active",
+    "path": "src/decks/array_method_v1",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-22T13:22:33.207Z",
+    "lastOpenedAt": "2025-12-22T13:31:02.422Z"
+  },
+  {
     "id": "concurrency",
     "title": "Mastering Concurrency",
     "repoId": "go-programming",
@@ -72,7 +102,7 @@
     "hasLargeAssets": false,
     "archivedAt": "2025-12-05T14:31:55.292Z",
     "restoredAt": "2025-12-05T14:32:24.836Z",
-    "lastOpenedAt": "2025-12-21T12:46:49.231Z"
+    "lastOpenedAt": "2025-12-22T08:22:38.762Z"
   },
   {
     "id": "hindi-concurrency",
@@ -452,5 +482,20 @@
     "hasLargeAssets": false,
     "importedAt": "2025-12-15T08:00:35.627Z",
     "lastOpenedAt": "2025-12-20T15:32:10.796Z"
+  },
+  {
+    "id": "channels_go",
+    "title": "channels_go",
+    "repoId": "go-programming",
+    "repoTitle": "Imported Decks",
+    "description": "channels_go",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/channels_go",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-22T13:44:26.513Z",
+    "lastOpenedAt": "2025-12-22T13:53:37.196Z"
   }
 ]
