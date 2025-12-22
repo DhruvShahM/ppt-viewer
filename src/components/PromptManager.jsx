@@ -12,6 +12,17 @@ const PromptManager = ({ onBack }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [notification, setNotification] = useState(null);
+    const [promptInputs, setPromptInputs] = useState({});
+
+    const handleInputChange = (promptId, key, value) => {
+        setPromptInputs(prev => ({
+            ...prev,
+            [promptId]: {
+                ...(prev[promptId] || {}),
+                [key]: value
+            }
+        }));
+    };
 
     const showNotification = (message, type = 'success') => {
         setNotification({ message, type });
@@ -208,7 +219,18 @@ const PromptManager = ({ onBack }) => {
             if (res.ok) {
                 const data = await res.json();
                 if (data.content) {
-                    await navigator.clipboard.writeText(data.content);
+                    let finalContent = data.content;
+                    // Replace variables like <VARIABLE_NAME> or {{VARIABLE_NAME}}
+                    const inputs = promptInputs[promptId] || {};
+                    Object.entries(inputs).forEach(([key, value]) => {
+                        if (value) {
+                            // Support both <VAR> and {{VAR}} formats
+                            finalContent = finalContent.replaceAll(`<${key}>`, value);
+                            finalContent = finalContent.replaceAll(`{{${key}}}`, value);
+                        }
+                    });
+
+                    await navigator.clipboard.writeText(finalContent);
                     showNotification(`"${promptName}" copied to clipboard!`);
 
                     // Update timestamp to move to top
@@ -231,7 +253,7 @@ const PromptManager = ({ onBack }) => {
     };
 
     return (
-        <div className="w-screen h-screen bg-slate-950 text-white overflow-hidden flex flex-col p-8 selection:bg-blue-500 selection:text-white relative">
+        <div className="w-full h-full text-white overflow-y-auto custom-scrollbar flex flex-col p-8 selection:bg-blue-500 selection:text-white relative z-10">
             {/* Notification Toast */}
             <AnimatePresence>
                 {notification && (
@@ -310,7 +332,7 @@ const PromptManager = ({ onBack }) => {
                         </div>
 
                         {/* List */}
-                        <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="flex-grow">
                             {isLoading ? (
                                 <div className="text-center py-12 text-gray-500">Loading...</div>
                             ) : filteredPrompts.length === 0 ? (
@@ -329,11 +351,47 @@ const PromptManager = ({ onBack }) => {
                                                         onClick={() => handleEdit(prompt)}
                                                         className="group bg-white/5 border border-white/10 hover:border-blue-500/50 p-5 rounded-xl cursor-pointer transition-all hover:bg-white/10 relative overflow-hidden"
                                                     >
-                                                        <div className="flex justify-between items-start mb-4">
-                                                            <div className="p-3 bg-blue-500/10 text-blue-400 rounded-lg">
-                                                                <FileText size={20} />
+                                                        <div className="flex justify-between items-start mb-4 gap-4">
+                                                            <div className="flex items-start gap-4 flex-grow">
+                                                                <div className="p-3 bg-blue-500/10 text-blue-400 rounded-lg shrink-0">
+                                                                    <FileText size={20} />
+                                                                </div>
+
+                                                                {prompt.inputSnippet && (
+                                                                    <div className="flex-grow text-[10px] font-mono leading-tight">
+                                                                        <div className="text-red-400 font-bold mb-1 opacity-80 uppercase tracking-tighter">INPUT:</div>
+                                                                        <div className="space-y-1">
+                                                                            {prompt.inputSnippet.split('\n').filter(l => l.trim()).map((line, lid) => {
+                                                                                const parts = line.split(/(<[^>]+>|\{\{[^}]+\}\})/g);
+                                                                                return (
+                                                                                    <div key={lid} className="flex flex-wrap items-center gap-1 text-gray-300">
+                                                                                        {parts.map((part, pid) => {
+                                                                                            const isPlaceholder = (part.startsWith('<') && part.endsWith('>')) || (part.startsWith('{{') && part.endsWith('}}'));
+                                                                                            if (isPlaceholder) {
+                                                                                                const varName = part.startsWith('{{') ? part.slice(2, -2) : part.slice(1, -1);
+                                                                                                return (
+                                                                                                    <input
+                                                                                                        key={pid}
+                                                                                                        type="text"
+                                                                                                        onClick={(e) => e.stopPropagation()}
+                                                                                                        value={promptInputs[prompt.id]?.[varName] || ''}
+                                                                                                        onChange={(e) => handleInputChange(prompt.id, varName, e.target.value)}
+                                                                                                        placeholder={varName}
+                                                                                                        className="bg-white/5 border border-white/10 rounded px-1 py-0.5 text-blue-400 outline-none focus:border-blue-500 focus:bg-white/10 min-w-[80px] max-w-full transition-all placeholder:text-blue-400/30"
+                                                                                                    />
+                                                                                                );
+                                                                                            }
+                                                                                            return <span key={pid} className="opacity-70">{part}</span>;
+                                                                                        })}
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                            <span className={`px-2 py-1 rounded text-xs font-medium border ${prompt.status === 'Active' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+
+                                                            <span className={`px-2 py-1 rounded text-xs font-medium border shrink-0 ${prompt.status === 'Active' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
                                                                 prompt.status === 'Archived' ? 'bg-gray-500/10 text-gray-400 border-gray-500/20' :
                                                                     'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
                                                                 }`}>
@@ -496,7 +554,7 @@ const PromptManager = ({ onBack }) => {
                             </div>
 
                             {/* Sidebar / Metadata / History (Optional for now, simplified) */}
-                            <div className="w-80 flex-shrink-0 bg-white/5 border border-white/10 rounded-xl p-6 overflow-y-auto">
+                            <div className="w-80 flex-shrink-0 bg-white/5 border border-white/10 rounded-xl p-6 overflow-y-auto custom-scrollbar">
                                 <h3 className="font-bold mb-4 flex items-center gap-2">
                                     <Clock size={16} /> Version History
                                 </h3>

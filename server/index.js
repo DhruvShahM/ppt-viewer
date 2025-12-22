@@ -1814,7 +1814,23 @@ const savePrompts = (prompts) => {
 
 app.get('/api/prompts', (req, res) => {
     const prompts = getPrompts();
-    res.json(prompts);
+    const promptsWithInputs = prompts.map(p => {
+        const contentPath = path.join(PROMPTS_DIR, p.filename);
+        if (fs.existsSync(contentPath)) {
+            try {
+                const content = fs.readFileSync(contentPath, 'utf8');
+                // Look for INPUT: and capture everything until the next double newline or end of file
+                const match = content.match(/INPUT:[\s\S]*?\n([\s\S]*?)(?=\n\n|$)/i);
+                if (match) {
+                    return { ...p, inputSnippet: match[1].trim() };
+                }
+            } catch (e) {
+                console.error(`Error reading snippet for ${p.id}:`, e);
+            }
+        }
+        return p;
+    });
+    res.json(promptsWithInputs);
 });
 
 app.get('/api/prompts/:id', (req, res) => {
