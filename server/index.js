@@ -1996,6 +1996,58 @@ app.delete('/api/prompts/:id', (req, res) => {
     res.json({ success: true });
 });
 
+app.post('/api/prompts/bulk-delete', (req, res) => {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'IDs array required' });
+    }
+
+    let prompts = getPrompts();
+    const promptsToDelete = prompts.filter(p => ids.includes(p.id));
+
+    promptsToDelete.forEach(prompt => {
+        const contentPath = path.join(PROMPTS_DIR, prompt.filename);
+        if (fs.existsSync(contentPath)) {
+            try {
+                fs.unlinkSync(contentPath);
+            } catch (e) {
+                console.error(`Failed to delete prompt file for ${prompt.id}:`, e);
+            }
+        }
+    });
+
+    prompts = prompts.filter(p => !ids.includes(p.id));
+    savePrompts(prompts);
+
+    res.json({ success: true, count: promptsToDelete.length });
+});
+
+app.post('/api/prompts/bulk-status', (req, res) => {
+    const { ids, status } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0 || !status) {
+        return res.status(400).json({ error: 'IDs array and status required' });
+    }
+
+    const prompts = getPrompts();
+    let updatedCount = 0;
+
+    const updatedPrompts = prompts.map(p => {
+        if (ids.includes(p.id)) {
+            updatedCount++;
+            return {
+                ...p,
+                status,
+                updatedAt: new Date().toISOString()
+            };
+        }
+        return p;
+    });
+
+    savePrompts(updatedPrompts);
+    res.json({ success: true, count: updatedCount });
+});
+
+
 
 
 // --- AI Agent Route ---

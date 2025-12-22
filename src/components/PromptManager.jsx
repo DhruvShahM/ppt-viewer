@@ -16,6 +16,7 @@ const PromptManager = ({ onBack }) => {
     const [promptInputs, setPromptInputs] = useState({});
     const [isAddingCategory, setIsAddingCategory] = useState(false);
     const [newCategory, setNewCategory] = useState('');
+    const [selectedPromptIds, setSelectedPromptIds] = useState([]);
 
 
     const handleInputChange = (promptId, key, value) => {
@@ -219,7 +220,7 @@ const PromptManager = ({ onBack }) => {
     };
 
     const handleDelete = async (promptId, e) => {
-        e.stopPropagation();
+        if (e) e.stopPropagation();
         if (!confirm("Permanently delete this prompt?")) return;
 
         try {
@@ -229,9 +230,90 @@ const PromptManager = ({ onBack }) => {
                 if (view === 'edit' && currentPrompt?.id === promptId) {
                     setView('list');
                 }
+                setSelectedPromptIds(prev => prev.filter(id => id !== promptId));
             }
         } catch (error) {
             console.error("Delete failed:", error);
+        }
+    };
+
+    const handleSelectAll = () => {
+        if (selectedPromptIds.length === filteredPrompts.length) {
+            setSelectedPromptIds([]);
+        } else {
+            setSelectedPromptIds(filteredPrompts.map(p => p.id));
+        }
+    };
+
+    const toggleSelect = (id, e) => {
+        if (e) e.stopPropagation();
+        setSelectedPromptIds(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
+    const handleBulkArchive = async () => {
+        if (selectedPromptIds.length === 0) return;
+        const status = filterStatus === 'Archived' ? 'Draft' : 'Archived';
+        if (!confirm(`Mark ${selectedPromptIds.length} selected prompts as ${status}?`)) return;
+
+        try {
+            const res = await fetch('/api/prompts/bulk-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: selectedPromptIds, status })
+            });
+            if (res.ok) {
+                fetchPrompts();
+                setSelectedPromptIds([]);
+                showNotification(`${selectedPromptIds.length} prompts ${status.toLowerCase()}`);
+            }
+        } catch (error) {
+            console.error("Bulk archive failed:", error);
+            showNotification("Bulk operation failed", "error");
+        }
+    };
+
+    const handleBulkActivate = async () => {
+        if (selectedPromptIds.length === 0) return;
+        if (!confirm(`Mark ${selectedPromptIds.length} selected prompts as Active?`)) return;
+
+        try {
+            const res = await fetch('/api/prompts/bulk-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: selectedPromptIds, status: 'Active' })
+            });
+            if (res.ok) {
+                fetchPrompts();
+                setSelectedPromptIds([]);
+                setFilterStatus('Active');
+                showNotification(`${selectedPromptIds.length} prompts activated`);
+            }
+        } catch (error) {
+            console.error("Bulk activation failed:", error);
+            showNotification("Bulk activation failed", "error");
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedPromptIds.length === 0) return;
+        if (!confirm(`Permanently delete ${selectedPromptIds.length} selected prompts?`)) return;
+
+        try {
+            const res = await fetch('/api/prompts/bulk-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: selectedPromptIds })
+            });
+            if (res.ok) {
+                fetchPrompts();
+                setSelectedPromptIds([]);
+                showNotification(`${selectedPromptIds.length} prompts deleted`);
+            }
+        } catch (error) {
+            console.error("Bulk delete failed:", error);
+            showNotification("Bulk delete failed", "error");
         }
     };
 
@@ -373,7 +455,75 @@ const PromptManager = ({ onBack }) => {
                                     className="w-full bg-transparent border-none outline-none text-white placeholder-gray-500 pl-9 pr-4 py-2 text-sm"
                                 />
                             </div>
+
+                            {filteredPrompts.length > 0 && (
+                                <>
+                                    <div className="w-px h-6 bg-white/10 mx-2" />
+                                    <button
+                                        onClick={handleSelectAll}
+                                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-white/5 transition-colors text-gray-400 hover:text-white"
+                                    >
+                                        <div className={`w-4 h-4 rounded border transition-all flex items-center justify-center ${selectedPromptIds.length === filteredPrompts.length ? 'bg-blue-500 border-blue-500' : 'border-white/30'
+                                            }`}>
+                                            {selectedPromptIds.length === filteredPrompts.length && <CheckCircle size={10} className="text-white" />}
+                                        </div>
+                                        {selectedPromptIds.length === filteredPrompts.length ? 'Deselect All' : 'Select All'}
+                                    </button>
+                                </>
+                            )}
                         </div>
+
+                        {/* Bulk Actions Bar */}
+                        <AnimatePresence>
+                            {selectedPromptIds.length > 0 && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                    animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
+                                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="flex items-center justify-between bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl">
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-sm font-medium text-blue-400">
+                                                {selectedPromptIds.length} item{selectedPromptIds.length > 1 ? 's' : ''} selected
+                                            </span>
+                                            <div className="w-px h-6 bg-blue-500/20" />
+                                            <button
+                                                onClick={() => setSelectedPromptIds([])}
+                                                className="text-sm text-gray-400 hover:text-white transition-colors"
+                                            >
+                                                Clear selection
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {filterStatus !== 'Active' && (
+                                                <button
+                                                    onClick={handleBulkActivate}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500 text-green-500 hover:text-white rounded-lg text-sm font-medium transition-all"
+                                                >
+                                                    <CheckCircle size={16} />
+                                                    Active Selected
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={handleBulkArchive}
+                                                className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500 text-yellow-500 hover:text-white rounded-lg text-sm font-medium transition-all"
+                                            >
+                                                <Archive size={16} />
+                                                {filterStatus === 'Archived' ? 'Restore Selected' : 'Archive Selected'}
+                                            </button>
+                                            <button
+                                                onClick={handleBulkDelete}
+                                                className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white rounded-lg text-sm font-medium transition-all"
+                                            >
+                                                <Trash2 size={16} />
+                                                Delete Selected
+                                            </button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
 
                         {/* List */}
                         <div className="flex-grow">
@@ -393,13 +543,26 @@ const PromptManager = ({ onBack }) => {
                                                     <div
                                                         key={prompt.id}
                                                         onClick={() => handleEdit(prompt)}
-                                                        className="group bg-white/5 border border-white/10 hover:border-blue-500/50 p-5 rounded-xl cursor-pointer transition-all hover:bg-white/10 relative h-[480px] flex flex-col overflow-hidden shadow-xl"
+                                                        className={`group bg-white/5 border p-5 rounded-xl cursor-pointer transition-all hover:bg-white/10 relative h-[480px] flex flex-col overflow-hidden shadow-xl ${selectedPromptIds.includes(prompt.id) ? 'border-blue-500 ring-1 ring-blue-500/50 bg-blue-500/5' : 'border-white/10 hover:border-blue-500/50'
+                                                            }`}
                                                     >
+                                                        {/* Selection Checkbox */}
+                                                        <div
+                                                            onClick={(e) => toggleSelect(prompt.id, e)}
+                                                            className={`absolute top-5 left-5 z-20 w-5 h-5 rounded border transition-all flex items-center justify-center ${selectedPromptIds.includes(prompt.id)
+                                                                ? 'bg-blue-500 border-blue-500 scale-110'
+                                                                : 'border-white/30 opacity-0 group-hover:opacity-100 hover:border-white/50'
+                                                                }`}
+                                                        >
+                                                            {selectedPromptIds.includes(prompt.id) && <CheckCircle size={12} className="text-white" />}
+                                                        </div>
+
                                                         {/* Scrollable Content Area */}
                                                         <div className="flex-grow overflow-y-auto custom-scrollbar pr-2 mb-2">
                                                             <div className="flex justify-between items-start mb-4 gap-4">
-                                                                <div className="flex items-start gap-4 flex-grow">
-                                                                    <div className="p-3 bg-blue-500/10 text-blue-400 rounded-lg shrink-0">
+                                                                <div className={`flex items-start gap-4 flex-grow transition-all group-hover:pl-8 ${selectedPromptIds.length > 0 || selectedPromptIds.includes(prompt.id) ? 'pl-8' : ''}`}>
+                                                                    <div className={`p-3 rounded-lg shrink-0 transition-colors ${selectedPromptIds.includes(prompt.id) ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-500/10 text-blue-400'
+                                                                        }`}>
                                                                         <FileText size={20} />
                                                                     </div>
 
