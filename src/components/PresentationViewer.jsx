@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Slide from './Slide';
 import AnnotationLayer from './AnnotationLayer';
-import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock, FileCode, Stamp, X, Bot, ZoomIn, ZoomOut, TextCursorInput } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock, FileCode, Stamp, X, Bot, ZoomIn, ZoomOut, TextCursorInput, Move, RotateCw } from 'lucide-react';
 import DesignFeedback from './DesignFeedback';
 import SocialHub from './SocialHub';
 import SocialExportStudio from './SocialExportStudio';
@@ -21,6 +21,25 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const [activeTool, setActiveTool] = useState('none');
     const [activeColor, setActiveColor] = useState('#ef4444');
     const [isLocked, setIsLocked] = useState(false);
+
+    // Toolbar Position & Orientation State
+    const [toolbarOrientation, setToolbarOrientation] = useState(() =>
+        localStorage.getItem(`toolbar_orientation_${deckId}`) || 'horizontal'
+    );
+    const [toolbarPosition, setToolbarPosition] = useState(() => {
+        const saved = localStorage.getItem(`toolbar_position_${deckId}`);
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return { x: null, y: null }; // null means use default positioning
+            }
+        }
+        return { x: null, y: null };
+    });
+    const [isDraggingToolbar, setIsDraggingToolbar] = useState(false);
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    const toolbarRef = useRef(null);
 
     // Font Size State
     const [fontSize, setFontSize] = useState(() => localStorage.getItem(`fontSize_${deckId}`) || '16');
@@ -163,6 +182,10 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
 
     // Handle Inactivity Timer
     useEffect(() => {
+        let rafId = null;
+        let lastProximityCheck = 0;
+        const proximityCheckInterval = 100; // Check proximity every 100ms max
+
         const handleMouseMove = (e) => {
             // 1. Cursor Logic: Always show on move, hide after 3s
             if (isExportRecording) {
@@ -175,37 +198,80 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                 cursorTimeoutRef.current = setTimeout(() => setShowCursor(false), 3000);
             }
 
-            // 2. Toolbar Logic: Show only if at bottom or hovering controls
+            // 2. Toolbar Logic: Show if near toolbar position or hovering controls
             if (isExportRecording) return; // Don't show controls if recording
 
-            const isBottom = e.clientY > window.innerHeight - 150;
-
-            if (isBottom || isHoveringControls.current) {
-                setShowControls(true);
-                if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-
-                if (isPresenting && !isHoveringControls.current) {
-                    controlsTimeoutRef.current = setTimeout(() => {
-                        setShowControls(false);
-                    }, 2000);
-                }
-            } else {
-                // Hide controls if not at bottom and not hovering
+            // Skip proximity checks if actively drawing (performance optimization)
+            if (activeTool !== 'none' && activeTool !== 'text') {
+                // Keep toolbar visible while using drawing tools
                 if (isPresenting) {
-                    setShowControls(false);
-                    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+                    setShowControls(true);
                 }
+                return;
             }
+
+            // Throttle proximity checks using timestamp
+            const now = Date.now();
+            if (now - lastProximityCheck < proximityCheckInterval) {
+                return;
+            }
+            lastProximityCheck = now;
+
+            // Use requestAnimationFrame for smooth updates
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+            }
+
+            rafId = requestAnimationFrame(() => {
+                // Check if mouse is near the toolbar
+                let isNearToolbar = false;
+
+                if (toolbarRef.current) {
+                    const toolbarRect = toolbarRef.current.getBoundingClientRect();
+                    const proximityThreshold = 100; // pixels
+
+                    // Check if mouse is within proximity of toolbar
+                    isNearToolbar = (
+                        e.clientX >= toolbarRect.left - proximityThreshold &&
+                        e.clientX <= toolbarRect.right + proximityThreshold &&
+                        e.clientY >= toolbarRect.top - proximityThreshold &&
+                        e.clientY <= toolbarRect.bottom + proximityThreshold
+                    );
+                } else {
+                    // Fallback: Check if at bottom (for default position)
+                    isNearToolbar = e.clientY > window.innerHeight - 150;
+                }
+
+                if (isNearToolbar || isHoveringControls.current) {
+                    setShowControls(true);
+                    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+
+                    if (isPresenting && !isHoveringControls.current) {
+                        controlsTimeoutRef.current = setTimeout(() => {
+                            setShowControls(false);
+                        }, 2000);
+                    }
+                } else {
+                    // Hide controls if not near toolbar and not hovering
+                    if (isPresenting) {
+                        setShowControls(false);
+                        if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+                    }
+                }
+            });
         };
 
         window.addEventListener('mousemove', handleMouseMove);
 
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+            }
             if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
             if (cursorTimeoutRef.current) clearTimeout(cursorTimeoutRef.current);
         };
-    }, [isPresenting, isExportRecording]);
+    }, [isPresenting, isExportRecording, toolbarPosition, activeTool]);
 
     const handleMouseEnterControls = () => {
         if (isExportRecording) return;
@@ -247,6 +313,60 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
         document.addEventListener('fullscreenchange', handleFullScreenChange);
         return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
     }, []);
+
+    // Toolbar Drag Handlers
+    const handleToolbarMouseDown = (e) => {
+        // Only start drag if clicking on the drag handle area (not on buttons)
+        if (e.target.closest('button')) return;
+
+        const toolbar = toolbarRef.current;
+        if (!toolbar) return;
+
+        const rect = toolbar.getBoundingClientRect();
+        setDragOffset({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        });
+        setIsDraggingToolbar(true);
+    };
+
+    useEffect(() => {
+        if (!isDraggingToolbar) return;
+
+        const handleMouseMove = (e) => {
+            const newX = e.clientX - dragOffset.x;
+            const newY = e.clientY - dragOffset.y;
+
+            setToolbarPosition({ x: newX, y: newY });
+        };
+
+        const handleMouseUp = () => {
+            setIsDraggingToolbar(false);
+            // Save position to localStorage
+            localStorage.setItem(`toolbar_position_${deckId}`, JSON.stringify(toolbarPosition));
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDraggingToolbar, dragOffset, deckId, toolbarPosition]);
+
+    // Toggle toolbar orientation
+    const toggleToolbarOrientation = () => {
+        const newOrientation = toolbarOrientation === 'horizontal' ? 'vertical' : 'horizontal';
+        setToolbarOrientation(newOrientation);
+        localStorage.setItem(`toolbar_orientation_${deckId}`, newOrientation);
+    };
+
+    // Reset toolbar to default position
+    const resetToolbarPosition = () => {
+        setToolbarPosition({ x: null, y: null });
+        localStorage.removeItem(`toolbar_position_${deckId}`);
+    };
 
 
 
@@ -378,14 +498,47 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                 </div>
             )}
 
-            {/* Annotation Toolbar (Only in Presentation Mode) */}
+            {/* Annotation Toolbar (Only in Presentation Mode) - Now Draggable! */}
             {isPresenting && !isLocked && !isExportRecording && (
                 <div
+                    ref={toolbarRef}
+                    onMouseDown={handleToolbarMouseDown}
                     onMouseEnter={handleMouseEnterControls}
                     onMouseLeave={handleMouseLeaveControls}
-                    className={`absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-50 bg-black/50 backdrop-blur-md p-2 rounded-full border border-white/10 transition-opacity duration-500 ${!showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                    className={`absolute z-50 bg-black/50 backdrop-blur-md p-2 border border-white/10 transition-opacity duration-500 ${toolbarOrientation === 'horizontal' ? 'rounded-full' : 'rounded-2xl'
+                        } ${!showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'} ${isDraggingToolbar ? 'cursor-grabbing shadow-2xl scale-105' : 'cursor-grab'
                         }`}
+                    style={{
+                        left: toolbarPosition.x !== null ? `${toolbarPosition.x}px` : '50%',
+                        top: toolbarPosition.y !== null ? `${toolbarPosition.y}px` : 'auto',
+                        bottom: toolbarPosition.y !== null ? 'auto' : '32px',
+                        transform: toolbarPosition.x !== null && toolbarPosition.y !== null
+                            ? 'none'
+                            : 'translateX(-50%)',
+                        flexDirection: toolbarOrientation === 'horizontal' ? 'row' : 'column',
+                        display: 'flex',
+                        gap: '0.5rem'
+                    }}
                 >
+                    {/* Drag Handle Indicator */}
+                    <div className={`flex items-center justify-center ${toolbarOrientation === 'horizontal' ? 'px-2' : 'py-2'
+                        }`}>
+                        <Move size={16} className="text-white/40" />
+                    </div>
+
+                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
+
+                    {/* Orientation Toggle */}
+                    <button
+                        onClick={toggleToolbarOrientation}
+                        className="p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
+                        title={`Switch to ${toolbarOrientation === 'horizontal' ? 'Vertical' : 'Horizontal'} Layout`}
+                    >
+                        <RotateCw size={20} />
+                    </button>
+
+                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
+
                     <button
                         onClick={() => setActiveTool('none')}
                         className={`p-3 rounded-full transition-all ${activeTool === 'none' ? 'bg-white text-black' : 'bg-white/10 hover:bg-white/20 text-white'}`}
@@ -436,10 +589,10 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                     >
                         <Eraser size={20} />
                     </button>
-                    <div className="w-px h-8 bg-white/20 mx-1 self-center" />
+                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
 
                     {/* Color Picker */}
-                    <div className="flex gap-1 mr-1">
+                    <div className={`flex gap-1 ${toolbarOrientation === 'horizontal' ? 'flex-row mr-1' : 'flex-col mb-1'}`}>
                         {COLORS.map((c) => (
                             <button
                                 key={c.value}
@@ -453,7 +606,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                         ))}
                     </div>
 
-                    <div className="w-px h-8 bg-white/20 mx-1 self-center" />
+                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
                     <button
                         onClick={() => setClearTrigger(t => t + 1)}
                         className="p-3 rounded-full bg-white/10 hover:bg-red-500/20 text-white hover:text-red-400 transition-all"
@@ -462,7 +615,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                         <Trash2 size={20} />
                     </button>
 
-                    <div className="w-px h-8 bg-white/20 mx-1 self-center" />
+                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
 
                     <button
                         onClick={() => setShowTrademarkModal(prev => !prev)}
@@ -471,7 +624,22 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                     >
                         <Stamp size={20} />
                     </button>
-                    <div className="w-px h-8 bg-white/20 mx-1 self-center" />
+                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
+
+                    {/* Reset Position Button */}
+                    {(toolbarPosition.x !== null || toolbarPosition.y !== null) && (
+                        <>
+                            <button
+                                onClick={resetToolbarPosition}
+                                className="p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
+                                title="Reset to Default Position"
+                            >
+                                <X size={20} />
+                            </button>
+                            <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
+                        </>
+                    )}
+
                     <button
                         onClick={() => {
                             setIsLocked(true);

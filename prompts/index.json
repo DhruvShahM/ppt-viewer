@@ -150,5 +150,21 @@
     ],
     "createdAt": "2025-12-22T07:43:10.970Z",
     "updatedAt": "2025-12-22T07:43:10.970Z"
+  },
+  {
+    "id": "animated-deck-prompt-copy-1766416787982",
+    "name": "Animated Deck Prompt (Copy)",
+    "type": "Template",
+    "status": "Draft",
+    "filename": "animated-deck-prompt-copy-1766416787982.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2025-12-22T15:19:47.985Z"
+      }
+    ],
+    "createdAt": "2025-12-22T15:19:47.985Z",
+    "updatedAt": "2025-12-22T15:19:47.985Z",
+    "category": "Animated"
   }
 ]
