@@ -40,5 +40,19 @@
     "version": 1,
     "hasLargeAssets": false,
     "importedAt": "2025-12-22T13:44:26.513Z"
+  },
+  {
+    "id": "buffered_golang",
+    "title": "buffered_golang",
+    "repoId": "go-programming",
+    "repoTitle": "Imported Decks",
+    "description": "buffered_golang",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/buffered_golang",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-22T14:29:12.517Z"
   }
 ]

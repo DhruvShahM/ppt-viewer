@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Slide from './Slide';
 import AnnotationLayer from './AnnotationLayer';
-import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock, FileCode, Stamp, X, Bot } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock, FileCode, Stamp, X, Bot, ZoomIn, ZoomOut, TextCursorInput } from 'lucide-react';
 import DesignFeedback from './DesignFeedback';
 import SocialHub from './SocialHub';
 import SocialExportStudio from './SocialExportStudio';
@@ -22,6 +22,9 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const [activeColor, setActiveColor] = useState('#ef4444');
     const [isLocked, setIsLocked] = useState(false);
 
+    // Font Size State
+    const [fontSize, setFontSize] = useState(() => localStorage.getItem(`fontSize_${deckId}`) || '16');
+
     // Trademark State
     const [trademarkText, setTrademarkText] = useState(() => localStorage.getItem(`trademark_${deckId}`) || '');
     const [showTrademark, setShowTrademark] = useState(() => !!localStorage.getItem(`trademark_${deckId}`));
@@ -37,6 +40,10 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
         }
         localStorage.setItem(`trademark_pos_${deckId}`, trademarkPosition);
     }, [trademarkText, trademarkPosition, deckId]);
+
+    useEffect(() => {
+        localStorage.setItem(`fontSize_${deckId}`, fontSize);
+    }, [fontSize, deckId]);
 
     const positionClasses = {
         'top-left': 'top-6 left-6',
@@ -59,6 +66,15 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
         { name: 'Yellow', value: '#eab308' },
         { name: 'White', value: '#ffffff' },
         { name: 'Black', value: '#000000' },
+    ];
+
+    const FONT_SIZES = [
+        { name: '12px', value: '12', scale: 0.75 },
+        { name: '14px', value: '14', scale: 0.875 },
+        { name: '16px', value: '16', scale: 1.0 },
+        { name: '18px', value: '18', scale: 1.125 },
+        { name: '20px', value: '20', scale: 1.25 },
+        { name: '24px', value: '24', scale: 1.5 },
     ];
 
     const controlsTimeoutRef = useRef(null);
@@ -251,10 +267,20 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
         }
     };
 
+    // Calculate font size scale - use preset scale if available, otherwise calculate from pixel value
+    const fontSizeScale = (() => {
+        const preset = FONT_SIZES.find(f => f.value === fontSize);
+        if (preset) return preset.scale;
+        // For custom values, calculate scale relative to base size of 16px
+        const numValue = parseInt(fontSize);
+        return isNaN(numValue) ? 1.0 : numValue / 16;
+    })();
+
     return (
         <div
             ref={containerRef}
             className={`w-full h-full relative group ${isPresenting && !showCursor ? 'cursor-none' : ''}`}
+            style={{ '--font-size-scale': fontSizeScale }}
         >
             {/* Slides */}
             <div className="relative z-10 w-full h-full" ref={slideWrapperRef}>
@@ -480,6 +506,48 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
             >
                 {!isPresenting && !isExportRecording && (
                     <>
+                        {/* Font Size Control - Dropdown + Text Input */}
+                        <div className="relative group self-center mr-4 flex items-center gap-1 bg-black/50 border border-white/20 rounded-full px-3 py-2 hover:bg-white/10">
+                            <TextCursorInput size={14} className="text-white/70" />
+                            <input
+                                type="number"
+                                value={fontSize}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value === '' || (parseInt(value) >= 8 && parseInt(value) <= 48)) {
+                                        setFontSize(value || '16');
+                                    }
+                                }}
+                                onBlur={(e) => {
+                                    const value = parseInt(e.target.value);
+                                    if (isNaN(value) || value < 8) {
+                                        setFontSize('16');
+                                    } else if (value > 48) {
+                                        setFontSize('48');
+                                    }
+                                }}
+                                className="w-12 bg-transparent text-white text-sm font-sans focus:outline-none text-center"
+                                min="8"
+                                max="48"
+                                title="Font Size (8-48px)"
+                            />
+                            <span className="text-white/50 text-xs">px</span>
+                            <div className="h-4 w-px bg-white/20 mx-1" />
+                            <select
+                                onChange={(e) => setFontSize(e.target.value)}
+                                value={fontSize}
+                                className="appearance-none bg-transparent text-white text-sm font-sans focus:outline-none cursor-pointer pr-4"
+                                title="Preset Sizes"
+                            >
+                                {FONT_SIZES.map((f) => (
+                                    <option key={f.value} value={f.value} className="bg-slate-900 text-white">
+                                        {f.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronRight size={12} className="rotate-90 text-white/50 absolute right-2 pointer-events-none" />
+                        </div>
+
                         <div className="relative group self-center mr-4">
                             <select
                                 onChange={(e) => onFontSelect && onFontSelect(e.target.value)}
