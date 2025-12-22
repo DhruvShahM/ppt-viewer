@@ -73,13 +73,14 @@
       }
     ],
     "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2025-12-21T13:13:06.080Z"
+    "updatedAt": "2025-12-22T05:04:24.612Z",
+    "category": "demo"
   },
   {
     "id": "ai-generation-guide",
     "name": "AI Generation Guide",
     "type": "System",
-    "status": "Archived",
+    "status": "Active",
     "filename": "ai_generation_guide.md",
     "versions": [
       {
@@ -88,21 +89,43 @@
       }
     ],
     "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2025-12-20T06:43:22.083Z"
+    "updatedAt": "2025-12-22T05:05:12.818Z",
+    "category": "Uncategorized"
   },
   {
     "id": "test-prompt-1766210002672",
     "name": "Test Prompt",
-    "type": "User",
-    "status": "Draft",
+    "type": "Template",
+    "status": "Active",
     "filename": "test-prompt-1766210002672.md",
     "versions": [
       {
         "version": 1,
         "createdAt": "2025-12-20T05:53:22.672Z"
+      },
+      {
+        "version": 2,
+        "createdAt": "2025-12-22T05:05:40.490Z"
       }
     ],
     "createdAt": "2025-12-20T05:53:22.672Z",
-    "updatedAt": "2025-12-20T05:53:22.672Z"
+    "updatedAt": "2025-12-22T05:06:21.486Z",
+    "category": "Uncategorized"
+  },
+  {
+    "id": "demo-1766380006224",
+    "name": "Demo",
+    "type": "User",
+    "category": "demo",
+    "status": "Active",
+    "filename": "demo-1766380006224.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2025-12-22T05:06:46.224Z"
+      }
+    ],
+    "createdAt": "2025-12-22T05:06:46.224Z",
+    "updatedAt": "2025-12-22T05:06:46.224Z"
   }
 ]

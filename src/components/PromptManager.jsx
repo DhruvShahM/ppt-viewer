@@ -13,6 +13,9 @@ const PromptManager = ({ onBack }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [notification, setNotification] = useState(null);
     const [promptInputs, setPromptInputs] = useState({});
+    const [isAddingCategory, setIsAddingCategory] = useState(false);
+    const [newCategory, setNewCategory] = useState('');
+
 
     const handleInputChange = (promptId, key, value) => {
         setPromptInputs(prev => ({
@@ -88,15 +91,35 @@ const PromptManager = ({ onBack }) => {
         return sortedGroups;
     }, [filteredPrompts]);
 
+    const categories = useMemo(() => {
+        const cats = new Set(['Uncategorized']);
+        prompts.forEach(p => {
+            if (p.category && p.category.trim()) cats.add(p.category.trim());
+        });
+
+        // Also include the current prompt's category if it's new
+        if (currentPrompt?.category && currentPrompt.category.trim()) {
+            cats.add(currentPrompt.category.trim());
+        }
+
+        return Array.from(cats).sort((a, b) => {
+            if (a === 'Uncategorized') return -1;
+            if (b === 'Uncategorized') return 1;
+            return a.localeCompare(b);
+        });
+    }, [prompts, currentPrompt?.category]);
+
     const handleCreateNew = () => {
         setCurrentPrompt({
             name: '',
             type: 'User',
-            category: '',
+            category: 'Uncategorized',
             status: 'Draft',
             content: '',
             isNew: true
         });
+        setIsAddingCategory(false);
+        setNewCategory('');
         setView('edit');
     };
 
@@ -107,7 +130,9 @@ const PromptManager = ({ onBack }) => {
             const res = await fetch(`/api/prompts/${prompt.id}`);
             if (res.ok) {
                 const data = await res.json();
-                setCurrentPrompt({ ...data, isNew: false });
+                setCurrentPrompt({ ...data, category: data.category || 'Uncategorized', isNew: false });
+                setIsAddingCategory(false);
+                setNewCategory('');
                 setView('edit');
             }
         } catch (error) {
@@ -349,17 +374,43 @@ const PromptManager = ({ onBack }) => {
                                                     <div
                                                         key={prompt.id}
                                                         onClick={() => handleEdit(prompt)}
-                                                        className="group bg-white/5 border border-white/10 hover:border-blue-500/50 p-5 rounded-xl cursor-pointer transition-all hover:bg-white/10 relative overflow-hidden"
+                                                        className="group bg-white/5 border border-white/10 hover:border-blue-500/50 p-5 rounded-xl cursor-pointer transition-all hover:bg-white/10 relative h-[480px] flex flex-col overflow-hidden shadow-xl"
                                                     >
-                                                        <div className="flex justify-between items-start mb-4 gap-4">
-                                                            <div className="flex items-start gap-4 flex-grow">
-                                                                <div className="p-3 bg-blue-500/10 text-blue-400 rounded-lg shrink-0">
-                                                                    <FileText size={20} />
+                                                        {/* Scrollable Content Area */}
+                                                        <div className="flex-grow overflow-y-auto custom-scrollbar pr-2 mb-2">
+                                                            <div className="flex justify-between items-start mb-4 gap-4">
+                                                                <div className="flex items-start gap-4 flex-grow">
+                                                                    <div className="p-3 bg-blue-500/10 text-blue-400 rounded-lg shrink-0">
+                                                                        <FileText size={20} />
+                                                                    </div>
+
+                                                                    <div className="flex-grow min-w-0">
+                                                                        <h3 className="text-lg font-bold mb-1 truncate">{prompt.name}</h3>
+                                                                        <p className="text-xs text-gray-400 flex flex-wrap items-center gap-2">
+                                                                            <span className="bg-white/10 px-1.5 py-0.5 rounded">{prompt.type}</span>
+                                                                            {prompt.category && <span className="bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded">{prompt.category}</span>}
+                                                                            <span>v{(prompt.versions || []).length}</span>
+                                                                            <span className="w-1 h-1 bg-gray-500 rounded-full" />
+                                                                            <span className="flex items-center gap-1">
+                                                                                <Clock size={10} />
+                                                                                {new Date(prompt.updatedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                                                                            </span>
+                                                                        </p>
+                                                                    </div>
                                                                 </div>
 
-                                                                {prompt.inputSnippet && (
-                                                                    <div className="flex-grow text-[10px] font-mono leading-tight">
-                                                                        <div className="text-red-400 font-bold mb-1 opacity-80 uppercase tracking-tighter">INPUT:</div>
+                                                                <span className={`px-2 py-1 rounded text-xs font-medium border shrink-0 ${prompt.status === 'Active' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                                                    prompt.status === 'Archived' ? 'bg-gray-500/10 text-gray-400 border-gray-500/20' :
+                                                                        'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                                                                    }`}>
+                                                                    {prompt.status}
+                                                                </span>
+                                                            </div>
+
+                                                            {prompt.inputSnippet && (
+                                                                <div className="mt-6 border-t border-white/5 pt-4">
+                                                                    <div className="text-[10px] font-mono leading-tight">
+                                                                        <div className="text-red-400 font-bold mb-2 opacity-80 uppercase tracking-tighter">INPUT:</div>
                                                                         <div className="space-y-1">
                                                                             {prompt.inputSnippet.split('\n').filter(l => l.trim()).map((line, lid) => {
                                                                                 const parts = line.split(/(<[^>]+>|\{\{[^}]+\}\})/g);
@@ -388,29 +439,11 @@ const PromptManager = ({ onBack }) => {
                                                                             })}
                                                                         </div>
                                                                     </div>
-                                                                )}
-                                                            </div>
-
-                                                            <span className={`px-2 py-1 rounded text-xs font-medium border shrink-0 ${prompt.status === 'Active' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                                                                prompt.status === 'Archived' ? 'bg-gray-500/10 text-gray-400 border-gray-500/20' :
-                                                                    'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
-                                                                }`}>
-                                                                {prompt.status}
-                                                            </span>
+                                                                </div>
+                                                            )}
                                                         </div>
 
-                                                        <h3 className="text-lg font-bold mb-1 truncate">{prompt.name}</h3>
-                                                        <p className="text-xs text-gray-400 mb-4 flex items-center gap-2">
-                                                            <span className="bg-white/10 px-1.5 py-0.5 rounded">{prompt.type}</span>
-                                                            {prompt.category && <span className="bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded">{prompt.category}</span>}
-                                                            <span>v{(prompt.versions || []).length}</span>
-                                                            <span className="w-1 h-1 bg-gray-500 rounded-full" />
-                                                            <span className="flex items-center gap-1">
-                                                                <Clock size={10} />
-                                                                {new Date(prompt.updatedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                                                            </span>
-                                                        </p>
-
+                                                        {/* Footer area for actions - fixed at bottom of card */}
                                                         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                                                             <button
                                                                 onClick={(e) => handleCopyContent(prompt.id, prompt.name, e)}
@@ -498,13 +531,78 @@ const PromptManager = ({ onBack }) => {
                                 </div>
                                 <div>
                                     <label className="text-xs text-gray-500 block mb-1">Category</label>
-                                    <input
-                                        type="text"
-                                        value={currentPrompt.category || ''}
-                                        onChange={e => setCurrentPrompt({ ...currentPrompt, category: e.target.value })}
-                                        className="w-full bg-transparent border-b border-white/20 focus:border-blue-500 outline-none text-sm py-1.5"
-                                        placeholder="Optional"
-                                    />
+                                    {!isAddingCategory ? (
+                                        <select
+                                            value={currentPrompt.category || 'Uncategorized'}
+                                            onChange={e => {
+                                                if (e.target.value === 'ADD_NEW') {
+                                                    setIsAddingCategory(true);
+                                                } else {
+                                                    setCurrentPrompt({ ...currentPrompt, category: e.target.value });
+                                                }
+                                            }}
+                                            className="w-full bg-black/20 border border-white/20 rounded px-2 py-1.5 text-sm outline-none focus:border-blue-500 cursor-pointer"
+                                        >
+                                            {categories.map(cat => (
+                                                <option key={cat} value={cat} className="bg-[#1e1e1e]">
+                                                    {cat}
+                                                </option>
+                                            ))}
+                                            <option value="ADD_NEW" className="text-blue-400 font-bold border-t border-white/10 bg-[#1e1e1e]">
+                                                + Add New Category...
+                                            </option>
+                                        </select>
+                                    ) : (
+                                        <div className="flex items-center gap-1 bg-black/40 border border-blue-500/50 rounded p-0.5">
+                                            <input
+                                                type="text"
+                                                autoFocus
+                                                placeholder="Name..."
+                                                value={newCategory}
+                                                onChange={e => setNewCategory(e.target.value)}
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter') {
+                                                        const cat = newCategory.trim();
+                                                        if (cat) {
+                                                            setCurrentPrompt(prev => ({ ...prev, category: cat }));
+                                                            setIsAddingCategory(false);
+                                                            setNewCategory('');
+                                                        }
+                                                    } else if (e.key === 'Escape') {
+                                                        setIsAddingCategory(false);
+                                                        setNewCategory('');
+                                                    }
+                                                }}
+                                                className="w-full bg-transparent border-none outline-none text-sm px-1.5 py-1 placeholder:text-gray-600"
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    const cat = newCategory.trim();
+                                                    if (cat) {
+                                                        setCurrentPrompt(prev => ({ ...prev, category: cat }));
+                                                        setIsAddingCategory(false);
+                                                        setNewCategory('');
+                                                    } else {
+                                                        setIsAddingCategory(false);
+                                                    }
+                                                }}
+                                                className="p-1 hover:bg-green-500 text-green-400 hover:text-white rounded transition-colors"
+                                                title="Confirm"
+                                            >
+                                                <CheckCircle size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setIsAddingCategory(false);
+                                                    setNewCategory('');
+                                                }}
+                                                className="p-1 hover:bg-red-500 text-red-400 hover:text-white rounded transition-colors"
+                                                title="Cancel"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="text-xs text-gray-500 block mb-1">Status</label>
