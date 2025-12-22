@@ -9,6 +9,7 @@ const PromptManager = ({ onBack }) => {
     const [currentPrompt, setCurrentPrompt] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('Active'); // 'All', 'Active', 'Draft', 'Archived'
+    const [filterCategory, setFilterCategory] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [notification, setNotification] = useState(null);
@@ -59,14 +60,11 @@ const PromptManager = ({ onBack }) => {
         return prompts.filter(p => {
             const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesStatus = filterStatus === 'All' || p.status === filterStatus;
+            const matchesCategory = filterCategory === 'All' || (p.category || 'Uncategorized') === filterCategory;
 
-            // Special case: "Active" view should show Active by default, but maybe we want a dedicated filter.
-            // Requirement 2.2: Filter by type or status.
-            // Let's stick to status filter for the main tabs.
-
-            return matchesSearch && matchesStatus;
+            return matchesSearch && matchesStatus && matchesCategory;
         }).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-    }, [prompts, searchQuery, filterStatus]);
+    }, [prompts, searchQuery, filterStatus, filterCategory]);
 
     // Group prompts by category
     const groupedPrompts = useMemo(() => {
@@ -342,6 +340,26 @@ const PromptManager = ({ onBack }) => {
                                     {status}
                                 </button>
                             ))}
+
+                            <div className="w-px h-6 bg-white/10 mx-2" />
+
+                            <div className="relative">
+                                <select
+                                    value={filterCategory}
+                                    onChange={(e) => setFilterCategory(e.target.value)}
+                                    className="bg-transparent border-none outline-none text-white text-sm font-medium cursor-pointer pr-6 hover:text-blue-400 transition-colors appearance-none"
+                                >
+                                    <option value="All" className="bg-[#1e1e1e]">All Categories</option>
+                                    {categories.map(cat => (
+                                        <option key={cat} value={cat} className="bg-[#1e1e1e]">
+                                            {cat}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                                    <ChevronLeft size={14} className="-rotate-90" />
+                                </div>
+                            </div>
 
                             <div className="w-px h-6 bg-white/10 mx-2" />
 

@@ -28,7 +28,8 @@
       }
     ],
     "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-01T00:00:00.000Z"
+    "updatedAt": "2025-12-22T05:17:12.368Z",
+    "category": "Animated"
   },
   {
     "id": "glassmorphism-prompt",
@@ -43,7 +44,8 @@
       }
     ],
     "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2025-12-22T03:49:13.866Z"
+    "updatedAt": "2025-12-22T05:17:05.170Z",
+    "category": "Animated"
   },
   {
     "id": "kinetic-typography-prompt",
@@ -58,7 +60,8 @@
       }
     ],
     "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-01T00:00:00.000Z"
+    "updatedAt": "2025-12-22T05:17:21.596Z",
+    "category": "Animated"
   },
   {
     "id": "slide-prompt",
