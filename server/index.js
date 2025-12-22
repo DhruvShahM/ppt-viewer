@@ -1819,11 +1819,23 @@ app.get('/api/prompts', (req, res) => {
         if (fs.existsSync(contentPath)) {
             try {
                 const content = fs.readFileSync(contentPath, 'utf8');
-                // Look for INPUT: and capture everything until the next double newline or end of file
+
+                // 1. Look for explicit INPUT: section
                 const match = content.match(/INPUT:[\s\S]*?\n([\s\S]*?)(?=\n\n|$)/i);
                 if (match) {
                     return { ...p, inputSnippet: match[1].trim() };
                 }
+
+                // 2. Look for lines that contain variable placeholders
+                const lines = content.split('\n');
+                const varLines = lines.filter(l => /<[^>]+>|\{\{[^}]+\}\}|\[[^\]]+\]/.test(l));
+                if (varLines.length > 0) {
+                    return { ...p, inputSnippet: varLines.slice(0, 5).join('\n') };
+                }
+
+                // 3. Fallback: Provide a general preview of the start of the content
+                const preview = content.substring(0, 300).trim();
+                return { ...p, inputSnippet: preview + (content.length > 300 ? '...' : '') };
             } catch (e) {
                 console.error(`Error reading snippet for ${p.id}:`, e);
             }

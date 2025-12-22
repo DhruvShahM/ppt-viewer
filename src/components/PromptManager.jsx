@@ -252,6 +252,7 @@ const PromptManager = ({ onBack }) => {
                             // Support both <VAR> and {{VAR}} formats
                             finalContent = finalContent.replaceAll(`<${key}>`, value);
                             finalContent = finalContent.replaceAll(`{{${key}}}`, value);
+                            finalContent = finalContent.replaceAll(`[${key}]`, value);
                         }
                     });
 
@@ -410,16 +411,22 @@ const PromptManager = ({ onBack }) => {
                                                             {prompt.inputSnippet && (
                                                                 <div className="mt-6 border-t border-white/5 pt-4">
                                                                     <div className="text-[10px] font-mono leading-tight">
-                                                                        <div className="text-red-400 font-bold mb-2 opacity-80 uppercase tracking-tighter">INPUT:</div>
+                                                                        <div className="text-red-400 font-bold mb-2 opacity-80 uppercase tracking-tighter">
+                                                                            {/<[^>]+>|\{\{[^}]+\}\}|\[[^\]]+\]/.test(prompt.inputSnippet) ? 'INPUT:' : 'PREVIEW:'}
+                                                                        </div>
                                                                         <div className="space-y-1">
                                                                             {prompt.inputSnippet.split('\n').filter(l => l.trim()).map((line, lid) => {
-                                                                                const parts = line.split(/(<[^>]+>|\{\{[^}]+\}\})/g);
+                                                                                const parts = line.split(/(<[^>]+>|\{\{[^}]+\}\}|\[[^\]]+\])/g);
                                                                                 return (
                                                                                     <div key={lid} className="flex flex-wrap items-center gap-1 text-gray-300">
                                                                                         {parts.map((part, pid) => {
-                                                                                            const isPlaceholder = (part.startsWith('<') && part.endsWith('>')) || (part.startsWith('{{') && part.endsWith('}}'));
+                                                                                            const isPlaceholder = (part.startsWith('<') && part.endsWith('>')) ||
+                                                                                                (part.startsWith('{{') && part.endsWith('}}')) ||
+                                                                                                (part.startsWith('[') && part.endsWith(']') && part.length > 2);
                                                                                             if (isPlaceholder) {
-                                                                                                const varName = part.startsWith('{{') ? part.slice(2, -2) : part.slice(1, -1);
+                                                                                                const varName = part.startsWith('{{') ? part.slice(2, -2) :
+                                                                                                    part.startsWith('[') ? part.slice(1, -1) :
+                                                                                                        part.slice(1, -1);
                                                                                                 return (
                                                                                                     <input
                                                                                                         key={pid}
