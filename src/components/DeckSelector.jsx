@@ -28,7 +28,7 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
             whileHover={!isEditMode ? { scale: 1.05 } : {}}
             whileTap={!isEditMode && !isSelectionMode ? { scale: 0.95 } : {}}
             onClick={!isEditMode && !isSelectionMode ? onClick : (isSelectionMode ? onToggleSelect : undefined)}
-            className={`flex flex-col items-start p-8 rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/0 ${!isEditMode && status !== 'archived' ? `hover:border-${color}-500/50` : 'border-white/20'} transition-all group text-left w-full h-full relative overflow-hidden cursor-pointer ${status === 'archived' ? 'opacity-70 grayscale' : ''}`}
+            className={`flex flex-col items-start p-8 rounded-2xl border bg-gradient-to-br from-white/5 to-white/0 ${status === 'archived' ? 'border-orange-500/30 opacity-80' : 'border-white/10'} ${!isEditMode && status !== 'archived' ? `hover:border-${color}-500/50` : ''} transition-all group text-left w-full h-full relative overflow-hidden cursor-pointer`}
         >
             <div className={`absolute top-0 right-0 w-32 h-32 bg-${color}-500/10 rounded-full blur-3xl -mr-16 -mt-16 transition-all ${!isEditMode ? `group-hover:bg-${color}-500/20` : ''}`} />
 
@@ -45,8 +45,8 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
                 </div>
             )}
 
-            <h3 className="text-2xl font-bold mb-3">{title}</h3>
-            <p className="text-gray-400 mb-8 flex-grow">{description}</p>
+            <h3 className={`text-2xl font-bold mb-3 ${status === 'archived' ? 'text-gray-300' : 'text-white'}`}>{title}</h3>
+            <p className={`mb-8 flex-grow ${status === 'archived' ? 'text-gray-500' : 'text-gray-400'}`}>{description}</p>
             {!isEditMode && !isSelectionMode ? (
                 <div className="flex items-center gap-2 text-sm font-medium text-white/60 group-hover:text-white transition-colors">
                     <Play size={16} fill="currentColor" />
