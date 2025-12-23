@@ -49,10 +49,25 @@
     "description": "buffered_golang",
     "icon": "Layers",
     "color": "blue",
-    "status": "active",
+    "status": "archived",
     "path": "src/decks/buffered_golang",
     "version": 1,
     "hasLargeAssets": false,
-    "importedAt": "2025-12-22T14:29:12.517Z"
+    "importedAt": "2025-12-22T14:29:12.517Z",
+    "archivedAt": "2025-12-23T03:18:39.078Z"
+  },
+  {
+    "id": "two_pointer",
+    "title": "two_pointer",
+    "repoId": "go-programming",
+    "repoTitle": "Imported Decks",
+    "description": "two_pointer",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/two_pointer",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-22T16:31:46.132Z"
   }
 ]
