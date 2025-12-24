@@ -1,0 +1,8 @@
+--- Slide 1 ---
+Welcome to the Go Concurrency presentation. In this session, we will explore the power of goroutines and channels.
+
+--- Slide 2 ---
+Goroutines are lightweight threads managed by the Go runtime. They are incredibly cheap to create.
+
+--- Slide 3 ---
+Channels allow goroutines to communicate safely. They synchronize execution without explicit locks.

@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const Slide = React.forwardRef(({ children, isActive = true, noAnimation = false, custom }, ref) => {
+const Slide = React.forwardRef(({ children, isActive = true, noAnimation = false, custom, ...rest }, ref) => {
     if (noAnimation) {
         return (
             <div ref={ref} className="absolute inset-0 w-full h-full overflow-y-auto overflow-x-hidden custom-scrollbar z-10">
@@ -37,6 +37,7 @@ const Slide = React.forwardRef(({ children, isActive = true, noAnimation = false
             initial="enter"
             animate="center"
             exit="exit"
+            style={rest.style}
             transition={{
                 x: { type: "spring", stiffness: 300, damping: 30 },
                 opacity: { duration: 0.2 }
@@ -45,6 +46,14 @@ const Slide = React.forwardRef(({ children, isActive = true, noAnimation = false
         >
             <div className="min-h-full w-full flex flex-col items-center justify-center p-12 relative slide-content-wrapper">
                 {children}
+                {custom?.audioSrc && isActive && (
+                    <audio
+                        src={custom.audioSrc}
+                        autoPlay
+                        onEnded={custom.onAudioEnded}
+                        className="hidden"
+                    />
+                )}
             </div>
         </motion.div>
     );

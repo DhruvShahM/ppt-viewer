@@ -6,55 +6,60 @@ const Slide13_ClosingStatement = () => {
   const floatingEmojis = ['⚡', '🚀', '💡', '🔥', '✨', '🎯'];
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col items-center justify-center px-12 relative overflow-hidden">
+    <div className="w-full h-screen flex flex-col items-center justify-center overflow-y-auto p-4 relative">
       {/* Animated background particles */}
-      {[...Array(20)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-1 h-1 bg-cyan-400 rounded-full"
-          initial={{
-            x: Math.random() * 1920,
-            y: Math.random() * 1080,
-            opacity: 0,
-          }}
-          animate={{
-            opacity: [0, 0.5, 0],
-            y: [Math.random() * 1080, Math.random() * 200],
-          }}
-          transition={{
-            duration: 4 + Math.random() * 2,
-            repeat: Infinity,
-            delay: Math.random() * 2,
-          }}
-        />
-      ))}
+      <div className="fixed inset-0 pointer-events-none">
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-cyan-400 rounded-full"
+            initial={{
+              x: Math.random() * 1920,
+              y: Math.random() * 1080,
+              opacity: 0,
+            }}
+            animate={{
+              opacity: [0, 0.5, 0],
+              y: [Math.random() * 1080, Math.random() * 200],
+            }}
+            transition={{
+              duration: 4 + Math.random() * 2,
+              repeat: Infinity,
+              delay: Math.random() * 2,
+            }}
+          />
+        ))}
+      </div>
 
       {/* Floating emojis */}
-      {floatingEmojis.map((emoji, idx) => (
-        <motion.div
-          key={idx}
-          className="absolute text-4xl"
-          initial={{
-            x: -200 + idx * 70,
-            y: 400,
-            opacity: 0,
-          }}
-          animate={{
-            y: -100,
-            opacity: [0, 1, 0],
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            delay: idx * 0.3,
-            ease: 'easeOut',
-          }}
-        >
-          {emoji}
-        </motion.div>
-      ))}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        {floatingEmojis.map((emoji, idx) => (
+          <motion.div
+            key={idx}
+            className="absolute text-4xl"
+            initial={{
+              x: -200 + idx * 70, // This might need adjustment based on screen size, removed fixed pixel assumptions in positioning logic if possible, but keeping simples for now
+              y: 800,
+              opacity: 0,
+            }}
+            style={{ left: `${10 + idx * 15}%` }} // more responsive positioning
+            animate={{
+              y: -100,
+              opacity: [0, 1, 0],
+            }}
+            transition={{
+              duration: 5,
+              repeat: Infinity,
+              delay: idx * 0.5,
+              ease: 'easeOut',
+            }}
+          >
+            {emoji}
+          </motion.div>
+        ))}
+      </div>
 
-      <div className="relative z-10 text-center max-w-4xl">
+      <div className="relative z-10 text-center max-w-4xl w-full">
         <motion.div
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
@@ -70,7 +75,7 @@ const Slide13_ClosingStatement = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.8 }}
-          className="text-7xl font-black text-white mb-6 leading-tight"
+          className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight"
         >
           The Future is
           <br />
@@ -83,7 +88,7 @@ const Slide13_ClosingStatement = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6, duration: 0.8 }}
-          className="text-2xl text-slate-300 mb-8 leading-relaxed max-w-2xl mx-auto"
+          className="text-xl md:text-2xl text-slate-300 mb-8 leading-relaxed max-w-2xl mx-auto"
         >
           High-performance communication is no longer optional. It's essential
           for building the next generation of distributed systems.
@@ -94,7 +99,7 @@ const Slide13_ClosingStatement = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.9, duration: 0.8 }}
-          className="grid grid-cols-3 gap-6 mb-12"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
         >
           {[
             { icon: '⚡', text: '7-10x Faster' },
@@ -153,9 +158,9 @@ const Slide13_ClosingStatement = () => {
 
       {/* Animated bottom line */}
       <motion.div
-        className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent"
+        className="fixed bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent pointer-events-none"
         animate={{
-          x: [-1920, 1920],
+          x: ['-100%', '100%'],
         }}
         transition={{
           duration: 3,

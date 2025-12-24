@@ -37,10 +37,10 @@ const Slide9_PerformanceComparison = () => {
   const maxValue = 50000;
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col items-center justify-center px-12 relative overflow-hidden">
+    <div className="w-full h-screen flex flex-col items-center justify-center overflow-y-auto p-4 relative">
       {/* Background animation */}
       <motion.div
-        className="absolute inset-0 opacity-10"
+        className="fixed inset-0 opacity-10 pointer-events-none"
         style={{
           backgroundImage:
             'repeating-linear-gradient(0deg, transparent, transparent 35px, rgba(34, 197, 94, 0.1) 35px, rgba(34, 197, 94, 0.1) 70px)',
@@ -51,7 +51,7 @@ const Slide9_PerformanceComparison = () => {
         transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
       />
 
-      <div className="relative z-10 w-full">
+      <div className="relative z-10 w-full max-w-5xl">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -73,7 +73,7 @@ const Slide9_PerformanceComparison = () => {
         </motion.div>
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
           {metrics.map((metric, idx) => {
             const restPercent = (metric.restValue / maxValue) * 100;
             const grpcPercent = (metric.grpcValue / maxValue) * 100;
@@ -84,7 +84,7 @@ const Slide9_PerformanceComparison = () => {
                 initial={{ opacity: 0, x: idx % 2 === 0 ? -30 : 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 + idx * 0.1, duration: 0.8 }}
-                className="bg-slate-800 border border-slate-700 rounded-xl p-6"
+                className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 backdrop-blur-sm"
               >
                 <h3 className="text-lg font-bold text-white mb-6">
                   {metric.name}
@@ -105,7 +105,7 @@ const Slide9_PerformanceComparison = () => {
                       {metric.restValue} {metric.unit}
                     </motion.span>
                   </div>
-                  <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+                  <div className="h-3 bg-slate-700/50 rounded-full overflow-hidden">
                     <motion.div
                       className="h-full bg-gradient-to-r from-red-500 to-orange-500 rounded-full"
                       initial={{ width: 0 }}
@@ -134,7 +134,7 @@ const Slide9_PerformanceComparison = () => {
                       {metric.grpcValue} {metric.unit}
                     </motion.span>
                   </div>
-                  <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+                  <div className="h-3 bg-slate-700/50 rounded-full overflow-hidden">
                     <motion.div
                       className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"
                       initial={{ width: 0 }}
@@ -159,7 +159,7 @@ const Slide9_PerformanceComparison = () => {
                     {Math.round(
                       ((metric.restValue - metric.grpcValue) /
                         metric.restValue) *
-                        100
+                      100
                     )}
                     % faster/better
                   </span>
@@ -174,7 +174,7 @@ const Slide9_PerformanceComparison = () => {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 1.2, duration: 0.8 }}
-          className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/40 rounded-xl p-8 text-center max-w-2xl mx-auto"
+          className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/40 rounded-xl p-8 text-center max-w-2xl mx-auto backdrop-blur-sm"
         >
           <p className="text-xl text-green-300 font-semibold">
             🚀 gRPC is 7-10x faster and 5-10x more efficient than REST APIs

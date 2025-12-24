@@ -17,72 +17,74 @@ const Slide2_ProblemContext = () => {
   };
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col items-center justify-center px-12 relative overflow-hidden">
+    <div className="w-full h-screen flex flex-col items-center justify-center overflow-y-auto p-4 relative">
       {/* Background accent */}
       <motion.div
-        className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"
+        className="fixed top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"
         animate={{ x: [0, 50, 0], y: [0, 30, 0] }}
         transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      <motion.div
-        className="relative z-10 max-w-4xl"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <motion.h2
-          variants={itemVariants}
-          className="text-6xl font-bold text-white mb-12 text-center"
-        >
-          The Challenge: Traditional APIs
-        </motion.h2>
-
-        <div className="grid grid-cols-2 gap-8 mb-8">
-          {[
-            {
-              icon: Globe,
-              title: 'JSON over HTTP/1.1',
-              problem:
-                'Text-heavy, verbose, loses data meaning',
-              color: 'text-red-400',
-            },
-            {
-              icon: Wifi,
-              title: 'Inefficient Serialization',
-              problem:
-                'Large payloads, slow parsing, high bandwidth',
-              color: 'text-orange-400',
-            },
-          ].map((item, idx) => (
-            <motion.div
-              key={idx}
-              variants={itemVariants}
-              className="bg-slate-800 border border-slate-700 rounded-xl p-6 hover:border-slate-600 transition"
-            >
-              <motion.div
-                animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
-                transition={{ duration: 2, repeat: Infinity, delay: idx * 0.2 }}
-              >
-                <item.icon className={`w-12 h-12 ${item.color} mb-4`} />
-              </motion.div>
-              <h3 className="text-xl font-bold text-white mb-3">
-                {item.title}
-              </h3>
-              <p className="text-slate-400">{item.problem}</p>
-            </motion.div>
-          ))}
-        </div>
-
+      <div className="w-full max-w-5xl z-10">
         <motion.div
-          variants={itemVariants}
-          className="bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/40 rounded-xl p-8 text-center"
+          className="relative"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
         >
-          <p className="text-lg text-red-300 font-semibold">
-            💔 Result: Latency, Scalability Issues, Developer Friction
-          </p>
+          <motion.h2
+            variants={itemVariants}
+            className="text-6xl font-bold text-white mb-12 text-center"
+          >
+            The Challenge: Traditional APIs
+          </motion.h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            {[
+              {
+                icon: Globe,
+                title: 'JSON over HTTP/1.1',
+                problem:
+                  'Text-heavy, verbose, loses data meaning',
+                color: 'text-red-400',
+              },
+              {
+                icon: Wifi,
+                title: 'Inefficient Serialization',
+                problem:
+                  'Large payloads, slow parsing, high bandwidth',
+                color: 'text-orange-400',
+              },
+            ].map((item, idx) => (
+              <motion.div
+                key={idx}
+                variants={itemVariants}
+                className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 hover:border-slate-600 transition backdrop-blur-sm"
+              >
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, delay: idx * 0.2 }}
+                >
+                  <item.icon className={`w-12 h-12 ${item.color} mb-4`} />
+                </motion.div>
+                <h3 className="text-xl font-bold text-white mb-3">
+                  {item.title}
+                </h3>
+                <p className="text-slate-400">{item.problem}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            variants={itemVariants}
+            className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/30 rounded-xl p-8 text-center backdrop-blur-sm"
+          >
+            <p className="text-lg text-red-300 font-semibold">
+              💔 Result: Latency, Scalability Issues, Developer Friction
+            </p>
+          </motion.div>
         </motion.div>
-      </motion.div>
+      </div>
     </div>
   );
 };

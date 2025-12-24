@@ -58,7 +58,7 @@ const Slide8_StreamingTypes = () => {
   ];
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col items-center justify-center px-8 relative overflow-hidden">
+    <div className="w-full h-screen flex flex-col items-center justify-center overflow-y-auto p-4 relative">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -73,14 +73,14 @@ const Slide8_StreamingTypes = () => {
         </p>
       </motion.div>
 
-      <div className="grid grid-cols-2 gap-8 w-full max-w-5xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl">
         {streamTypes.map((stream, idx) => (
           <motion.div
             key={idx}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 + idx * 0.1, duration: 0.8 }}
-            className="bg-slate-800 border border-slate-700 rounded-xl p-6 relative overflow-hidden group"
+            className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 relative overflow-hidden group backdrop-blur-sm"
           >
             {/* Background gradient */}
             <div
@@ -107,7 +107,7 @@ const Slide8_StreamingTypes = () => {
               <p className="text-sm text-slate-400 mb-4">{stream.desc}</p>
 
               {/* Code example */}
-              <div className="bg-slate-900 rounded p-3 mb-6 border-l-2 border-cyan-500">
+              <div className="bg-slate-900/50 rounded p-3 mb-6 border-l-2 border-cyan-500 backdrop-blur-sm">
                 <code className="text-xs text-cyan-300 font-mono break-words">
                   {stream.example}
                 </code>

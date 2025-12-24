@@ -68,5 +68,33 @@
     "version": 1,
     "hasLargeAssets": false,
     "importedAt": "2025-12-23T04:17:56.156Z"
+  },
+  {
+    "id": "string_methods_golang_hindi",
+    "title": "string_methods_golang_hindi",
+    "repoId": "go-programming",
+    "repoTitle": "Imported Decks",
+    "description": "string_methods_golang_hindi",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/string_methods_golang_hindi",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-23T15:11:31.769Z"
+  },
+  {
+    "id": "minimum_account_bal",
+    "title": "minimum_account_bal",
+    "repoId": "repo-1766463453432",
+    "repoTitle": "Imported Decks",
+    "description": "minimum_account_bal",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/minimum_account_bal",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-23T16:29:28.766Z"
   }
 ]

@@ -12,7 +12,7 @@
     "version": 1,
     "hasLargeAssets": false,
     "importedAt": "2025-12-22T12:56:11.998Z",
-    "lastOpenedAt": "2025-12-23T03:58:15.483Z"
+    "lastOpenedAt": "2025-12-24T16:23:52.051Z"
   },
   {
     "id": "array_method_v1",
@@ -526,6 +526,36 @@
     "version": 1,
     "hasLargeAssets": false,
     "importedAt": "2025-12-23T04:17:56.156Z",
-    "lastOpenedAt": "2025-12-23T04:25:51.789Z"
+    "lastOpenedAt": "2025-12-24T16:08:18.246Z"
+  },
+  {
+    "id": "string_methods_golang_hindi",
+    "title": "string_methods_golang_hindi",
+    "repoId": "go-programming",
+    "repoTitle": "Imported Decks",
+    "description": "string_methods_golang_hindi",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/string_methods_golang_hindi",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-23T15:11:31.769Z",
+    "lastOpenedAt": "2025-12-24T16:27:20.497Z"
+  },
+  {
+    "id": "minimum_account_bal",
+    "title": "minimum_account_bal",
+    "repoId": "repo-1766463453432",
+    "repoTitle": "Imported Decks",
+    "description": "minimum_account_bal",
+    "icon": "Layers",
+    "color": "blue",
+    "status": "active",
+    "path": "src/decks/minimum_account_bal",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2025-12-23T16:29:28.766Z",
+    "lastOpenedAt": "2025-12-24T16:08:20.609Z"
   }
 ]

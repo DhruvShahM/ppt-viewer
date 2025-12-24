@@ -47,10 +47,10 @@ const Slide11_GrpcVsRest = () => {
   ];
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col items-center justify-center px-8 relative overflow-hidden">
+    <div className="w-full h-screen flex flex-col items-center justify-center overflow-y-auto p-4 relative">
       {/* Background animation */}
       <motion.div
-        className="absolute inset-0 opacity-5"
+        className="fixed inset-0 opacity-5 pointer-events-none"
         style={{
           backgroundImage:
             'linear-gradient(45deg, transparent 30%, rgba(59, 130, 246, 0.1) 30%, rgba(59, 130, 246, 0.1) 60%, transparent 60%)',
@@ -95,13 +95,13 @@ const Slide11_GrpcVsRest = () => {
               whileHover={{ scale: 1.02 }}
             >
               {/* Aspect */}
-              <motion.div className="bg-slate-700 rounded-lg p-4 font-semibold text-white text-center">
+              <motion.div className="bg-slate-700/80 rounded-lg p-4 font-semibold text-white text-center backdrop-blur-sm">
                 {row.aspect}
               </motion.div>
 
               {/* REST */}
               <motion.div
-                className="bg-red-500/10 border border-red-500/30 rounded-lg p-4"
+                className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 backdrop-blur-sm"
                 whileHover={{
                   backgroundColor: 'rgba(239, 68, 68, 0.15)',
                   borderColor: 'rgba(239, 68, 68, 0.5)',
@@ -115,7 +115,7 @@ const Slide11_GrpcVsRest = () => {
 
               {/* gRPC */}
               <motion.div
-                className="bg-green-500/10 border border-green-500/30 rounded-lg p-4"
+                className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 backdrop-blur-sm"
                 whileHover={{
                   backgroundColor: 'rgba(16, 185, 129, 0.15)',
                   borderColor: 'rgba(16, 185, 129, 0.5)',
@@ -135,9 +135,9 @@ const Slide11_GrpcVsRest = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.3, duration: 0.8 }}
-          className="mt-12 grid grid-cols-2 gap-6"
+          className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6"
         >
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center backdrop-blur-sm">
             <p className="font-bold text-red-300 mb-2">Use REST when:</p>
             <ul className="text-sm text-red-200 space-y-2">
               <li>✓ Browser-based applications</li>
@@ -147,7 +147,7 @@ const Slide11_GrpcVsRest = () => {
             </ul>
           </div>
 
-          <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-6 text-center">
+          <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-6 text-center backdrop-blur-sm">
             <p className="font-bold text-green-300 mb-2">Use gRPC when:</p>
             <ul className="text-sm text-green-200 space-y-2">
               <li>✓ Microservices architecture</li>

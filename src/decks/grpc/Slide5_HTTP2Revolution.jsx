@@ -28,15 +28,15 @@ const Slide5_HTTP2Revolution = () => {
   );
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col items-center justify-center px-12 relative overflow-hidden">
+    <div className="w-full h-screen flex flex-col items-center justify-center overflow-y-auto p-4 relative">
       {/* Background glow */}
       <motion.div
-        className="absolute bottom-0 left-1/2 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"
+        className="fixed bottom-0 left-1/2 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"
         animate={{ y: [0, 50, 0] }}
         transition={{ duration: 8, repeat: Infinity }}
       />
 
-      <div className="relative z-10 w-full">
+      <div className="relative z-10 w-full max-w-5xl">
         <motion.div
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -58,13 +58,13 @@ const Slide5_HTTP2Revolution = () => {
         </motion.div>
 
         {/* HTTP/1.1 vs HTTP/2 Comparison */}
-        <div className="grid grid-cols-2 gap-12 mb-12 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12 max-w-4xl mx-auto">
           {/* HTTP/1.1 */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2, duration: 0.8 }}
-            className="bg-slate-800 rounded-xl p-8 border border-red-500/30"
+            className="bg-slate-800/50 rounded-xl p-8 border border-red-500/30 backdrop-blur-sm"
           >
             <h3 className="text-2xl font-bold text-red-300 mb-6 text-center">
               HTTP/1.1
@@ -88,7 +88,7 @@ const Slide5_HTTP2Revolution = () => {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2, duration: 0.8 }}
-            className="bg-slate-800 rounded-xl p-8 border border-green-500/30"
+            className="bg-slate-800/50 rounded-xl p-8 border border-green-500/30 backdrop-blur-sm"
           >
             <h3 className="text-2xl font-bold text-green-300 mb-6 text-center">
               HTTP/2
@@ -113,9 +113,9 @@ const Slide5_HTTP2Revolution = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, duration: 0.8 }}
-          className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 rounded-xl p-8"
+          className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-xl p-8 backdrop-blur-sm"
         >
-          <div className="grid grid-cols-3 gap-6 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             {[
               { title: 'Multiplexing', desc: 'Send 100+ requests at once' },
               { title: 'Server Push', desc: 'Push data proactively' },

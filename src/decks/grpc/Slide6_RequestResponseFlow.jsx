@@ -25,16 +25,14 @@ const Slide6_RequestResponseFlow = () => {
           opacity: 0,
           transition: { duration: 0.5 },
         }}
-        className={`flex items-center gap-4 ${
-          isRequest ? 'flex-row' : 'flex-row-reverse'
-        }`}
+        className={`flex items-center gap-4 ${isRequest ? 'flex-row' : 'flex-row-reverse'
+          }`}
       >
         <motion.div
-          className={`px-6 py-3 rounded-lg font-semibold flex items-center gap-2 ${
-            isRequest
-              ? 'bg-blue-600 text-blue-100 ml-auto'
-              : 'bg-emerald-600 text-emerald-100 mr-auto'
-          }`}
+          className={`px-6 py-3 rounded-lg font-semibold flex items-center gap-2 ${isRequest
+              ? 'bg-blue-600/80 text-blue-100 ml-auto backdrop-blur-sm'
+              : 'bg-emerald-600/80 text-emerald-100 mr-auto backdrop-blur-sm'
+            }`}
           animate={{
             scale: [1, 1.05, 1],
           }}
@@ -51,15 +49,15 @@ const Slide6_RequestResponseFlow = () => {
   };
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col items-center justify-center px-12 relative overflow-hidden">
+    <div className="w-full h-screen flex flex-col items-center justify-center overflow-y-auto p-4 relative">
       {/* Side glow effects */}
       <motion.div
-        className="absolute left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"
+        className="fixed left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"
         animate={{ y: [0, 50, 0] }}
         transition={{ duration: 6, repeat: Infinity }}
       />
       <motion.div
-        className="absolute right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl"
+        className="fixed right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"
         animate={{ y: [0, -50, 0] }}
         transition={{ duration: 6, repeat: Infinity }}
       />

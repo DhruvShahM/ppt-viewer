@@ -50,34 +50,36 @@ const Slide10_RealWorldUseCases = () => {
   ];
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col items-center justify-center px-12 relative overflow-hidden">
+    <div className="w-full h-screen flex flex-col items-center justify-center overflow-y-auto p-4 relative">
       {/* Background orbs */}
-      {[0, 1, 2].map((i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full border border-slate-700/20"
-          initial={{
-            width: 300 + i * 150,
-            height: 300 + i * 150,
-            opacity: 0.1,
-          }}
-          animate={{
-            rotate: -360,
-          }}
-          transition={{
-            duration: 30 + i * 10,
-            repeat: Infinity,
-            ease: 'linear',
-          }}
-          style={{
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-          }}
-        />
-      ))}
+      <div className="fixed inset-0 pointer-events-none">
+        {[0, 1, 2].map((i) => (
+          <motion.div
+            key={i}
+            className="absolute rounded-full border border-slate-700/20"
+            initial={{
+              width: 300 + i * 150,
+              height: 300 + i * 150,
+              opacity: 0.1,
+            }}
+            animate={{
+              rotate: -360,
+            }}
+            transition={{
+              duration: 30 + i * 10,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+            style={{
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+            }}
+          />
+        ))}
+      </div>
 
-      <div className="relative z-10 w-full">
+      <div className="relative z-10 w-full max-w-5xl">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -92,7 +94,7 @@ const Slide10_RealWorldUseCases = () => {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {useCases.map((useCase, idx) => (
             <motion.div
               key={idx}
@@ -105,7 +107,7 @@ const Slide10_RealWorldUseCases = () => {
                   '0 20px 40px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
                 transition: { duration: 0.3 },
               }}
-              className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 backdrop-blur-sm hover:border-cyan-500/30 transition-all duration-300"
+              className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 backdrop-blur-sm hover:border-cyan-500/30 transition-all duration-300 relative overflow-hidden group"
             >
               <motion.div
                 className="mb-4"
@@ -169,7 +171,7 @@ const Slide10_RealWorldUseCases = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.7 + idx * 0.1 }}
-                className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-full text-slate-300 font-semibold text-sm"
+                className="px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-full text-slate-300 font-semibold text-sm backdrop-blur-sm"
               >
                 {company}
               </motion.div>

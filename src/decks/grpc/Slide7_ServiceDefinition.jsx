@@ -17,10 +17,10 @@ const Slide7_ServiceDefinition = () => {
   const lines = protoCode.split('\n');
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col items-center justify-center px-12 relative overflow-hidden">
+    <div className="w-full h-screen flex flex-col items-center justify-center overflow-y-auto p-4 relative">
       {/* Background animation */}
       <motion.div
-        className="absolute inset-0 opacity-5"
+        className="fixed inset-0 opacity-5 pointer-events-none"
         style={{
           backgroundImage:
             'repeating-linear-gradient(90deg, transparent, transparent 35px, rgba(59, 130, 246, 0.1) 35px, rgba(59, 130, 246, 0.1) 70px)',
@@ -36,9 +36,9 @@ const Slide7_ServiceDefinition = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="mb-8"
+          className="mb-8 text-center"
         >
-          <h2 className="text-5xl font-bold text-white flex items-center gap-4 mb-4">
+          <h2 className="text-5xl font-bold text-white flex items-center justify-center gap-4 mb-4">
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}
               transition={{ duration: 2, repeat: Infinity }}
@@ -57,9 +57,9 @@ const Slide7_ServiceDefinition = () => {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.8 }}
-          className="bg-slate-900 border border-cyan-500/30 rounded-xl overflow-hidden mb-8"
+          className="bg-slate-900/50 border border-cyan-500/30 rounded-xl overflow-hidden mb-8 backdrop-blur-sm"
         >
-          <div className="bg-slate-800 px-6 py-3 border-b border-slate-700 flex items-center gap-2">
+          <div className="bg-slate-800/80 px-6 py-3 border-b border-slate-700/50 flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-red-500" />
             <div className="w-3 h-3 rounded-full bg-yellow-500" />
             <div className="w-3 h-3 rounded-full bg-green-500" />
@@ -79,7 +79,7 @@ const Slide7_ServiceDefinition = () => {
                   {idx + 1}
                 </span>
                 <motion.code
-                  className="text-cyan-300 flex-1"
+                  className="text-cyan-300 flex-1 whitespace-pre"
                   whileHover={{
                     x: 5,
                     color: '#38bdf8',
@@ -99,7 +99,7 @@ const Slide7_ServiceDefinition = () => {
         </motion.div>
 
         {/* Key points */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             {
               title: 'Strongly Typed',
@@ -122,7 +122,7 @@ const Slide7_ServiceDefinition = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.2 + idx * 0.1 }}
-              className="bg-slate-800 border border-slate-700 rounded-lg p-4 text-center"
+              className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 text-center backdrop-blur-sm"
             >
               <div className="text-3xl mb-2">{point.icon}</div>
               <p className="font-bold text-white text-sm mb-1">{point.title}</p>

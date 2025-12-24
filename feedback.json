@@ -501,5 +501,38 @@
     "screenshots": [
       "1766463999572-846359008-image.png"
     ]
+  },
+  {
+    "id": 1766503844664,
+    "timestamp": "2025-12-23T15:30:44.665Z",
+    "deckId": "string_methods_golang_hindi",
+    "slideIndex": 7,
+    "instruction": "please properly assigned the title and text and add the scrollbar if necssary",
+    "status": "pending",
+    "screenshots": [
+      "1766503844640-945456689-image.png"
+    ]
+  },
+  {
+    "id": 1766503994460,
+    "timestamp": "2025-12-23T15:33:14.460Z",
+    "deckId": "string_methods_golang_hindi",
+    "slideIndex": 9,
+    "instruction": "please show the title properly assign and content if not fit then add the scrollbar",
+    "status": "pending",
+    "screenshots": [
+      "1766503994449-506666684-image.png"
+    ]
+  },
+  {
+    "id": 1766504045157,
+    "timestamp": "2025-12-23T15:34:05.157Z",
+    "deckId": "string_methods_golang_hindi",
+    "slideIndex": 10,
+    "instruction": "this content still not properly showing , please add the scrollbar",
+    "status": "pending",
+    "screenshots": [
+      "1766504045149-716035100-image.png"
+    ]
   }
 ]

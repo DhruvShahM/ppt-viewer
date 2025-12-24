@@ -42,7 +42,10 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const toolbarRef = useRef(null);
 
     // Font Size State
-    const [fontSize, setFontSize] = useState(() => localStorage.getItem(`fontSize_${deckId}`) || '16');
+    const [fontSizes, setFontSizes] = useState(() => {
+        const saved = localStorage.getItem(`fontSizes_${deckId}`);
+        return saved ? JSON.parse(saved) : {};
+    });
 
     // Trademark State
     const [trademarkText, setTrademarkText] = useState(() => localStorage.getItem(`trademark_${deckId}`) || '');
@@ -61,8 +64,8 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     }, [trademarkText, trademarkPosition, deckId]);
 
     useEffect(() => {
-        localStorage.setItem(`fontSize_${deckId}`, fontSize);
-    }, [fontSize, deckId]);
+        localStorage.setItem(`fontSizes_${deckId}`, JSON.stringify(fontSizes));
+    }, [fontSizes, deckId]);
 
     const positionClasses = {
         'top-left': 'top-6 left-6',
@@ -109,6 +112,46 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const [direction, setDirection] = useState(0);
     const [slideContentHeight, setSlideContentHeight] = useState(0);
     const slideWrapperRef = useRef(null);
+
+    // Audio State
+    const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+    const [isAutoAdvance, setIsAutoAdvance] = useState(false);
+    const audioRef = useRef(new Audio());
+
+    useEffect(() => {
+        if (!isAudioEnabled) {
+            audioRef.current.pause();
+            return;
+        }
+
+        const audio = audioRef.current;
+        const slideNumber = currentSlide + 1;
+        // Construct path - assuming standard naming convention
+        // We use a timestamp query param to avoid caching if we regenerate
+        audio.src = `/audio/${deckId}/${slideNumber}.wav`;
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                // Auto-play policy or missing file
+                console.log("Audio play failed or file missing:", error);
+            });
+        }
+
+        const handleEnded = () => {
+            if (isAutoAdvance) {
+                nextSlide();
+            }
+        };
+
+        audio.addEventListener('ended', handleEnded);
+
+        return () => {
+            audio.removeEventListener('ended', handleEnded);
+            audio.pause();
+        };
+    }, [currentSlide, deckId, isAudioEnabled, isAutoAdvance]);
+
 
     useEffect(() => {
         if (!slideWrapperRef.current) return;
@@ -387,27 +430,27 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
         }
     };
 
-    // Calculate font size scale - use preset scale if available, otherwise calculate from pixel value
-    const fontSizeScale = (() => {
-        const preset = FONT_SIZES.find(f => f.value === fontSize);
-        if (preset) return preset.scale;
-        // For custom values, calculate scale relative to base size of 16px
-        const numValue = parseInt(fontSize);
-        return isNaN(numValue) ? 1.0 : numValue / 16;
-    })();
+
 
     return (
         <div
             ref={containerRef}
             className={`w-full h-full relative group ${isPresenting && !showCursor ? 'cursor-none' : ''}`}
-            style={{ '--font-size-scale': fontSizeScale }}
         >
             {/* Slides */}
             <div className="relative z-10 w-full h-full" ref={slideWrapperRef}>
                 <AnimatePresence initial={false} custom={direction} mode="popLayout">
                     {slides.map((SlideComponent, index) => (
                         index === currentSlide && (
-                            <Slide key={index} isActive={true} custom={direction}>
+                            <Slide key={index} isActive={true} custom={direction} style={{
+                                '--font-size-scale': (() => {
+                                    const size = fontSizes[index] || '16';
+                                    const preset = FONT_SIZES.find(f => f.value === size);
+                                    if (preset) return preset.scale;
+                                    const numValue = parseInt(size);
+                                    return isNaN(numValue) ? 1.0 : numValue / 16;
+                                })()
+                            }}>
                                 <SlideComponent />
                                 <AnnotationLayer
                                     ref={annotationRef}
@@ -423,247 +466,255 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                         )
                     ))}
                 </AnimatePresence>
-            </div>
+            </div >
 
             {/* Trademark Overlay */}
-            {showTrademark && trademarkText && (
-                <div className={`absolute z-20 pointer-events-none opacity-60 ${positionClasses[trademarkPosition]}`}>
-                    <p className="text-white text-xl font-bold tracking-widest font-mono select-none drop-shadow-lg transform -rotate-0 border-2 border-white/20 px-4 py-2 rounded-lg bg-black/20 backdrop-blur-sm">
-                        {trademarkText}
-                        <span className="ml-2 text-sm text-cyan-400">©</span>
-                    </p>
-                </div>
-            )}
+            {
+                showTrademark && trademarkText && (
+                    <div className={`absolute z-20 pointer-events-none opacity-60 ${positionClasses[trademarkPosition]}`}>
+                        <p className="text-white text-xl font-bold tracking-widest font-mono select-none drop-shadow-lg transform -rotate-0 border-2 border-white/20 px-4 py-2 rounded-lg bg-black/20 backdrop-blur-sm">
+                            {trademarkText}
+                            <span className="ml-2 text-sm text-cyan-400">©</span>
+                        </p>
+                    </div>
+                )
+            }
 
 
             {/* Trademark Popup Modal */}
-            {isPresenting && showTrademarkModal && (
-                <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[60] bg-slate-900/95 backdrop-blur-xl border border-white/20 p-5 rounded-2xl shadow-2xl w-80 ring-1 ring-white/10">
-                    <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
-                        <div className="flex items-center gap-2">
-                            <Stamp size={16} className="text-blue-400" />
-                            <h3 className="text-white font-semibold text-sm">Trademark Settings</h3>
+            {
+                isPresenting && showTrademarkModal && (
+                    <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[60] bg-slate-900/95 backdrop-blur-xl border border-white/20 p-5 rounded-2xl shadow-2xl w-80 ring-1 ring-white/10">
+                        <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+                            <div className="flex items-center gap-2">
+                                <Stamp size={16} className="text-blue-400" />
+                                <h3 className="text-white font-semibold text-sm">Trademark Settings</h3>
+                            </div>
+                            <button
+                                onClick={() => setShowTrademarkModal(false)}
+                                className="text-white/50 hover:text-white transition-colors p-1 hover:bg-white/10 rounded"
+                            >
+                                <X size={16} />
+                            </button>
                         </div>
-                        <button
-                            onClick={() => setShowTrademarkModal(false)}
-                            className="text-white/50 hover:text-white transition-colors p-1 hover:bg-white/10 rounded"
-                        >
-                            <X size={16} />
-                        </button>
-                    </div>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="text-xs text-slate-400 block mb-1.5 font-medium ml-1">TRADEMARK TEXT</label>
-                            <input
-                                type="text"
-                                value={trademarkText}
-                                onChange={(e) => {
-                                    setTrademarkText(e.target.value);
-                                    if (e.target.value && !showTrademark) setShowTrademark(true);
-                                }}
-                                placeholder="e.g. Confidential Property"
-                                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600"
-                            />
-                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs text-slate-400 block mb-1.5 font-medium ml-1">TRADEMARK TEXT</label>
+                                <input
+                                    type="text"
+                                    value={trademarkText}
+                                    onChange={(e) => {
+                                        setTrademarkText(e.target.value);
+                                        if (e.target.value && !showTrademark) setShowTrademark(true);
+                                    }}
+                                    placeholder="e.g. Confidential Property"
+                                    className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600"
+                                />
+                            </div>
 
-                        <div>
-                            <label className="text-xs text-slate-400 block mb-1.5 font-medium ml-1">POSITION</label>
-                            <div className="relative group">
-                                <select
-                                    value={trademarkPosition}
-                                    onChange={(e) => setTrademarkPosition(e.target.value)}
-                                    className="appearance-none w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-all cursor-pointer"
-                                >
-                                    <option value="top-left" className="bg-slate-900">Top Left</option>
-                                    <option value="top-right" className="bg-slate-900">Top Right</option>
-                                    <option value="bottom-left" className="bg-slate-900">Bottom Left</option>
-                                    <option value="bottom-right" className="bg-slate-900">Bottom Right</option>
-                                </select>
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/50">
-                                    <ChevronRight size={14} className="rotate-90" />
+                            <div>
+                                <label className="text-xs text-slate-400 block mb-1.5 font-medium ml-1">POSITION</label>
+                                <div className="relative group">
+                                    <select
+                                        value={trademarkPosition}
+                                        onChange={(e) => setTrademarkPosition(e.target.value)}
+                                        className="appearance-none w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-all cursor-pointer"
+                                    >
+                                        <option value="top-left" className="bg-slate-900">Top Left</option>
+                                        <option value="top-right" className="bg-slate-900">Top Right</option>
+                                        <option value="bottom-left" className="bg-slate-900">Bottom Left</option>
+                                        <option value="bottom-right" className="bg-slate-900">Bottom Right</option>
+                                    </select>
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/50">
+                                        <ChevronRight size={14} className="rotate-90" />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5">
-                            <span className="text-sm text-white font-medium">Show on Slides</span>
-                            <button
-                                onClick={() => setShowTrademark((prev) => !prev)}
-                                className={`w-11 h-6 rounded-full relative transition-all duration-300 ${showTrademark ? 'bg-blue-600' : 'bg-slate-700'}`}
-                            >
-                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm ${showTrademark ? 'left-6' : 'left-1'}`} />
-                            </button>
+                            <div className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5">
+                                <span className="text-sm text-white font-medium">Show on Slides</span>
+                                <button
+                                    onClick={() => setShowTrademark((prev) => !prev)}
+                                    className={`w-11 h-6 rounded-full relative transition-all duration-300 ${showTrademark ? 'bg-blue-600' : 'bg-slate-700'}`}
+                                >
+                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm ${showTrademark ? 'left-6' : 'left-1'}`} />
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Annotation Toolbar (Only in Presentation Mode) - Now Draggable! */}
-            {isPresenting && !isLocked && !isExportRecording && (
-                <div
-                    ref={toolbarRef}
-                    onMouseDown={handleToolbarMouseDown}
-                    onMouseEnter={handleMouseEnterControls}
-                    onMouseLeave={handleMouseLeaveControls}
-                    className={`absolute z-50 bg-black/50 backdrop-blur-md p-2 border border-white/10 transition-opacity duration-500 ${toolbarOrientation === 'horizontal' ? 'rounded-full' : 'rounded-2xl'
-                        } ${!showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'} ${isDraggingToolbar ? 'cursor-grabbing shadow-2xl scale-105' : 'cursor-grab'
-                        }`}
-                    style={{
-                        left: toolbarPosition.x !== null ? `${toolbarPosition.x}px` : '50%',
-                        top: toolbarPosition.y !== null ? `${toolbarPosition.y}px` : 'auto',
-                        bottom: toolbarPosition.y !== null ? 'auto' : '32px',
-                        transform: toolbarPosition.x !== null && toolbarPosition.y !== null
-                            ? 'none'
-                            : 'translateX(-50%)',
-                        flexDirection: toolbarOrientation === 'horizontal' ? 'row' : 'column',
-                        display: 'flex',
-                        gap: '0.5rem'
-                    }}
-                >
-                    {/* Drag Handle Indicator */}
-                    <div className={`flex items-center justify-center ${toolbarOrientation === 'horizontal' ? 'px-2' : 'py-2'
-                        }`}>
-                        <Move size={16} className="text-white/40" />
-                    </div>
-
-                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
-
-                    {/* Orientation Toggle */}
-                    <button
-                        onClick={toggleToolbarOrientation}
-                        className="p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
-                        title={`Switch to ${toolbarOrientation === 'horizontal' ? 'Vertical' : 'Horizontal'} Layout`}
-                    >
-                        <RotateCw size={20} />
-                    </button>
-
-                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
-
-                    <button
-                        onClick={() => setActiveTool('none')}
-                        className={`p-3 rounded-full transition-all ${activeTool === 'none' ? 'bg-white text-black' : 'bg-white/10 hover:bg-white/20 text-white'}`}
-                        title="Cursor"
-                    >
-                        <MousePointer2 size={20} />
-                    </button>
-                    <button
-                        onClick={() => setActiveTool('pencil')}
-                        className={`p-3 rounded-full transition-all ${activeTool === 'pencil' ? 'bg-red-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
-                        title="Pencil"
-                    >
-                        <PenTool size={20} />
-                    </button>
-
-                    <button
-                        onClick={() => setActiveTool('circle')}
-                        className={`p-3 rounded-full transition-all ${activeTool === 'circle' ? 'bg-red-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
-                        title="Circle"
-                    >
-                        <Circle size={20} />
-                    </button>
-                    <button
-                        onClick={() => setActiveTool('rectangle')}
-                        className={`p-3 rounded-full transition-all ${activeTool === 'rectangle' ? 'bg-red-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
-                        title="Rectangle"
-                    >
-                        <Square size={20} />
-                    </button>
-                    <button
-                        onClick={() => setActiveTool('arrow')}
-                        className={`p-3 rounded-full transition-all ${activeTool === 'arrow' ? 'bg-red-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
-                        title="Arrow"
-                    >
-                        <ArrowUpRight size={20} />
-                    </button>
-                    <button
-                        onClick={() => setActiveTool('text')}
-                        className={`p-3 rounded-full transition-all ${activeTool === 'text' ? 'bg-red-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
-                        title="Text"
-                    >
-                        <Type size={20} />
-                    </button>
-                    <button
-                        onClick={() => setActiveTool('eraser')}
-                        className={`p-3 rounded-full transition-all ${activeTool === 'eraser' ? 'bg-white text-black' : 'bg-white/10 hover:bg-white/20 text-white'}`}
-                        title="Eraser"
-                    >
-                        <Eraser size={20} />
-                    </button>
-                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
-
-                    {/* Color Picker */}
-                    <div className={`flex gap-1 ${toolbarOrientation === 'horizontal' ? 'flex-row mr-1' : 'flex-col mb-1'}`}>
-                        {COLORS.map((c) => (
-                            <button
-                                key={c.value}
-                                onClick={() => setActiveColor(c.value)}
-                                className={`w-6 h-6 rounded-full border-2 transition-all flex items-center justify-center ${activeColor === c.value ? 'border-white scale-110' : 'border-transparent hover:scale-110'}`}
-                                style={{ backgroundColor: c.value }}
-                                title={c.name}
-                            >
-                                {activeColor === c.value && <Check size={12} className={c.value === '#ffffff' ? 'text-black' : 'text-white'} />}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
-                    <button
-                        onClick={() => setClearTrigger(t => t + 1)}
-                        className="p-3 rounded-full bg-white/10 hover:bg-red-500/20 text-white hover:text-red-400 transition-all"
-                        title="Clear Annotations"
-                    >
-                        <Trash2 size={20} />
-                    </button>
-
-                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
-
-                    <button
-                        onClick={() => setShowTrademarkModal(prev => !prev)}
-                        className={`p-3 rounded-full transition-all ${showTrademarkModal ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-white/10 hover:bg-white/20 text-white'}`}
-                        title="Trademark Settings"
-                    >
-                        <Stamp size={20} />
-                    </button>
-                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
-
-                    {/* Reset Position Button */}
-                    {(toolbarPosition.x !== null || toolbarPosition.y !== null) && (
-                        <>
-                            <button
-                                onClick={resetToolbarPosition}
-                                className="p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
-                                title="Reset to Default Position"
-                            >
-                                <X size={20} />
-                            </button>
-                            <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
-                        </>
-                    )}
-
-                    <button
-                        onClick={() => {
-                            setIsLocked(true);
+            {
+                isPresenting && !isLocked && !isExportRecording && (
+                    <div
+                        ref={toolbarRef}
+                        onMouseDown={handleToolbarMouseDown}
+                        onMouseEnter={handleMouseEnterControls}
+                        onMouseLeave={handleMouseLeaveControls}
+                        className={`absolute z-50 bg-black/50 backdrop-blur-md p-2 border border-white/10 transition-opacity duration-500 ${toolbarOrientation === 'horizontal' ? 'rounded-full' : 'rounded-2xl'
+                            } ${!showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'} ${isDraggingToolbar ? 'cursor-grabbing shadow-2xl scale-105' : 'cursor-grab'
+                            }`}
+                        style={{
+                            left: toolbarPosition.x !== null ? `${toolbarPosition.x}px` : '50%',
+                            top: toolbarPosition.y !== null ? `${toolbarPosition.y}px` : 'auto',
+                            bottom: toolbarPosition.y !== null ? 'auto' : '32px',
+                            transform: toolbarPosition.x !== null && toolbarPosition.y !== null
+                                ? 'none'
+                                : 'translateX(-50%)',
+                            flexDirection: toolbarOrientation === 'horizontal' ? 'row' : 'column',
+                            display: 'flex',
+                            gap: '0.5rem'
                         }}
-                        className="p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
-                        title="Lock Toolbar"
                     >
-                        <Lock size={20} />
-                    </button>
+                        {/* Drag Handle Indicator */}
+                        <div className={`flex items-center justify-center ${toolbarOrientation === 'horizontal' ? 'px-2' : 'py-2'
+                            }`}>
+                            <Move size={16} className="text-white/40" />
+                        </div>
+
+                        <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
+
+                        {/* Orientation Toggle */}
+                        <button
+                            onClick={toggleToolbarOrientation}
+                            className="p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
+                            title={`Switch to ${toolbarOrientation === 'horizontal' ? 'Vertical' : 'Horizontal'} Layout`}
+                        >
+                            <RotateCw size={20} />
+                        </button>
+
+                        <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
+
+                        <button
+                            onClick={() => setActiveTool('none')}
+                            className={`p-3 rounded-full transition-all ${activeTool === 'none' ? 'bg-white text-black' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                            title="Cursor"
+                        >
+                            <MousePointer2 size={20} />
+                        </button>
+                        <button
+                            onClick={() => setActiveTool('pencil')}
+                            className={`p-3 rounded-full transition-all ${activeTool === 'pencil' ? 'bg-red-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                            title="Pencil"
+                        >
+                            <PenTool size={20} />
+                        </button>
+
+                        <button
+                            onClick={() => setActiveTool('circle')}
+                            className={`p-3 rounded-full transition-all ${activeTool === 'circle' ? 'bg-red-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                            title="Circle"
+                        >
+                            <Circle size={20} />
+                        </button>
+                        <button
+                            onClick={() => setActiveTool('rectangle')}
+                            className={`p-3 rounded-full transition-all ${activeTool === 'rectangle' ? 'bg-red-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                            title="Rectangle"
+                        >
+                            <Square size={20} />
+                        </button>
+                        <button
+                            onClick={() => setActiveTool('arrow')}
+                            className={`p-3 rounded-full transition-all ${activeTool === 'arrow' ? 'bg-red-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                            title="Arrow"
+                        >
+                            <ArrowUpRight size={20} />
+                        </button>
+                        <button
+                            onClick={() => setActiveTool('text')}
+                            className={`p-3 rounded-full transition-all ${activeTool === 'text' ? 'bg-red-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                            title="Text"
+                        >
+                            <Type size={20} />
+                        </button>
+                        <button
+                            onClick={() => setActiveTool('eraser')}
+                            className={`p-3 rounded-full transition-all ${activeTool === 'eraser' ? 'bg-white text-black' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                            title="Eraser"
+                        >
+                            <Eraser size={20} />
+                        </button>
+                        <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
+
+                        {/* Color Picker */}
+                        <div className={`flex gap-1 ${toolbarOrientation === 'horizontal' ? 'flex-row mr-1' : 'flex-col mb-1'}`}>
+                            {COLORS.map((c) => (
+                                <button
+                                    key={c.value}
+                                    onClick={() => setActiveColor(c.value)}
+                                    className={`w-6 h-6 rounded-full border-2 transition-all flex items-center justify-center ${activeColor === c.value ? 'border-white scale-110' : 'border-transparent hover:scale-110'}`}
+                                    style={{ backgroundColor: c.value }}
+                                    title={c.name}
+                                >
+                                    {activeColor === c.value && <Check size={12} className={c.value === '#ffffff' ? 'text-black' : 'text-white'} />}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
+                        <button
+                            onClick={() => setClearTrigger(t => t + 1)}
+                            className="p-3 rounded-full bg-white/10 hover:bg-red-500/20 text-white hover:text-red-400 transition-all"
+                            title="Clear Annotations"
+                        >
+                            <Trash2 size={20} />
+                        </button>
+
+                        <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
+
+                        <button
+                            onClick={() => setShowTrademarkModal(prev => !prev)}
+                            className={`p-3 rounded-full transition-all ${showTrademarkModal ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                            title="Trademark Settings"
+                        >
+                            <Stamp size={20} />
+                        </button>
+                        <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
+
+                        {/* Reset Position Button */}
+                        {(toolbarPosition.x !== null || toolbarPosition.y !== null) && (
+                            <>
+                                <button
+                                    onClick={resetToolbarPosition}
+                                    className="p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
+                                    title="Reset to Default Position"
+                                >
+                                    <X size={20} />
+                                </button>
+                                <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
+                            </>
+                        )}
+
+                        <button
+                            onClick={() => {
+                                setIsLocked(true);
+                            }}
+                            className="p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
+                            title="Lock Toolbar"
+                        >
+                            <Lock size={20} />
+                        </button>
 
 
-                </div>
-            )}
+                    </div>
+                )
+            }
 
             {/* Unlock Button */}
-            {isPresenting && isLocked && !isExportRecording && (
-                <button
-                    onClick={() => setIsLocked(false)}
-                    className={`absolute bottom-8 left-8 p-3 rounded-full bg-black/20 hover:bg-black/50 text-white/50 hover:text-white transition-all backdrop-blur-sm z-50 ${!showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                    title="Unlock Toolbar"
-                >
-                    <Unlock size={20} />
-                </button>
-            )}
+            {
+                isPresenting && isLocked && !isExportRecording && (
+                    <button
+                        onClick={() => setIsLocked(false)}
+                        className={`absolute bottom-8 left-8 p-3 rounded-full bg-black/20 hover:bg-black/50 text-white/50 hover:text-white transition-all backdrop-blur-sm z-50 ${!showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                        title="Unlock Toolbar"
+                    >
+                        <Unlock size={20} />
+                    </button>
+                )
+            }
 
             {/* Navigation Controls */}
             <div
@@ -679,19 +730,19 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                             <TextCursorInput size={14} className="text-white/70" />
                             <input
                                 type="number"
-                                value={fontSize}
+                                value={fontSizes[currentSlide] || '16'}
                                 onChange={(e) => {
                                     const value = e.target.value;
                                     if (value === '' || (parseInt(value) >= 8 && parseInt(value) <= 48)) {
-                                        setFontSize(value || '16');
+                                        setFontSizes(prev => ({ ...prev, [currentSlide]: value }));
                                     }
                                 }}
                                 onBlur={(e) => {
                                     const value = parseInt(e.target.value);
                                     if (isNaN(value) || value < 8) {
-                                        setFontSize('16');
+                                        setFontSizes(prev => ({ ...prev, [currentSlide]: '16' }));
                                     } else if (value > 48) {
-                                        setFontSize('48');
+                                        setFontSizes(prev => ({ ...prev, [currentSlide]: '48' }));
                                     }
                                 }}
                                 className="w-12 bg-transparent text-white text-sm font-sans focus:outline-none text-center"
@@ -702,8 +753,8 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                             <span className="text-white/50 text-xs">px</span>
                             <div className="h-4 w-px bg-white/20 mx-1" />
                             <select
-                                onChange={(e) => setFontSize(e.target.value)}
-                                value={fontSize}
+                                onChange={(e) => setFontSizes(prev => ({ ...prev, [currentSlide]: e.target.value }))}
+                                value={fontSizes[currentSlide] || '16'}
                                 className="appearance-none bg-transparent text-white text-sm font-sans focus:outline-none cursor-pointer pr-4"
                                 title="Preset Sizes"
                             >
@@ -791,6 +842,27 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                         >
                             <span>Connect</span>
                         </button>
+
+                        {/* Audio Controls */}
+                        <div className="flex items-center gap-2 mr-4 bg-black/50 rounded-full px-2 py-1 border border-white/20">
+                            <button
+                                onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+                                className={`p-2 rounded-full transition-all ${isAudioEnabled ? 'bg-green-500 text-white' : 'text-white/50 hover:text-white'}`}
+                                title="Toggle Voiceover"
+                            >
+                                {isAudioEnabled ? "🔊" : "🔇"}
+                            </button>
+                            {isAudioEnabled && (
+                                <button
+                                    onClick={() => setIsAutoAdvance(!isAutoAdvance)}
+                                    className={`text-xs font-bold px-2 py-1 rounded transition-colors ${isAutoAdvance ? 'bg-blue-500 text-white' : 'text-white/50 hover:text-white'}`}
+                                    title="Auto-advance after audio"
+                                >
+                                    AUTO
+                                </button>
+                            )}
+                        </div>
+
                         <button
                             onClick={() => setIsPresenting(true)}
                             className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm mr-4"
@@ -956,17 +1028,19 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
 
             {/* Design Feedback Loop - Moved to Toolbar */}
 
-            {showSocialExport && (
-                <SocialExportStudio
-                    slideIndex={currentSlide + 1}
-                    currentSlideNode={slides[currentSlide]}
-                    initialMode={showSocialExport === 'accounts' ? 'accounts' : 'studio'}
-                    onClose={() => setShowSocialExport(false)}
-                    onRecordingStart={() => setIsExportRecording(true)}
-                    onRecordingEnd={() => setIsExportRecording(false)}
-                    onConnect={onConnect}
-                />
-            )}
+            {
+                showSocialExport && (
+                    <SocialExportStudio
+                        slideIndex={currentSlide + 1}
+                        currentSlideNode={slides[currentSlide]}
+                        initialMode={showSocialExport === 'accounts' ? 'accounts' : 'studio'}
+                        onClose={() => setShowSocialExport(false)}
+                        onRecordingStart={() => setIsExportRecording(true)}
+                        onRecordingEnd={() => setIsExportRecording(false)}
+                        onConnect={onConnect}
+                    />
+                )
+            }
 
             <AnimatePresence>
                 {showAgentChat && (

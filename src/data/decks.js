@@ -2,11 +2,14 @@ const modules = import.meta.glob('../decks/**/deck.js');
 
 export const getDeck = async (id) => {
     // Fallback to local loading for active decks
-    const path = `../decks/${id}/deck.js`;
-    const loader = modules[path];
+    // Robust lookup: find key ending with the expected pattern
+    const targetSuffix = `/decks/${id}/deck.js`;
+    const path = Object.keys(modules).find(p => p.endsWith(targetSuffix));
+    const loader = path ? modules[path] : null;
 
     if (!loader) {
-        console.error(`Deck not found: ${id} at path ${path}`);
+        console.error(`Deck not found: ${id}. Expected path suffix: ${targetSuffix}`);
+        console.log('Available paths:', Object.keys(modules));
         return null;
     }
 

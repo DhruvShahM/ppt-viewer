@@ -35,10 +35,10 @@ const Slide12_GettingStarted = () => {
   ];
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col items-center justify-center px-12 relative overflow-hidden">
+    <div className="w-full h-screen flex flex-col items-center justify-center overflow-y-auto p-4 relative">
       {/* Animated lines connecting steps */}
       <svg
-        className="absolute inset-0 w-full h-full"
+        className="fixed inset-0 w-full h-full pointer-events-none"
         style={{ zIndex: 5 }}
       >
         <motion.line
@@ -52,6 +52,7 @@ const Slide12_GettingStarted = () => {
           strokeDashoffset="0"
           animate={{ strokeDashoffset: 15 }}
           transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+          className="hidden md:block"
         />
         <defs>
           <linearGradient id="gradient">
@@ -61,7 +62,7 @@ const Slide12_GettingStarted = () => {
         </defs>
       </svg>
 
-      <div className="relative z-10">
+      <div className="relative z-10 w-full max-w-5xl">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -77,7 +78,7 @@ const Slide12_GettingStarted = () => {
         </motion.div>
 
         {/* Steps flow */}
-        <div className="flex justify-between items-center gap-4 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {steps.map((step, idx) => (
             <motion.div
               key={idx}
@@ -88,9 +89,9 @@ const Slide12_GettingStarted = () => {
                 y: -15,
                 boxShadow: '0 20px 40px rgba(59, 130, 246, 0.3)',
               }}
-              className="relative flex-1"
+              className="relative"
             >
-              <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 text-center hover:border-cyan-500/50 transition-all">
+              <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 text-center hover:border-cyan-500/50 transition-all backdrop-blur-sm h-full flex flex-col">
                 {/* Step number */}
                 <motion.div
                   className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center font-bold text-white mx-auto mb-4"
@@ -122,20 +123,20 @@ const Slide12_GettingStarted = () => {
                 <h3 className="text-lg font-bold text-white mb-2">
                   {step.title}
                 </h3>
-                <p className="text-sm text-slate-400 mb-4">{step.desc}</p>
+                <p className="text-sm text-slate-400 mb-4 flex-grow">{step.desc}</p>
 
                 {/* Code snippet */}
-                <div className="bg-slate-900 rounded p-3 text-left border-l-2 border-cyan-500">
+                <div className="bg-slate-900/50 rounded p-3 text-left border-l-2 border-cyan-500 backdrop-blur-sm">
                   <code className="text-xs text-cyan-300 font-mono break-words">
                     {step.code}
                   </code>
                 </div>
               </div>
 
-              {/* Arrow between steps */}
+              {/* Arrow between steps - only show on md+ screens */}
               {idx < steps.length - 1 && (
                 <motion.div
-                  className="absolute -right-6 top-1/2 transform -translate-y-1/2 z-10"
+                  className="absolute -right-6 top-1/2 transform -translate-y-1/2 z-10 hidden md:block"
                   animate={{ x: [0, 5, 0] }}
                   transition={{
                     duration: 1.5,
@@ -155,13 +156,13 @@ const Slide12_GettingStarted = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2, duration: 0.8 }}
-          className="mt-12 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 rounded-xl p-8 max-w-4xl mx-auto"
+          className="mt-12 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-xl p-8 max-w-4xl mx-auto backdrop-blur-sm"
         >
-          <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2 justify-center">
             <Rocket className="w-6 h-6 text-cyan-400" />
             Quick Resources
           </h3>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               '📚 grpc.io Documentation',
               '🐍 Protocol Buffer Guide',

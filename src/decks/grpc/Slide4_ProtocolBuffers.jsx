@@ -18,20 +18,20 @@ const Slide4_ProtocolBuffers = () => {
 }`;
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col items-center justify-center px-12 relative overflow-hidden">
+    <div className="w-full h-screen flex flex-col items-center justify-center overflow-y-auto p-4 relative">
       {/* Flowing background */}
       <motion.div
-        className="absolute top-20 right-10 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl"
+        className="fixed top-20 right-10 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"
         animate={{ x: [-50, 50, -50], y: [0, 30, 0] }}
         transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      <div className="relative z-10 w-full max-w-5xl">
+      <div className="w-full max-w-5xl z-10">
         <motion.h2
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="text-6xl font-bold text-white mb-4 flex items-center gap-4"
+          className="text-6xl font-bold text-white mb-4 flex items-center gap-4 justify-center"
         >
           <motion.div
             animate={{ rotate: [0, 360] }}
@@ -46,18 +46,18 @@ const Slide4_ProtocolBuffers = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.8 }}
-          className="text-xl text-slate-400 mb-12"
+          className="text-xl text-slate-400 mb-12 text-center"
         >
           Binary format = Smaller, Faster, Strongly Typed
         </motion.p>
 
-        <div className="grid grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {/* JSON */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3, duration: 0.8 }}
-            className="bg-slate-800 rounded-xl overflow-hidden border border-red-500/30"
+            className="bg-slate-800/50 rounded-xl overflow-hidden border border-red-500/30 backdrop-blur-sm"
           >
             <div className="bg-red-900/40 px-6 py-3 border-b border-red-500/30">
               <p className="font-bold text-red-300">JSON (~200 bytes)</p>
@@ -77,7 +77,7 @@ const Slide4_ProtocolBuffers = () => {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3, duration: 0.8 }}
-            className="bg-slate-800 rounded-xl overflow-hidden border border-green-500/30"
+            className="bg-slate-800/50 rounded-xl overflow-hidden border border-green-500/30 backdrop-blur-sm"
           >
             <div className="bg-green-900/40 px-6 py-3 border-b border-green-500/30">
               <p className="font-bold text-green-300">Protobuf (~50 bytes)</p>
@@ -109,7 +109,7 @@ const Slide4_ProtocolBuffers = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 + idx * 0.2 }}
-              className="flex items-center justify-between bg-slate-800 rounded-lg p-4"
+              className="flex items-center justify-between bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 backdrop-blur-sm"
             >
               <span className="text-slate-300 font-semibold w-24">
                 {metric.label}
@@ -120,11 +120,10 @@ const Slide4_ProtocolBuffers = () => {
                     className="bg-red-500 rounded h-2"
                     initial={{ width: 0 }}
                     animate={{
-                      width: `${
-                        typeof metric.json === 'number'
+                      width: `${typeof metric.json === 'number'
                           ? Math.min((metric.json / 200) * 100, 100)
                           : 0
-                      }%`,
+                        }%`,
                     }}
                     transition={{
                       delay: 0.8 + idx * 0.2,
@@ -138,11 +137,10 @@ const Slide4_ProtocolBuffers = () => {
                     className="bg-green-500 rounded h-2"
                     initial={{ width: 0 }}
                     animate={{
-                      width: `${
-                        typeof metric.pb === 'number'
+                      width: `${typeof metric.pb === 'number'
                           ? Math.min((metric.pb / 200) * 100, 100)
                           : 0
-                      }%`,
+                        }%`,
                     }}
                     transition={{
                       delay: 0.8 + idx * 0.2,
