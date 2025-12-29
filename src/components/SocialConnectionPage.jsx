@@ -183,11 +183,19 @@ const SocialConnectionPage = ({ onBack }) => {
         }
     }, [showPostModal]);
 
-    const fetchPlaylists = async () => {
+    const fetchPlaylists = async (accountId = null) => {
         try {
             setIsLoadingPlaylists(true);
             // Default to 'youtube' for now as it's the only one with playlists we care about
-            const res = await fetch('http://localhost:3001/api/social/youtube/playlists?platform=youtube');
+            let url = 'http://localhost:3001/api/social/youtube/playlists?platform=youtube';
+            if (accountId) {
+                url += `&accountId=${accountId}`;
+            } else if (selectedPostAccounts.length === 1) {
+                // If exactly one account selected, use that
+                url += `&accountId=${selectedPostAccounts[0]}`;
+            }
+
+            const res = await fetch(url);
             const data = await res.json();
             if (data.success && data.playlists) {
                 setAvailablePlaylists(data.playlists);
@@ -416,9 +424,28 @@ const SocialConnectionPage = ({ onBack }) => {
     };
 
     const togglePostAccount = (id) => {
-        setSelectedPostAccounts(prev =>
-            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-        );
+        setSelectedPostAccounts(prev => {
+            const isSelected = prev.includes(id);
+            if (isSelected) {
+                // Deselecting
+                // If we are deselecting the only one, clear playlists or reset?
+                return prev.filter(x => x !== id);
+            } else {
+                // Selecting new one
+                // If it's a YouTube account, fetch playlists for it
+                // We currently support multi-select, but playlists usually only make sense for one channel at a time
+                // For simplicity: If we select a NEW one, we fetch playlists for THAT one.
+                // Or if multiple, maybe just the last selected?
+                // Let's reset playlists and fetch for the new one if it's the ONLY one or we switched context.
+                // Current Requirement: "based on the channel activation ... populate all the playlist"
+                // This implies if I pick Channel A, I see Channel A's playlists.
+                const account = data?.getConnectedAccounts?.find(a => a.id === id);
+                if (account && account.platform === 'youtube') {
+                    fetchPlaylists(id);
+                }
+                return [...prev, id];
+            }
+        });
     };
 
     useEffect(() => {

@@ -565,22 +565,27 @@ app.post('/api/social/youtube/playlist', catchAsync(async (req, res, next) => {
 
 app.get('/api/social/youtube/playlists', catchAsync(async (req, res, next) => {
     // Platform defaults to youtube
-    const { platform = 'youtube' } = req.query;
-
-    const socialDataService = require('./services/social-data-service');
-    const token = await socialDataService.getAccessToken(platform);
-
-    if (!token) {
-        return next(new AppError('No valid token found for YouTube', 401));
-    }
+    const { platform = 'youtube', accountId } = req.query;
 
     // We need the full token object for youtube-service
     const tokenManager = require('./services/token-manager');
     const allTokens = tokenManager.loadTokens();
-    // Find the first enabled token for the platform, similar to how we do in getAccessToken logic usually
-    // But getAccessToken returns just the token string typically. 
-    // We need the object. 
-    const tokenData = Object.values(allTokens).find(t => t.platform === platform && t.isEnabled !== false);
+
+    let tokenData;
+
+    if (accountId) {
+        // Find specific token by ID or userId
+        // token structure keys are "platform_userid" usually, but values have id field
+        tokenData = Object.values(allTokens).find(t =>
+            t.platform === platform &&
+            (t.id === accountId || t.userId === accountId)
+        );
+    }
+
+    // Fallback: Find the first enabled token for the platform
+    if (!tokenData) {
+        tokenData = Object.values(allTokens).find(t => t.platform === platform && t.isEnabled !== false);
+    }
 
     if (!tokenData) {
         return next(new AppError('No enabled YouTube accounts found', 404));
