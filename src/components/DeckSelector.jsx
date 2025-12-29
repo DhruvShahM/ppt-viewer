@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw, Upload, Download, FileText } from 'lucide-react';
+import { Play, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw, Upload, Download, FileText, Video } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef } from 'react';
 
 
@@ -754,6 +754,81 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
         }
     };
 
+    const handleGenerateYouTubeMetadata = () => {
+        if (selectedDecks.size === 0) return;
+
+        const selectedDecksList = allDecks.filter(d => selectedDecks.has(d.id));
+
+        const topicsList = selectedDecksList.map((deck, index) =>
+            `${index + 1}. ${deck.title} - ${deck.description || 'No description'} - Category Name - ${deck.repoTitle}`
+        ).join('\n');
+
+        const promptText = `**Role:**
+You are an expert YouTube SEO Strategist, Content Automation Specialist, and Copywriter.
+
+**Objective:**
+I will provide you with a list of video topics (ranging from Finance, Business, Education, to Tech/Coding). You must generate a **single valid JSON object** containing highly optimized metadata for these videos, designed to rank in YouTube Search and Suggest.
+
+**Output Rules:**
+1.  **Single Object:** The output must be one single JSON object \`{ "videos": [ ... ] }\`.
+2.  **Array:** The \`videos\` key contains an array where EACH item corresponds to one of the provided topics.
+3.  **SEO & CTR Optimization:**
+    *   **Titles:** Must be "Clicky" yet "Searchable". Use a [Main Keyword] + [Power Benefit/Hook] structure. Place high-volume keywords early in the title. (Max 60 chars optimal, up to 100 allowed).
+    *   **Descriptions:** 
+        *   **The Hook (First 2 lines):** Must clearly state the value proposition and include the primary keyword naturally.
+        *   **Body:** Detailed summary utilizing LSI keywords relevant to the specific niche.
+        *   **Structure:** Use emoji bullet points for readability.
+    *   **Tags:** Strict mix of **Broad Keywords** (e.g., "Finance", "Business", "Coding"), **Niche Keywords** (e.g., "Stock Market Analysis", "React Hooks"), and **Long-Tail Keywords**.
+4.  **Schema Compliance:** Adapt the metadata to the specific industry/niche of the topic.
+
+**Schema & Example:**
+\`\`\`json
+{
+  "videos": [
+    {
+      "videoFile": "C:/Users/dhruv/Videos/2025/productivity_masterclass/1/1_merged_video.mp4",
+      "title": "🚀 5 Time Management Hacks for Entrepreneurs | Boost Productivity Fast! 💼",
+      "description": "🔥 Struggling to manage your time? Discover the 5 proven hacks that successful entrepreneurs use to double their productivity!\\n\\nIn this video, you’ll learn:\\n✅ The Pomodoro Technique 2.0\\n✅ How to prioritize tasks effectively (Eisenhower Matrix)\\n✅ Avoiding burnout while scaling your business\\n\\n👇 Topics Covered:\\n0:00 Intro\\n1:45 The 80/20 Rule\\n3:30 Deep Work Strategies\\n\\n📌 Don't forget to LIKE 👍 and SUBSCRIBE 🔔 for more Business & Growth tips! \\n\\n#productivity #entrepreneurship #businessgrowth",
+      "tags": [
+        "productivity",
+        "time management",
+        "entrepreneur",
+        "business tips",
+        "personal development",
+        "startup advice",
+        "focus",
+        "success mindset"
+      ],
+      "categoryName": "Education",
+      "privacyStatus": "public",
+      "thumbnail": "C:/Users/dhruv/Videos/2025/productivity_masterclass/1/thumbnail.png",
+      "playlistName": "Productivity Masterclass for Leaders 🚀",
+      "publishAt": "2025-04-20 12:00:00",
+      "madeForKids": false,
+      "ageRestriction": false
+    }
+  ]
+}
+\`\`\`
+
+**Path Logic:**
+- For \`videoFile\` and \`thumbnail\`, use the base path: \`C:/Users/dhruv/Videos/2025/[Topic_Slug]/\`
+- Ensure the filenames are consistent (e.g., \`merged_video.mp4\`, \`thumbnail.png\`).
+
+**My Request:**
+Generate the JSON object for the following topics:
+${topicsList}`;
+
+        navigator.clipboard.writeText(promptText).then(() => {
+            alert("YouTube Metadata Prompt copied to clipboard! You can now paste it into your AI tool.");
+            setIsSelectionMode(false);
+            setSelectedDecks(new Set());
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            alert("Failed to copy prompt to clipboard.");
+        });
+    };
+
     const handleDownloadFeedbackSelected = async () => {
         if (selectedDecks.size === 0) return;
 
@@ -1199,6 +1274,16 @@ const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
                             >
                                 {isProcessing ? <Loader2 className="animate-spin" /> : <FileText size={20} />}
                                 Script ({selectedDecks.size})
+                            </button>
+
+                            <button
+                                onClick={handleGenerateYouTubeMetadata}
+                                disabled={isProcessing || selectedDecks.size === 0}
+                                className="px-4 py-3 rounded-xl bg-pink-600 text-white font-bold hover:bg-pink-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Generate YouTube Metadata Prompt"
+                            >
+                                {isProcessing ? <Loader2 className="animate-spin" /> : <Video size={20} />}
+                                YouTube ({selectedDecks.size})
                             </button>
                         </>
 
