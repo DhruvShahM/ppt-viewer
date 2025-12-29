@@ -1048,6 +1048,12 @@ ${topicsList}`;
 
     return (
         <div className="w-full h-full flex flex-col items-center justify-start pt-24 pb-12 px-12 relative z-10 overflow-y-auto custom-scrollbar">
+            <button
+                onClick={handleAddRepository}
+                className="fixed top-4 right-[200px] z-50 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:shadow-lg hover:scale-105 transition font-medium text-sm text-white"
+            >
+                <Plus size={16} /> Create Repository
+            </button>
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1383,17 +1389,6 @@ ${topicsList}`;
                     ))}
                 </AnimatePresence>
 
-                {isEditMode && !searchQuery && (
-                    <motion.button
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        onClick={handleAddRepository}
-                        className="w-full py-8 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center text-white/40 hover:text-white/80 hover:border-white/20 hover:bg-white/5 transition-all gap-2"
-                    >
-                        <Plus size={32} />
-                        <span className="font-medium">Create New Repository</span>
-                    </motion.button>
-                )}
 
                 {/* Empty State */}
                 {currentItems.length === 0 && searchQuery && (
