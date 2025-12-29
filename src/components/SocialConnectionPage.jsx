@@ -22,7 +22,8 @@ import {
     Eye,
     EyeOff,
     Clipboard,
-    Image as ImageIcon
+    Image as ImageIcon,
+    Download
 } from 'lucide-react';
 
 const GET_SOCIAL_DATA = gql`
@@ -342,6 +343,86 @@ const SocialConnectionPage = ({ onBack }) => {
         } catch (err) {
             if (text.includes('{')) console.warn("Paste handler: Invalid JSON", err);
         }
+    };
+
+    const handleExportInfo = () => {
+        let videosToExport = [];
+
+        if (stagedVideos.length > 0) {
+            videosToExport = stagedVideos.map(video => {
+                // Determine source of tags (might be array or string depending on edit history)
+                let tagsArray = [];
+                if (Array.isArray(video.tags)) {
+                    tagsArray = video.tags;
+                } else if (typeof video.tags === 'string') {
+                    tagsArray = video.tags.split(',').map(t => t.trim()).filter(Boolean);
+                }
+
+                // Format Date to "YYYY-MM-DD HH:mm:ss"
+                let formattedDate = video.publishAt;
+                if (video.publishAt) {
+                    try {
+                        // datetime-local is YYYY-MM-DDTHH:mm
+                        // If it's already in that format or ISO
+                        const d = new Date(video.publishAt);
+                        if (!isNaN(d.getTime())) {
+                            const pad = (n) => String(n).padStart(2, '0');
+                            formattedDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+                        }
+                    } catch (e) { }
+                }
+
+                return {
+                    videoFile: video.videoFile, // Keep original path string from JSON
+                    title: video.title,
+                    description: video.description,
+                    tags: tagsArray,
+                    categoryName: video.categoryName,
+                    privacyStatus: video.privacyStatus,
+                    thumbnail: video.thumbnail, // Keep original path string from JSON
+                    playlistName: video.playlistName,
+                    publishAt: formattedDate,
+                    madeForKids: video.madeForKids,
+                    ageRestriction: video.ageRestriction
+                };
+            });
+        } else {
+            // Fallback: Export current form as one entry
+            let formattedDate = publishAt;
+            if (publishAt) {
+                formattedDate = publishAt.replace('T', ' ') + ':00';
+            }
+
+            videosToExport = [{
+                title,
+                description,
+                tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+                categoryName,
+                privacyStatus,
+                playlistName,
+                publishAt: formattedDate,
+                madeForKids,
+                ageRestriction,
+                // No file paths known if manually entered
+            }];
+        }
+
+        const exportData = {
+            videos: videosToExport
+        };
+
+        const filename = stagedVideos.length > 1 ? 'batch_metadata_export' : `metadata_${title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'export'}`;
+
+        const jsonString = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     };
 
     const handleDirectUploadAndPost = async () => {
@@ -1431,6 +1512,10 @@ const SocialConnectionPage = ({ onBack }) => {
                                                             {availablePlaylists.map(p => (
                                                                 <option key={p.id} value={p.title}>{p.title} ({p.count})</option>
                                                             ))}
+                                                            {/* Show current value if not in list (e.g. from pasted JSON) */}
+                                                            {playlistName && playlistName !== 'new_playlist_custom' && !availablePlaylists.some(p => p.title === playlistName) && (
+                                                                <option value={playlistName}>{playlistName} (Custom/Preserved)</option>
+                                                            )}
                                                             <option value="new_playlist_custom">+ Create New Playlist</option>
                                                         </select>
                                                         <div className="absolute right-3 top-3 pointer-events-none text-slate-500">
@@ -1527,6 +1612,13 @@ const SocialConnectionPage = ({ onBack }) => {
                                     className="px-4 py-2 text-slate-400 hover:text-white text-sm"
                                 >
                                     Cancel
+                                </button>
+                                <button
+                                    onClick={handleExportInfo}
+                                    className="px-4 py-2 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 rounded-lg text-sm flex items-center gap-2 transition"
+                                    title="Download current metadata as JSON"
+                                >
+                                    <Download size={16} /> Export Info
                                 </button>
                                 <button
                                     onClick={handleDirectUploadAndPost}
