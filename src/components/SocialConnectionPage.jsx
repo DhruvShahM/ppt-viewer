@@ -233,6 +233,9 @@ const SocialConnectionPage = ({ onBack }) => {
             const file = e.target.files[0];
             setPostFile(file);
             updateStagedVideo('postFile', file);
+            // Also update the display path (target) to reflect the manual change
+            updateStagedVideo('videoFile', file.name);
+            updateStagedVideo('videoFileExists', true); // Manual selection => exists
         }
     };
 
@@ -243,6 +246,9 @@ const SocialConnectionPage = ({ onBack }) => {
             const file = e.target.files[0];
             setThumbnailFile(file);
             updateStagedVideo('thumbnailFile', file);
+            // Also update the display path (target) to reflect the manual change
+            updateStagedVideo('thumbnail', file.name);
+            updateStagedVideo('thumbnailExists', true); // Manual selection => exists
         }
     };
 
@@ -283,7 +289,7 @@ const SocialConnectionPage = ({ onBack }) => {
 
 
 
-    const handleMetadataPaste = (e) => {
+    const handleMetadataPaste = async (e) => {
         const text = e.target.value;
         try {
             const cleanText = text.trim();
@@ -301,20 +307,41 @@ const SocialConnectionPage = ({ onBack }) => {
             }
 
             if (videos.length > 0) {
-                setStagedVideos(videos);
+                // Collect all paths to validate
+                const pathsToValidate = [];
+                videos.forEach(v => {
+                    if (v.videoFile) pathsToValidate.push(v.videoFile);
+                    if (v.thumbnail) pathsToValidate.push(v.thumbnail);
+                });
+
+                let validationResults = {};
+                if (pathsToValidate.length > 0) {
+                    try {
+                        const res = await fetch('http://localhost:3001/api/validate-paths', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ paths: [...new Set(pathsToValidate)] })
+                        });
+                        const vData = await res.json();
+                        if (vData.success) {
+                            validationResults = vData.results;
+                        }
+                    } catch (err) {
+                        console.warn("Validation failed", err);
+                    }
+                }
+
+                // Hydrate videos with validation status
+                const hydratedVideos = videos.map(v => ({
+                    ...v,
+                    videoFileExists: v.videoFile ? !!validationResults[v.videoFile] : false,
+                    thumbnailExists: v.thumbnail ? !!validationResults[v.thumbnail] : false
+                }));
+
+                setStagedVideos(hydratedVideos);
 
                 // Automatically select the first one
-                // We need to set state first, but selectStagedVideo reads from state... 
-                // So we'll just manually call the logic or use an effect. 
-                // Simpler: Just set the state and then manually trigger the fill for index 0 from the 'videos' array directly
-                // to avoid one render cycle delay issues if we used selectStagedVideo(0) immediately.
-
-                // But to allow the helper to work, let's just use the helper logic directly here for the first one
-                // or just let the user click? 
-                // Requirement: "populated ... showing the information"
-                // Let's populate the first one immediately for convenience.
-
-                const firstVideo = videos[0];
+                const firstVideo = hydratedVideos[0];
                 setActiveStagedIndex(0); // Set active index
 
                 // Populate Logic (Inline for immediate update)
@@ -1328,7 +1355,8 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     <span className="font-medium text-sm">{postFile.name}</span>
                                                     <span className="text-xs opacity-75">Click to change</span>
                                                     {activeStagedIndex !== -1 && stagedVideos[activeStagedIndex]?.videoFile && (
-                                                        <div className="mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded text-purple-400 opacity-90 max-w-full truncate">
+                                                        <div className={`mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded opacity-90 max-w-full truncate flex items-center gap-1 ${stagedVideos[activeStagedIndex].videoFileExists !== false ? 'text-green-400' : 'text-red-400'}`}>
+                                                            {stagedVideos[activeStagedIndex].videoFileExists !== false ? <CheckCircle2 size={10} /> : <X size={10} />}
                                                             Target: {stagedVideos[activeStagedIndex].videoFile}
                                                         </div>
                                                     )}
@@ -1339,7 +1367,8 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     <span className="text-sm">Click to upload video</span>
                                                     <span className="text-[10px] uppercase tracking-wider opacity-50">MP4, WebM</span>
                                                     {activeStagedIndex !== -1 && stagedVideos[activeStagedIndex]?.videoFile && (
-                                                        <div className="mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded text-purple-400 opacity-90 max-w-full truncate border border-purple-500/30">
+                                                        <div className={`mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded opacity-90 max-w-full truncate border flex items-center gap-1 ${stagedVideos[activeStagedIndex].videoFileExists ? 'text-green-400 border-green-500/30' : 'text-red-400 border-red-500/30'}`}>
+                                                            {stagedVideos[activeStagedIndex].videoFileExists ? <CheckCircle2 size={10} /> : <X size={10} />}
                                                             Target: {stagedVideos[activeStagedIndex].videoFile}
                                                         </div>
                                                     )}
@@ -1365,7 +1394,8 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     <span className="font-medium text-sm">{thumbnailFile.name}</span>
                                                     <span className="text-xs opacity-75">Click to change thumbnail</span>
                                                     {activeStagedIndex !== -1 && stagedVideos[activeStagedIndex]?.thumbnail && (
-                                                        <div className="mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded text-purple-400 opacity-90 max-w-full truncate">
+                                                        <div className={`mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded opacity-90 max-w-full truncate flex items-center gap-1 ${stagedVideos[activeStagedIndex].thumbnailExists !== false ? 'text-green-400' : 'text-red-400'}`}>
+                                                            {stagedVideos[activeStagedIndex].thumbnailExists !== false ? <CheckCircle2 size={10} /> : <X size={10} />}
                                                             Target: {stagedVideos[activeStagedIndex].thumbnail}
                                                         </div>
                                                     )}
@@ -1376,7 +1406,8 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     <span className="text-sm">Click to upload thumbnail</span>
                                                     <span className="text-[10px] uppercase tracking-wider opacity-50">JPG, PNG</span>
                                                     {activeStagedIndex !== -1 && stagedVideos[activeStagedIndex]?.thumbnail && (
-                                                        <div className="mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded text-purple-400 opacity-90 max-w-full truncate border border-purple-500/30">
+                                                        <div className={`mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded opacity-90 max-w-full truncate border flex items-center gap-1 ${stagedVideos[activeStagedIndex].thumbnailExists ? 'text-green-400 border-green-500/30' : 'text-red-400 border-red-500/30'}`}>
+                                                            {stagedVideos[activeStagedIndex].thumbnailExists ? <CheckCircle2 size={10} /> : <X size={10} />}
                                                             Target: {stagedVideos[activeStagedIndex].thumbnail}
                                                         </div>
                                                     )}

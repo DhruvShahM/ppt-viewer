@@ -600,6 +600,24 @@ app.get('/api/social/youtube/playlists', catchAsync(async (req, res, next) => {
     }
 }));
 
+app.post('/api/validate-paths', (req, res) => {
+    const { paths } = req.body;
+    if (!paths || !Array.isArray(paths)) {
+        return res.status(400).json({ error: 'Invalid paths array' });
+    }
+
+    const results = {};
+    paths.forEach(p => {
+        if (typeof p === 'string') {
+            // Check if file exists
+            // We can't guarantee read access to all system folders but fs.existsSync works for most
+            results[p] = fs.existsSync(p);
+        }
+    });
+
+    res.json({ success: true, results });
+});
+
 app.get('/api/renders/:filename', (req, res, next) => {
     const filename = req.params.filename;
     const filepath = path.join(RENDERS_DIR, filename);
