@@ -20,7 +20,9 @@ import {
     Send,
     ChevronDown,
     Eye,
-    EyeOff
+    EyeOff,
+    Clipboard,
+    Image as ImageIcon
 } from 'lucide-react';
 
 const GET_SOCIAL_DATA = gql`
@@ -155,8 +157,13 @@ const SocialConnectionPage = ({ onBack }) => {
     const [isLoadingPlaylists, setIsLoadingPlaylists] = React.useState(false);
 
     const [postFile, setPostFile] = React.useState(null);
+    const [thumbnailFile, setThumbnailFile] = React.useState(null);
     const [uploading, setUploading] = React.useState(false);
     const [selectedPostAccounts, setSelectedPostAccounts] = React.useState([]);
+
+    // Multi-Video Staging State
+    const [stagedVideos, setStagedVideos] = React.useState([]);
+    const [activeStagedIndex, setActiveStagedIndex] = React.useState(-1);
 
     const fileInputRef = React.useRef(null);
 
@@ -176,8 +183,11 @@ const SocialConnectionPage = ({ onBack }) => {
             setMadeForKids(false);
             setAgeRestriction(false);
             setPostFile(null);
+            setThumbnailFile(null);
             setIsToogleEnabled(true);
             setAvailablePlaylists([]);
+            setStagedVideos([]);
+            setActiveStagedIndex(-1);
 
             fetchPlaylists();
         }
@@ -207,9 +217,130 @@ const SocialConnectionPage = ({ onBack }) => {
         }
     };
 
+    const updateStagedVideo = (field, value) => {
+        if (activeStagedIndex !== -1) {
+            setStagedVideos(prev => {
+                const updated = [...prev];
+                updated[activeStagedIndex] = { ...updated[activeStagedIndex], [field]: value };
+                return updated;
+            });
+        }
+    };
+
     const handleFileSelect = (e) => {
         if (e.target.files && e.target.files[0]) {
-            setPostFile(e.target.files[0]);
+            const file = e.target.files[0];
+            setPostFile(file);
+            updateStagedVideo('postFile', file);
+        }
+    };
+
+    const thumbnailInputRef = React.useRef(null);
+
+    const handleThumbnailSelect = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setThumbnailFile(file);
+            updateStagedVideo('thumbnailFile', file);
+        }
+    };
+
+
+
+    const selectStagedVideo = (index) => {
+        if (!stagedVideos[index]) return;
+        const video = stagedVideos[index];
+        setActiveStagedIndex(index);
+
+        // Restore the file selected for this video (or clear if none)
+        setPostFile(video.postFile || null);
+        setThumbnailFile(video.thumbnailFile || null);
+
+        if (video.title) setTitle(video.title);
+
+        if (video.description) setDescription(video.description);
+        if (video.tags && Array.isArray(video.tags)) setTags(video.tags.join(', '));
+        if (video.categoryName) setCategoryName(video.categoryName);
+        if (video.privacyStatus) setPrivacyStatus(video.privacyStatus);
+        if (video.playlistName) setPlaylistName(video.playlistName);
+
+        // Handle publishAt validation
+        if (video.publishAt) {
+            try {
+                const date = new Date(video.publishAt);
+                const pad = (num) => String(num).padStart(2, '0');
+                const formatted = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+                setPublishAt(formatted);
+            } catch (dErr) {
+                console.warn("Invalid date in JSON:", video.publishAt);
+            }
+        }
+
+        if (typeof video.madeForKids === 'boolean') setMadeForKids(video.madeForKids);
+        if (typeof video.ageRestriction === 'boolean') setAgeRestriction(video.ageRestriction);
+    };
+
+
+
+    const handleMetadataPaste = (e) => {
+        const text = e.target.value;
+        try {
+            const cleanText = text.trim();
+            if (!cleanText) return;
+
+            const data = JSON.parse(cleanText);
+
+            // support both single object { ... } or { videos: [...] }
+            let videos = [];
+            if (data.videos && Array.isArray(data.videos)) {
+                videos = data.videos;
+            } else if (!data.videos && data.title) {
+                // Single video object pasted directly
+                videos = [data];
+            }
+
+            if (videos.length > 0) {
+                setStagedVideos(videos);
+
+                // Automatically select the first one
+                // We need to set state first, but selectStagedVideo reads from state... 
+                // So we'll just manually call the logic or use an effect. 
+                // Simpler: Just set the state and then manually trigger the fill for index 0 from the 'videos' array directly
+                // to avoid one render cycle delay issues if we used selectStagedVideo(0) immediately.
+
+                // But to allow the helper to work, let's just use the helper logic directly here for the first one
+                // or just let the user click? 
+                // Requirement: "populated ... showing the information"
+                // Let's populate the first one immediately for convenience.
+
+                const firstVideo = videos[0];
+                setActiveStagedIndex(0); // Set active index
+
+                // Populate Logic (Inline for immediate update)
+                if (firstVideo.title) setTitle(firstVideo.title);
+                if (firstVideo.description) setDescription(firstVideo.description);
+                if (firstVideo.tags && Array.isArray(firstVideo.tags)) setTags(firstVideo.tags.join(', '));
+                if (firstVideo.categoryName) setCategoryName(firstVideo.categoryName);
+                if (firstVideo.privacyStatus) setPrivacyStatus(firstVideo.privacyStatus);
+                if (firstVideo.playlistName) setPlaylistName(firstVideo.playlistName);
+
+                if (firstVideo.publishAt) {
+                    try {
+                        const date = new Date(firstVideo.publishAt);
+                        const pad = (num) => String(num).padStart(2, '0');
+                        const formatted = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+                        setPublishAt(formatted);
+                    } catch (dErr) { console.warn(dErr); }
+                }
+
+                if (typeof firstVideo.madeForKids === 'boolean') setMadeForKids(firstVideo.madeForKids);
+                if (typeof firstVideo.ageRestriction === 'boolean') setAgeRestriction(firstVideo.ageRestriction);
+
+                alert(`✅ Loaded ${videos.length} videos from JSON! First one auto-filled.`);
+                e.target.value = '';
+            }
+        } catch (err) {
+            if (text.includes('{')) console.warn("Paste handler: Invalid JSON", err);
         }
     };
 
@@ -1032,7 +1163,7 @@ const SocialConnectionPage = ({ onBack }) => {
             {
                 showPostModal && (
                     <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-                        <div className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar animate-in zoom-in-95">
+                        <div className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-3xl w-full shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar animate-in zoom-in-95">
                             <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50 sticky top-0 z-10 backdrop-blur-md">
                                 <h3 className="font-bold text-white flex items-center gap-2">
                                     <Video className="text-red-500" /> Upload Verification Video (YouTube Only)
@@ -1059,6 +1190,42 @@ const SocialConnectionPage = ({ onBack }) => {
                                     </div>
                                 </div>
 
+                                {/* Smart Paste Section */}
+                                <div className="bg-slate-950/50 p-4 rounded-lg border border-slate-800 border-dashed border-purple-500/30">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Clipboard className="text-purple-400" size={16} />
+                                        <span className="text-sm font-bold text-gray-300">Auto-Fill from AI JSON</span>
+                                    </div>
+                                    <textarea
+                                        onChange={handleMetadataPaste}
+                                        placeholder='Paste the JSON object here (e.g., { "videos": [...] }) to auto-populate all fields...'
+                                        className="w-full bg-slate-900 border border-slate-800 rounded p-2 text-xs text-gray-400 focus:outline-none focus:border-purple-500 h-16 resize-none font-mono"
+                                    />
+
+                                    {/* Staged Videos List */}
+                                    {stagedVideos.length > 0 && (
+                                        <div className="mt-3 flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                                            {stagedVideos.map((vid, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => selectStagedVideo(idx)}
+                                                    className={`flex-shrink-0 w-32 p-2 rounded border text-left transition-all ${activeStagedIndex === idx
+                                                        ? 'bg-purple-900/40 border-purple-500 ring-1 ring-purple-500'
+                                                        : 'bg-slate-900 border-slate-700 hover:border-slate-500'
+                                                        }`}
+                                                >
+                                                    <div className={`text-xs font-bold truncate mb-1 ${activeStagedIndex === idx ? 'text-white' : 'text-slate-300'}`}>
+                                                        {vid.title || `Video ${idx + 1}`}
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-500 truncate">
+                                                        {vid.categoryName}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
                                 {/* Conditional Form Content */}
                                 {isToogleEnabled ? (
                                     <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
@@ -1079,12 +1246,59 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     <FileVideo size={48} />
                                                     <span className="font-medium text-sm">{postFile.name}</span>
                                                     <span className="text-xs opacity-75">Click to change</span>
+                                                    {activeStagedIndex !== -1 && stagedVideos[activeStagedIndex]?.videoFile && (
+                                                        <div className="mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded text-purple-400 opacity-90 max-w-full truncate">
+                                                            Target: {stagedVideos[activeStagedIndex].videoFile}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <div className="flex flex-col items-center gap-2 text-slate-400">
                                                     <Upload size={32} />
                                                     <span className="text-sm">Click to upload video</span>
-                                                    <span className="text-[10px] uppercase tracking-wider opacity-50">MP4, WebM (Max 50MB)</span>
+                                                    <span className="text-[10px] uppercase tracking-wider opacity-50">MP4, WebM</span>
+                                                    {activeStagedIndex !== -1 && stagedVideos[activeStagedIndex]?.videoFile && (
+                                                        <div className="mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded text-purple-400 opacity-90 max-w-full truncate border border-purple-500/30">
+                                                            Target: {stagedVideos[activeStagedIndex].videoFile}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Thumbnail Upload */}
+                                        <div
+                                            onClick={() => thumbnailInputRef.current?.click()}
+                                            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${thumbnailFile ? 'border-green-500 bg-green-500/10' : 'border-slate-700 hover:border-purple-500 hover:bg-slate-800'}`}
+                                        >
+                                            <input
+                                                type="file"
+                                                ref={thumbnailInputRef}
+                                                onChange={handleThumbnailSelect}
+                                                accept="image/*"
+                                                className="hidden"
+                                            />
+                                            {thumbnailFile ? (
+                                                <div className="flex flex-col items-center gap-2 text-green-400">
+                                                    <ImageIcon size={32} />
+                                                    <span className="font-medium text-sm">{thumbnailFile.name}</span>
+                                                    <span className="text-xs opacity-75">Click to change thumbnail</span>
+                                                    {activeStagedIndex !== -1 && stagedVideos[activeStagedIndex]?.thumbnail && (
+                                                        <div className="mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded text-purple-400 opacity-90 max-w-full truncate">
+                                                            Target: {stagedVideos[activeStagedIndex].thumbnail}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center gap-2 text-slate-400">
+                                                    <ImageIcon size={24} />
+                                                    <span className="text-sm">Click to upload thumbnail</span>
+                                                    <span className="text-[10px] uppercase tracking-wider opacity-50">JPG, PNG</span>
+                                                    {activeStagedIndex !== -1 && stagedVideos[activeStagedIndex]?.thumbnail && (
+                                                        <div className="mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded text-purple-400 opacity-90 max-w-full truncate border border-purple-500/30">
+                                                            Target: {stagedVideos[activeStagedIndex].thumbnail}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -1094,7 +1308,10 @@ const SocialConnectionPage = ({ onBack }) => {
                                             <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Title <span className='text-red-500'>*</span></label>
                                             <input
                                                 value={title}
-                                                onChange={(e) => setTitle(e.target.value)}
+                                                onChange={(e) => {
+                                                    setTitle(e.target.value);
+                                                    updateStagedVideo('title', e.target.value);
+                                                }}
                                                 className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm"
                                                 placeholder="Video Title"
                                             />
@@ -1105,7 +1322,10 @@ const SocialConnectionPage = ({ onBack }) => {
                                             <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Description</label>
                                             <textarea
                                                 value={description}
-                                                onChange={(e) => setDescription(e.target.value)}
+                                                onChange={(e) => {
+                                                    setDescription(e.target.value);
+                                                    updateStagedVideo('description', e.target.value);
+                                                }}
                                                 className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:outline-none focus:border-red-500 text-sm min-h-[250px] overflow-y-auto resize-y scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
                                                 placeholder="Tell viewers about your video"
                                             />
@@ -1119,7 +1339,10 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tags</label>
                                                     <input
                                                         value={tags}
-                                                        onChange={(e) => setTags(e.target.value)}
+                                                        onChange={(e) => {
+                                                            setTags(e.target.value);
+                                                            updateStagedVideo('tags', e.target.value.split(',').map(t => t.trim()).filter(Boolean));
+                                                        }}
                                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm"
                                                         placeholder="comma, separated, tags"
                                                     />
@@ -1132,7 +1355,10 @@ const SocialConnectionPage = ({ onBack }) => {
                                                         <input
                                                             type="datetime-local"
                                                             value={publishAt}
-                                                            onChange={(e) => setPublishAt(e.target.value)}
+                                                            onChange={(e) => {
+                                                                setPublishAt(e.target.value);
+                                                                updateStagedVideo('publishAt', e.target.value);
+                                                            }}
                                                             style={{ colorScheme: "dark" }}
                                                             className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm"
                                                         />
@@ -1147,7 +1373,10 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Category</label>
                                                     <select
                                                         value={categoryName}
-                                                        onChange={(e) => setCategoryName(e.target.value)}
+                                                        onChange={(e) => {
+                                                            setCategoryName(e.target.value);
+                                                            updateStagedVideo('categoryName', e.target.value);
+                                                        }}
                                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm appearance-none"
                                                     >
                                                         <option value="Entertainment">Entertainment</option>
@@ -1164,7 +1393,10 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Privacy Status</label>
                                                     <select
                                                         value={privacyStatus}
-                                                        onChange={(e) => setPrivacyStatus(e.target.value)}
+                                                        onChange={(e) => {
+                                                            setPrivacyStatus(e.target.value);
+                                                            updateStagedVideo('privacyStatus', e.target.value);
+                                                        }}
                                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm appearance-none"
                                                     >
                                                         <option value="private">Private</option>
@@ -1188,7 +1420,10 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     <div className="relative">
                                                         <select
                                                             value={playlistName}
-                                                            onChange={(e) => setPlaylistName(e.target.value)}
+                                                            onChange={(e) => {
+                                                                setPlaylistName(e.target.value);
+                                                                updateStagedVideo('playlistName', e.target.value);
+                                                            }}
                                                             disabled={isLoadingPlaylists}
                                                             className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm appearance-none"
                                                         >
@@ -1207,7 +1442,10 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     {playlistName === 'new_playlist_custom' && (
                                                         <input
                                                             autoFocus
-                                                            onChange={(e) => setPlaylistName(e.target.value)}
+                                                            onChange={(e) => {
+                                                                setPlaylistName(e.target.value);
+                                                                updateStagedVideo('playlistName', e.target.value);
+                                                            }}
                                                             className="w-full mt-2 bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 text-sm placeholder:italic"
                                                             placeholder="Enter new playlist name..."
                                                         />
@@ -1223,7 +1461,10 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     type="checkbox"
                                                     id="madeForKids"
                                                     checked={madeForKids}
-                                                    onChange={(e) => setMadeForKids(e.target.checked)}
+                                                    onChange={(e) => {
+                                                        setMadeForKids(e.target.checked);
+                                                        updateStagedVideo('madeForKids', e.target.checked);
+                                                    }}
                                                     className="w-4 h-4 accent-red-500"
                                                 />
                                                 <label htmlFor="madeForKids" className="text-sm text-slate-300">Made for Kids (COPPA)</label>
@@ -1234,7 +1475,10 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     type="checkbox"
                                                     id="ageRestriction"
                                                     checked={ageRestriction}
-                                                    onChange={(e) => setAgeRestriction(e.target.checked)}
+                                                    onChange={(e) => {
+                                                        setAgeRestriction(e.target.checked);
+                                                        updateStagedVideo('ageRestriction', e.target.checked);
+                                                    }}
                                                     className="w-4 h-4 accent-red-500"
                                                 />
                                                 <label htmlFor="ageRestriction" className="text-sm text-slate-300">Age Restriction (18+)</label>
