@@ -233,8 +233,21 @@ const SocialConnectionPage = ({ onBack }) => {
             const file = e.target.files[0];
             setPostFile(file);
             updateStagedVideo('postFile', file);
+
+            // Try to preserve directory from existing path
+            let newPath = file.name;
+            if (activeStagedIndex !== -1 && stagedVideos[activeStagedIndex]?.videoFile) {
+                const currentPath = stagedVideos[activeStagedIndex].videoFile;
+                // Check for directory separator (supports both / and \)
+                const lastSlash = Math.max(currentPath.lastIndexOf('/'), currentPath.lastIndexOf('\\'));
+                if (lastSlash > -1) {
+                    const dir = currentPath.substring(0, lastSlash + 1);
+                    newPath = dir + file.name;
+                }
+            }
+
             // Also update the display path (target) to reflect the manual change
-            updateStagedVideo('videoFile', file.name);
+            updateStagedVideo('videoFile', newPath);
             updateStagedVideo('videoFileExists', true); // Manual selection => exists
         }
     };
@@ -246,8 +259,20 @@ const SocialConnectionPage = ({ onBack }) => {
             const file = e.target.files[0];
             setThumbnailFile(file);
             updateStagedVideo('thumbnailFile', file);
+
+            // Try to preserve directory from existing path
+            let newPath = file.name;
+            if (activeStagedIndex !== -1 && stagedVideos[activeStagedIndex]?.thumbnail) {
+                const currentPath = stagedVideos[activeStagedIndex].thumbnail;
+                const lastSlash = Math.max(currentPath.lastIndexOf('/'), currentPath.lastIndexOf('\\'));
+                if (lastSlash > -1) {
+                    const dir = currentPath.substring(0, lastSlash + 1);
+                    newPath = dir + file.name;
+                }
+            }
+
             // Also update the display path (target) to reflect the manual change
-            updateStagedVideo('thumbnail', file.name);
+            updateStagedVideo('thumbnail', newPath);
             updateStagedVideo('thumbnailExists', true); // Manual selection => exists
         }
     };
@@ -1355,9 +1380,15 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     <span className="font-medium text-sm">{postFile.name}</span>
                                                     <span className="text-xs opacity-75">Click to change</span>
                                                     {activeStagedIndex !== -1 && stagedVideos[activeStagedIndex]?.videoFile && (
-                                                        <div className={`mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded opacity-90 max-w-full truncate flex items-center gap-1 ${stagedVideos[activeStagedIndex].videoFileExists !== false ? 'text-green-400' : 'text-red-400'}`}>
+                                                        <div className={`mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded opacity-90 max-w-full flex items-center gap-1 ${stagedVideos[activeStagedIndex].videoFileExists !== false ? 'text-green-400' : 'text-red-400'}`} onClick={(e) => e.stopPropagation()}>
                                                             {stagedVideos[activeStagedIndex].videoFileExists !== false ? <CheckCircle2 size={10} /> : <X size={10} />}
-                                                            Target: {stagedVideos[activeStagedIndex].videoFile}
+                                                            <span className="shrink-0">Target:</span>
+                                                            <input
+                                                                value={stagedVideos[activeStagedIndex].videoFile || ''}
+                                                                onChange={(e) => updateStagedVideo('videoFile', e.target.value)}
+                                                                className="bg-transparent border-b border-white/20 focus:border-white focus:outline-none w-full text-[10px] text-inherit font-mono"
+                                                                placeholder="Full system path..."
+                                                            />
                                                         </div>
                                                     )}
                                                 </div>
@@ -1367,9 +1398,15 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     <span className="text-sm">Click to upload video</span>
                                                     <span className="text-[10px] uppercase tracking-wider opacity-50">MP4, WebM</span>
                                                     {activeStagedIndex !== -1 && stagedVideos[activeStagedIndex]?.videoFile && (
-                                                        <div className={`mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded opacity-90 max-w-full truncate border flex items-center gap-1 ${stagedVideos[activeStagedIndex].videoFileExists ? 'text-green-400 border-green-500/30' : 'text-red-400 border-red-500/30'}`}>
+                                                        <div className={`mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded opacity-90 max-w-full border flex items-center gap-1 ${stagedVideos[activeStagedIndex].videoFileExists ? 'text-green-400 border-green-500/30' : 'text-red-400 border-red-500/30'}`} onClick={(e) => e.stopPropagation()}>
                                                             {stagedVideos[activeStagedIndex].videoFileExists ? <CheckCircle2 size={10} /> : <X size={10} />}
-                                                            Target: {stagedVideos[activeStagedIndex].videoFile}
+                                                            <span className="shrink-0">Target:</span>
+                                                            <input
+                                                                value={stagedVideos[activeStagedIndex].videoFile || ''}
+                                                                onChange={(e) => updateStagedVideo('videoFile', e.target.value)}
+                                                                className="bg-transparent border-b border-white/20 focus:border-white focus:outline-none w-full text-[10px] text-inherit font-mono"
+                                                                placeholder="Full system path..."
+                                                            />
                                                         </div>
                                                     )}
                                                 </div>
@@ -1394,9 +1431,15 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     <span className="font-medium text-sm">{thumbnailFile.name}</span>
                                                     <span className="text-xs opacity-75">Click to change thumbnail</span>
                                                     {activeStagedIndex !== -1 && stagedVideos[activeStagedIndex]?.thumbnail && (
-                                                        <div className={`mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded opacity-90 max-w-full truncate flex items-center gap-1 ${stagedVideos[activeStagedIndex].thumbnailExists !== false ? 'text-green-400' : 'text-red-400'}`}>
+                                                        <div className={`mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded opacity-90 max-w-full flex items-center gap-1 ${stagedVideos[activeStagedIndex].thumbnailExists !== false ? 'text-green-400' : 'text-red-400'}`} onClick={(e) => e.stopPropagation()}>
                                                             {stagedVideos[activeStagedIndex].thumbnailExists !== false ? <CheckCircle2 size={10} /> : <X size={10} />}
-                                                            Target: {stagedVideos[activeStagedIndex].thumbnail}
+                                                            <span className="shrink-0">Target:</span>
+                                                            <input
+                                                                value={stagedVideos[activeStagedIndex].thumbnail || ''}
+                                                                onChange={(e) => updateStagedVideo('thumbnail', e.target.value)}
+                                                                className="bg-transparent border-b border-white/20 focus:border-white focus:outline-none w-full text-[10px] text-inherit font-mono"
+                                                                placeholder="Full system path..."
+                                                            />
                                                         </div>
                                                     )}
                                                 </div>
@@ -1406,9 +1449,15 @@ const SocialConnectionPage = ({ onBack }) => {
                                                     <span className="text-sm">Click to upload thumbnail</span>
                                                     <span className="text-[10px] uppercase tracking-wider opacity-50">JPG, PNG</span>
                                                     {activeStagedIndex !== -1 && stagedVideos[activeStagedIndex]?.thumbnail && (
-                                                        <div className={`mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded opacity-90 max-w-full truncate border flex items-center gap-1 ${stagedVideos[activeStagedIndex].thumbnailExists ? 'text-green-400 border-green-500/30' : 'text-red-400 border-red-500/30'}`}>
+                                                        <div className={`mt-2 text-[10px] bg-slate-900 px-2 py-1 rounded opacity-90 max-w-full border flex items-center gap-1 ${stagedVideos[activeStagedIndex].thumbnailExists ? 'text-green-400 border-green-500/30' : 'text-red-400 border-red-500/30'}`} onClick={(e) => e.stopPropagation()}>
                                                             {stagedVideos[activeStagedIndex].thumbnailExists ? <CheckCircle2 size={10} /> : <X size={10} />}
-                                                            Target: {stagedVideos[activeStagedIndex].thumbnail}
+                                                            <span className="shrink-0">Target:</span>
+                                                            <input
+                                                                value={stagedVideos[activeStagedIndex].thumbnail || ''}
+                                                                onChange={(e) => updateStagedVideo('thumbnail', e.target.value)}
+                                                                className="bg-transparent border-b border-white/20 focus:border-white focus:outline-none w-full text-[10px] text-inherit font-mono"
+                                                                placeholder="Full system path..."
+                                                            />
                                                         </div>
                                                     )}
                                                 </div>
