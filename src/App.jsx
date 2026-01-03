@@ -57,10 +57,13 @@ function App() {
         return () => window.removeEventListener('popstate', handlePopState);
     }, []);
 
+    const [currentDeckMetadata, setCurrentDeckMetadata] = useState(null);
+
     useEffect(() => {
         const loadDeck = async () => {
             if (!currentDeckId) {
                 setCurrentSlides(null);
+                setCurrentDeckMetadata(null);
                 return;
             }
 
@@ -75,6 +78,19 @@ function App() {
 
                 const slides = await getDeck(currentDeckId);
                 setCurrentSlides(slides);
+
+                // Fetch metadata for title/repo info
+                try {
+                    const resp = await fetch('/api/decks');
+                    if (resp.ok) {
+                        const allDecks = await resp.json();
+                        const meta = allDecks.find(d => d.id === currentDeckId);
+                        if (meta) setCurrentDeckMetadata(meta);
+                    }
+                } catch (e) {
+                    console.warn("Failed to load deck metadata", e);
+                }
+
             } catch (error) {
                 console.error("Failed to load deck:", error);
                 setCurrentSlides(null);
@@ -186,6 +202,19 @@ function App() {
                 <PresentationViewer
                     slides={currentSlides}
                     deckId={currentDeckId}
+                    {...(() => {
+                        // Find deck metadata to pass title/repo
+                        // We need access to the deck list. Since we only have getDeck(id) import, 
+                        // we might need to fetch the index or store it.
+                        // Ideally, we fetch the deck index once.
+                        // For now, let's assume we can get it from a new state or a quick fetch if needed, 
+                        // OR we can pass a lookup function.
+                        // BETTER: Let's fetch the deck details in loadDeck and store in state.
+                        return {};
+                    })()}
+                    // Passing props from new state below
+                    deckTitle={currentDeckMetadata?.title || currentDeckId}
+                    repositoryTitle={currentDeckMetadata?.repoTitle || 'Go Programming'} // Default fallback based on user context
                     onBack={handleBackToSelector}
                     showVideo={showVideo}
                     toggleVideo={() => setShowVideo(!showVideo)}

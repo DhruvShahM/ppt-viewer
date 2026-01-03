@@ -2,14 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Slide from './Slide';
 import AnnotationLayer from './AnnotationLayer';
-import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock, FileCode, Stamp, X, Bot, ZoomIn, ZoomOut, TextCursorInput, Move, RotateCw } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock, FileCode, FileCode2, Stamp, X, Bot, ZoomIn, ZoomOut, TextCursorInput, Move, RotateCw } from 'lucide-react';
 import DesignFeedback from './DesignFeedback';
 import SocialHub from './SocialHub';
 import SocialExportStudio from './SocialExportStudio';
 import AgentChat from './AgentChat';
 
 
-const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient, fonts, currentFont, onFontSelect, isHeadless = false, initialSlideIndex = 0, onConnect }) => {
+const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient, fonts, currentFont, onFontSelect, isHeadless = false, initialSlideIndex = 0, onConnect, deckTitle, repositoryTitle }) => {
     const [currentSlide, setCurrentSlide] = useState(() => {
         if (isHeadless) return initialSlideIndex;
         const saved = localStorage.getItem(`lastSlide_${deckId}`);
@@ -42,7 +42,22 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const toolbarRef = useRef(null);
 
     // Font Size State
-    const [fontSize, setFontSize] = useState(() => localStorage.getItem(`fontSize_${deckId}`) || '16');
+    const [fontSize, setFontSize] = useState(() => {
+        const saved = localStorage.getItem(`fontSizes_${deckId}`);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                // Handle legacy per-slide format
+                if (typeof parsed === 'object' && parsed !== null) {
+                    return Object.values(parsed)[0] || '16';
+                }
+                return parsed.toString();
+            } catch (e) {
+                return '16';
+            }
+        }
+        return '16';
+    });
 
     // Trademark State
     const [trademarkText, setTrademarkText] = useState(() => localStorage.getItem(`trademark_${deckId}`) || '');
@@ -61,7 +76,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     }, [trademarkText, trademarkPosition, deckId]);
 
     useEffect(() => {
-        localStorage.setItem(`fontSize_${deckId}`, fontSize);
+        localStorage.setItem(`fontSizes_${deckId}`, JSON.stringify(fontSize));
     }, [fontSize, deckId]);
 
     const positionClasses = {
@@ -407,7 +422,15 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                 <AnimatePresence initial={false} custom={direction} mode="popLayout">
                     {slides.map((SlideComponent, index) => (
                         index === currentSlide && (
-                            <Slide key={index} isActive={true} custom={direction}>
+                            <Slide key={index} isActive={true} custom={direction} style={{
+                                '--font-size-scale': (() => {
+                                    const size = fontSize;
+                                    const preset = FONT_SIZES.find(f => f.value === size);
+                                    if (preset) return preset.scale;
+                                    const numValue = parseInt(size);
+                                    return isNaN(numValue) ? 1.0 : numValue / 16;
+                                })()
+                            }}>
                                 <SlideComponent />
                                 <AnnotationLayer
                                     ref={annotationRef}
@@ -683,7 +706,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                                 onChange={(e) => {
                                     const value = e.target.value;
                                     if (value === '' || (parseInt(value) >= 8 && parseInt(value) <= 48)) {
-                                        setFontSize(value || '16');
+                                        setFontSize(value);
                                     }
                                 }}
                                 onBlur={(e) => {
@@ -797,6 +820,45 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                             title="Enter Presentation Mode (P)"
                         >
                             <Maximize size={24} />
+                        </button>
+                        <button
+                            onClick={async () => {
+                                let slideTitle = '';
+
+                                // 1. Try to get title from DOM (rendered slide)
+                                if (slideWrapperRef.current) {
+                                    const header = slideWrapperRef.current.querySelector('h1, h2, h3');
+                                    if (header) {
+                                        // Get text content
+                                        const rawTitle = header.innerText || '';
+                                        // Remove leading digits and dots (e.g., "9. Title" -> "Title")
+                                        slideTitle = rawTitle.replace(/^\d+\.?\s*/, '').trim();
+                                    }
+                                }
+
+                                // 2. Fallback to Component Name if DOM failed or returned empty
+                                if (!slideTitle) {
+                                    const currentSlideComp = slides[currentSlide];
+                                    if (currentSlideComp) {
+                                        const name = currentSlideComp.name || '';
+                                        slideTitle = name.replace(/^Slide\d*_?/, '').replace(/_/g, ' ');
+                                    }
+                                }
+
+                                const slidePart = slideTitle ? `"${slideTitle}"` : (deckTitle || 'current topic');
+                                const prompt = `Generate a code snippet for ${slidePart} in ${repositoryTitle || 'Language'}.`;
+
+                                try {
+                                    await navigator.clipboard.writeText(prompt);
+                                    alert(`Copied to clipboard:\n"${prompt}"`);
+                                } catch (err) {
+                                    console.error('Failed to copy', err);
+                                }
+                            }}
+                            className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm mr-4"
+                            title="Copy Code Generation Prompt"
+                        >
+                            <FileCode2 size={24} />
                         </button>
                         <button
                             onClick={onBack}

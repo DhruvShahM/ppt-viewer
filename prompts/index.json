@@ -166,5 +166,57 @@
     "createdAt": "2025-12-22T15:19:47.985Z",
     "updatedAt": "2025-12-22T15:19:47.985Z",
     "category": "Animated"
+  },
+  {
+    "id": "animated-deck-prompt-copy-1766416787982-copy-1766501785982",
+    "name": "Animated Deck Prompt Hindi Devragani",
+    "type": "Template",
+    "status": "Draft",
+    "filename": "animated-deck-prompt-copy-1766416787982-copy-1766501785982.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2025-12-23T14:56:25.983Z"
+      },
+      {
+        "version": 2,
+        "createdAt": "2025-12-23T14:56:43.509Z"
+      }
+    ],
+    "createdAt": "2025-12-23T14:56:25.983Z",
+    "updatedAt": "2025-12-23T14:57:41.737Z",
+    "category": "Animated"
+  },
+  {
+    "id": "slide-deck-reviewer-1766591235478",
+    "name": "Slide Deck Reviewer",
+    "type": "User",
+    "category": "Deck Tester",
+    "status": "Active",
+    "filename": "slide-deck-reviewer-1766591235478.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2025-12-24T15:47:15.478Z"
+      }
+    ],
+    "createdAt": "2025-12-24T15:47:15.478Z",
+    "updatedAt": "2025-12-24T16:14:47.941Z"
+  },
+  {
+    "id": "code-snippet-generator-1767420005352",
+    "name": "Code Snippet Generator",
+    "type": "User",
+    "category": "coding",
+    "status": "Active",
+    "filename": "code-snippet-generator-1767420005352.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2026-01-03T06:00:05.352Z"
+      }
+    ],
+    "createdAt": "2026-01-03T06:00:05.352Z",
+    "updatedAt": "2026-01-03T06:00:05.352Z"
   }
 ]
