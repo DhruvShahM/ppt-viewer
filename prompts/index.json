@@ -218,5 +218,21 @@
     ],
     "createdAt": "2026-01-03T06:00:05.352Z",
     "updatedAt": "2026-01-03T06:00:05.352Z"
+  },
+  {
+    "id": "youtube-title-descripiton-1767543520448",
+    "name": "Youtube_Title_Descripiton",
+    "type": "User",
+    "category": "Youtube",
+    "status": "Draft",
+    "filename": "youtube-title-descripiton-1767543520448.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2026-01-04T16:18:40.450Z"
+      }
+    ],
+    "createdAt": "2026-01-04T16:18:40.450Z",
+    "updatedAt": "2026-01-04T16:19:12.376Z"
   }
 ]

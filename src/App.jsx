@@ -3,6 +3,7 @@ import DeckSelector from './components/DeckSelector';
 import PresentationViewer from './components/PresentationViewer';
 import SocialConnectionPage from './components/SocialConnectionPage';
 import PromptManager from './components/PromptManager';
+import ProjectFilesExtractor from './components/ProjectFilesExtractor';
 import { Share2 } from 'lucide-react';
 
 import { getDeck } from './data/decks';
@@ -23,6 +24,7 @@ function App() {
         const viewParam = params.get('view');
         if (viewParam === 'social' || window.location.pathname === '/social') return 'social';
         if (viewParam === 'prompts') return 'prompts';
+        if (viewParam === 'files') return 'files';
         return 'main';
     });
 
@@ -48,6 +50,8 @@ function App() {
                 setView('social');
             } else if (viewParam === 'prompts') {
                 setView('prompts');
+            } else if (viewParam === 'files') {
+                setView('files');
             } else {
                 setView('main');
             }
@@ -198,6 +202,8 @@ function App() {
                 <SocialConnectionPage onBack={() => setView('main')} />
             ) : view === 'prompts' ? (
                 <PromptManager onBack={() => setView('main')} />
+            ) : view === 'files' ? (
+                <ProjectFilesExtractor onBack={() => setView('main')} />
             ) : currentDeckId && currentSlides ? (
                 <PresentationViewer
                     slides={currentSlides}
@@ -231,7 +237,7 @@ function App() {
                     onConnect={() => setView('social')}
                 />
             ) : (
-                <DeckSelector onSelectDeck={handleDeckSelect} onManagePrompts={() => setView('prompts')} />
+                <DeckSelector onSelectDeck={handleDeckSelect} onManagePrompts={() => setView('prompts')} onManageFiles={() => setView('files')} />
             )}
 
             {view !== 'social' && view !== 'prompts' && !currentDeckId && (
