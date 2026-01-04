@@ -4,7 +4,7 @@ import PresentationViewer from './components/PresentationViewer';
 import SocialConnectionPage from './components/SocialConnectionPage';
 import PromptManager from './components/PromptManager';
 import ProjectFilesExtractor from './components/ProjectFilesExtractor';
-import { Share2 } from 'lucide-react';
+import { Share2, FileText } from 'lucide-react';
 
 import { getDeck } from './data/decks';
 import { Loader2 } from 'lucide-react';
@@ -237,16 +237,24 @@ function App() {
                     onConnect={() => setView('social')}
                 />
             ) : (
-                <DeckSelector onSelectDeck={handleDeckSelect} onManagePrompts={() => setView('prompts')} onManageFiles={() => setView('files')} />
+                <DeckSelector onSelectDeck={handleDeckSelect} onManagePrompts={() => setView('prompts')} />
             )}
 
-            {view !== 'social' && view !== 'prompts' && !currentDeckId && (
-                <button
-                    onClick={() => setView('social')}
-                    className="absolute top-4 right-4 z-50 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:shadow-lg hover:scale-105 transition font-medium text-sm"
-                >
-                    <Share2 size={16} /> Social Ecosystem
-                </button>
+            {view !== 'social' && view !== 'prompts' && view !== 'files' && !currentDeckId && (
+                <div className="absolute top-4 right-4 z-50 flex items-center gap-3">
+                    <button
+                        onClick={() => setView('files')}
+                        className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/10 rounded-full hover:bg-white/20 hover:scale-105 transition font-medium text-sm text-gray-200"
+                    >
+                        <FileText size={16} />Project Files Extractor
+                    </button>
+                    <button
+                        onClick={() => setView('social')}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:shadow-lg hover:scale-105 transition font-medium text-sm"
+                    >
+                        <Share2 size={16} /> Social Ecosystem
+                    </button>
+                </div>
             )}
         </div>
     );
