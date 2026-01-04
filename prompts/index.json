@@ -234,5 +234,21 @@
     ],
     "createdAt": "2026-01-04T16:18:40.450Z",
     "updatedAt": "2026-01-04T16:25:12.944Z"
+  },
+  {
+    "id": "youtube-conversational-script-generator-1767544882394",
+    "name": "Youtube Conversational Script Generator",
+    "type": "User",
+    "category": "Youtube",
+    "status": "Draft",
+    "filename": "youtube-conversational-script-generator-1767544882394.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2026-01-04T16:41:22.394Z"
+      }
+    ],
+    "createdAt": "2026-01-04T16:41:22.395Z",
+    "updatedAt": "2026-01-04T16:41:22.396Z"
   }
 ]

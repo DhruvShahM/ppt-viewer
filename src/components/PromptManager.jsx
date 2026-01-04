@@ -8,8 +8,14 @@ const PromptManager = ({ onBack }) => {
     const [view, setView] = useState('list'); // 'list', 'edit'
     const [currentPrompt, setCurrentPrompt] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [filterStatus, setFilterStatus] = useState('Active'); // 'All', 'Active', 'Draft', 'Archived'
-    const [filterCategory, setFilterCategory] = useState('All');
+    const [filterStatus, setFilterStatus] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('status') || 'Active';
+    });
+    const [filterCategory, setFilterCategory] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('category') || 'All';
+    });
     const [searchQuery, setSearchQuery] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [notification, setNotification] = useState(null);
@@ -55,6 +61,23 @@ const PromptManager = ({ onBack }) => {
     useEffect(() => {
         fetchPrompts();
     }, []);
+
+    // Sync filters with URL
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+
+        // Only update if changed
+        if (params.get('status') !== filterStatus || params.get('category') !== filterCategory) {
+            if (filterStatus === 'Active') params.delete('status');
+            else params.set('status', filterStatus);
+
+            if (filterCategory === 'All') params.delete('category');
+            else params.set('category', filterCategory);
+
+            const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+            window.history.replaceState({ path: newUrl }, '', newUrl);
+        }
+    }, [filterStatus, filterCategory]);
 
     // Filtered Prompts
     const filteredPrompts = useMemo(() => {
