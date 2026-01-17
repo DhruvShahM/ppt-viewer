@@ -8,12 +8,10 @@ const Slide8_TokenBucket = () => {
     const MAX_TOKENS = 8;
 
     useEffect(() => {
-        // Refill tokens
         const refillInterval = setInterval(() => {
             setTokens(prev => Math.min(prev + 1, MAX_TOKENS));
         }, 1000);
 
-        // Simulate requests
         const requestInterval = setInterval(() => {
             if (Math.random() > 0.4) {
                 setRequests(prev => [...prev, { id: Date.now(), processed: false }]);
@@ -27,7 +25,6 @@ const Slide8_TokenBucket = () => {
     }, []);
 
     useEffect(() => {
-        // Process requests
         if (requests.length > 0) {
             const unprocessed = requests.filter(r => !r.processed);
             if (unprocessed.length > 0) {
@@ -39,7 +36,6 @@ const Slide8_TokenBucket = () => {
                     setRequests(prev => prev.map(r => r.id === req.id ? { ...r, processed: true, status: 'denied' } : r));
                 }
 
-                // Cleanup old requests
                 setTimeout(() => {
                     setRequests(prev => prev.filter(r => r.id !== req.id));
                 }, 1000);
@@ -48,13 +44,13 @@ const Slide8_TokenBucket = () => {
     }, [requests, tokens]);
 
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center bg-slate-900 text-white p-8">
+        <div className="h-full w-full flex flex-col items-center justify-center text-white p-8">
             <h2 className="text-4xl font-bold mb-12 text-green-400">Token Bucket Algorithm</h2>
 
             <div className="grid grid-cols-2 gap-12 w-full max-w-6xl">
                 {/* Left: Explanation */}
                 <div className="space-y-8">
-                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4">
+                    <div className="p-6 rounded-xl border border-slate-700 space-y-4">
                         <h3 className="text-2xl font-semibold flex items-center gap-3">
                             <Box className="text-green-400" /> Concept
                         </h3>
@@ -67,11 +63,11 @@ const Slide8_TokenBucket = () => {
                 </div>
 
                 {/* Right: Animation */}
-                <div className="flex flex-col items-center justify-center bg-slate-800/30 rounded-2xl p-8 border border-slate-700 relative h-[400px] overflow-hidden">
+                <div className="flex flex-col items-center justify-center rounded-2xl p-8 border border-slate-700 relative h-[400px] overflow-hidden">
 
                     {/* Bucket Container */}
                     <div className="flex flex-col items-center gap-2">
-                        <div className="relative w-40 h-64 border-4 border-slate-500 border-t-0 rounded-b-xl bg-slate-900/50 flex flex-col-reverse items-center p-2 gap-1 overflow-hidden">
+                        <div className="relative w-40 h-64 border-4 border-slate-500 border-t-0 rounded-b-xl flex flex-col-reverse items-center p-2 gap-1 overflow-hidden">
 
                             <AnimatePresence>
                                 {[...Array(tokens)].map((_, i) => (

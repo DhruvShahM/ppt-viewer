@@ -12,7 +12,7 @@ const summaryPoints = [
 
 const Slide14_Summary = () => {
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center bg-slate-900 text-white p-8">
+        <div className="h-full w-full flex flex-col items-center justify-center text-white p-8">
             <h2 className="text-5xl font-bold mb-16 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-green-400">
                 Summary
             </h2>
@@ -33,7 +33,7 @@ const Slide14_Summary = () => {
                                 type: "spring",
                                 stiffness: 100
                             }}
-                            className="flex items-center gap-6 bg-slate-800/50 p-6 rounded-xl border border-slate-700 hover:bg-slate-800 transition-colors"
+                            className="flex items-center gap-6 p-6 rounded-xl border border-slate-700 hover:bg-slate-800/50 transition-colors"
                         >
                             <motion.div
                                 initial={{ scale: 0 }}

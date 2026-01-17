@@ -43,7 +43,7 @@ const useCases = [
 
 const Slide11_UseCases = () => {
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center bg-slate-900 text-white p-8">
+        <div className="h-full w-full flex flex-col items-center justify-center text-white p-8">
             <h2 className="text-4xl font-bold mb-16 text-white">Where Rate Limiting is Used?</h2>
 
             <div className="flex flex-wrap justify-center gap-8 w-full max-w-5xl">

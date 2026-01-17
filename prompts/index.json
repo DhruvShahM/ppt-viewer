@@ -1,0 +1,254 @@
+[
+  {
+    "id": "animated-deck-prompt",
+    "name": "Animated Deck Prompt",
+    "type": "Template",
+    "status": "Active",
+    "filename": "animated_deck_prompt.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2025-12-23T04:13:19.645Z",
+    "category": "Animated"
+  },
+  {
+    "id": "bento-grid-prompt",
+    "name": "Bento Grid Prompt",
+    "type": "Template",
+    "status": "Active",
+    "filename": "bento_grid_prompt.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2025-12-22T07:40:46.304Z",
+    "category": "Animated"
+  },
+  {
+    "id": "glassmorphism-prompt",
+    "name": "Glassmorphism Prompt",
+    "type": "Template",
+    "status": "Active",
+    "filename": "glassmorphism_prompt.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2025-12-22T12:49:49.091Z",
+    "category": "Animated"
+  },
+  {
+    "id": "kinetic-typography-prompt",
+    "name": "Kinetic Typography Prompt",
+    "type": "Template",
+    "status": "Active",
+    "filename": "kinetic_typography_prompt.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2025-12-22T12:49:20.815Z",
+    "category": "Animated"
+  },
+  {
+    "id": "slide-prompt",
+    "name": "Slide Prompt",
+    "type": "Template",
+    "status": "Active",
+    "filename": "slide_prompt.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2025-12-22T07:40:46.304Z",
+    "category": "demo"
+  },
+  {
+    "id": "ai-generation-guide",
+    "name": "AI Generation Guide",
+    "type": "System",
+    "status": "Active",
+    "filename": "ai_generation_guide.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2025-12-22T07:40:46.304Z",
+    "category": "Uncategorized"
+  },
+  {
+    "id": "test-prompt-1766210002672",
+    "name": "Test Prompt",
+    "type": "Template",
+    "status": "Active",
+    "filename": "test-prompt-1766210002672.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2025-12-20T05:53:22.672Z"
+      },
+      {
+        "version": 2,
+        "createdAt": "2025-12-22T05:05:40.490Z"
+      }
+    ],
+    "createdAt": "2025-12-20T05:53:22.672Z",
+    "updatedAt": "2025-12-22T07:40:46.304Z",
+    "category": "Uncategorized"
+  },
+  {
+    "id": "demo-1766380006224",
+    "name": "Demo",
+    "type": "User",
+    "category": "demo",
+    "status": "Active",
+    "filename": "demo-1766380006224.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2025-12-22T05:06:46.224Z"
+      },
+      {
+        "version": 2,
+        "createdAt": "2025-12-22T05:13:58.160Z"
+      }
+    ],
+    "createdAt": "2025-12-22T05:06:46.224Z",
+    "updatedAt": "2025-12-22T07:40:46.304Z"
+  },
+  {
+    "id": "5-real-world-app-problems-1766389390970",
+    "name": "5 real-world APP PROBLEMS",
+    "type": "User",
+    "category": "coding",
+    "status": "Draft",
+    "filename": "5-real-world-app-problems-1766389390970.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2025-12-22T07:43:10.970Z"
+      }
+    ],
+    "createdAt": "2025-12-22T07:43:10.970Z",
+    "updatedAt": "2025-12-22T07:43:10.970Z"
+  },
+  {
+    "id": "animated-deck-prompt-copy-1766416787982",
+    "name": "Animated Deck Prompt (Copy)",
+    "type": "Template",
+    "status": "Draft",
+    "filename": "animated-deck-prompt-copy-1766416787982.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2025-12-22T15:19:47.985Z"
+      }
+    ],
+    "createdAt": "2025-12-22T15:19:47.985Z",
+    "updatedAt": "2025-12-22T15:19:47.985Z",
+    "category": "Animated"
+  },
+  {
+    "id": "animated-deck-prompt-copy-1766416787982-copy-1766501785982",
+    "name": "Animated Deck Prompt Hindi Devragani",
+    "type": "Template",
+    "status": "Draft",
+    "filename": "animated-deck-prompt-copy-1766416787982-copy-1766501785982.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2025-12-23T14:56:25.983Z"
+      },
+      {
+        "version": 2,
+        "createdAt": "2025-12-23T14:56:43.509Z"
+      }
+    ],
+    "createdAt": "2025-12-23T14:56:25.983Z",
+    "updatedAt": "2025-12-23T14:57:41.737Z",
+    "category": "Animated"
+  },
+  {
+    "id": "slide-deck-reviewer-1766591235478",
+    "name": "Slide Deck Reviewer",
+    "type": "User",
+    "category": "Deck Tester",
+    "status": "Active",
+    "filename": "slide-deck-reviewer-1766591235478.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2025-12-24T15:47:15.478Z"
+      }
+    ],
+    "createdAt": "2025-12-24T15:47:15.478Z",
+    "updatedAt": "2025-12-24T16:14:47.941Z"
+  },
+  {
+    "id": "code-snippet-generator-1767420005352",
+    "name": "Code Snippet Generator",
+    "type": "User",
+    "category": "coding",
+    "status": "Active",
+    "filename": "code-snippet-generator-1767420005352.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2026-01-03T06:00:05.352Z"
+      }
+    ],
+    "createdAt": "2026-01-03T06:00:05.352Z",
+    "updatedAt": "2026-01-03T06:00:05.352Z"
+  },
+  {
+    "id": "youtube-title-descripiton-1767543520448",
+    "name": "Youtube_Title_Descripiton",
+    "type": "User",
+    "category": "Youtube",
+    "status": "Draft",
+    "filename": "youtube-title-descripiton-1767543520448.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2026-01-04T16:18:40.450Z"
+      }
+    ],
+    "createdAt": "2026-01-04T16:18:40.450Z",
+    "updatedAt": "2026-01-04T16:25:12.944Z"
+  },
+  {
+    "id": "youtube-conversational-script-generator-1767544882394",
+    "name": "Youtube Conversational Script Generator",
+    "type": "User",
+    "category": "Youtube",
+    "status": "Draft",
+    "filename": "youtube-conversational-script-generator-1767544882394.md",
+    "versions": [
+      {
+        "version": 1,
+        "createdAt": "2026-01-04T16:41:22.394Z"
+      }
+    ],
+    "createdAt": "2026-01-04T16:41:22.395Z",
+    "updatedAt": "2026-01-04T16:41:22.396Z"
+  }
+]

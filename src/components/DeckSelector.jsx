@@ -1,9 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw, Upload, Download } from 'lucide-react';
+import { Play, Loader2, Trash2, Plus, Layers, Cpu, Sparkles, Zap, Network, Heart, Search, SortAsc, X, ChevronLeft, ChevronRight, CheckSquare, Square, RefreshCcw, Archive, RotateCcw, Upload, Download, FileText } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef } from 'react';
 
-import { REPOSITORIES } from '../data/repositories';
-import deckIndex from '../data/deck-index.json';
 
 import { createRoot } from 'react-dom/client';
 import Slide from './Slide';
@@ -17,7 +15,7 @@ const ICON_MAP = {
     Heart
 };
 
-const DeckCard = ({ title, description, icon, onClick, color, isEditMode, repositories, currentRepoId, onMove, isSelectionMode, isSelected, onToggleSelect, onDelete, onArchive, onRestore, onExport, status }) => {
+const DeckCard = ({ title, description, icon, onClick, color, isEditMode, repositories, currentRepoId, onMove, isSelectionMode, isSelected, onToggleSelect, onDelete, onArchive, onRestore, onExport, onReplace, status }) => {
     // Resolve icon component from string name or use default
     const IconComponent = ICON_MAP[icon] || Layers;
 
@@ -60,7 +58,7 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
                     ARCHIVED
                 </div>
             ) : (
-                <div className="w-full mt-auto pt-4 border-t border-white/10 flex items-end gap-2">
+                <div className="w-full mt-auto pt-4 border-t border-white/10 flex items-end gap-2 text w-full">
                     {!isEditMode && !isSelectionMode && (
                         <div className="flex-grow"></div>
                     )}
@@ -131,6 +129,17 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
                                     <Archive size={16} />
                                 </button>
                             )}
+
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onReplace();
+                                }}
+                                className="p-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded border border-purple-500/20 transition-colors"
+                                title="Replace Code/Slides"
+                            >
+                                <Upload size={16} />
+                            </button>
                         </>
                     )}
                 </div>
@@ -139,7 +148,7 @@ const DeckCard = ({ title, description, icon, onClick, color, isEditMode, reposi
     );
 };
 
-const DeckSelector = ({ onSelectDeck }) => {
+const DeckSelector = ({ onSelectDeck, onManagePrompts }) => {
 
     const [viewMode, setViewMode] = useState('active'); // 'active' | 'archived'
     const [isEditMode, setIsEditMode] = useState(false);
@@ -154,6 +163,9 @@ const DeckSelector = ({ onSelectDeck }) => {
         repoId: '',
         files: null
     });
+    const [replaceDeckId, setReplaceDeckId] = useState(null);
+    const [replaceFiles, setReplaceFiles] = useState(null);
+    const [isSmartReplace, setIsSmartReplace] = useState(true);
 
 
     const [searchQuery, setSearchQuery] = useState(() => {
@@ -172,26 +184,34 @@ const DeckSelector = ({ onSelectDeck }) => {
     const [editPage, setEditPage] = useState(1);
     const ITEMS_PER_PAGE = 6;
 
-    const [repositories, setRepositories] = useState(() => {
-        const repoMap = new Map();
-        deckIndex.forEach(deck => {
-            const safeRepoId = deck.repoId || 'uncategorized';
-            if (!repoMap.has(safeRepoId)) {
-                repoMap.set(safeRepoId, {
-                    id: safeRepoId,
-                    title: deck.repoTitle || 'Uncategorized',
-                    decks: []
+    const [repositories, setRepositories] = useState([]);
+    const refreshDecks = async () => {
+        try {
+            const response = await fetch('/api/decks', { cache: 'no-cache' });
+            if (response.ok) {
+                const data = await response.json();
+                const repoMap = new Map();
+                data.forEach(deck => {
+                    const safeRepoId = deck.repoId || 'uncategorized';
+                    if (!repoMap.has(safeRepoId)) {
+                        repoMap.set(safeRepoId, {
+                            id: safeRepoId,
+                            title: deck.repoTitle || 'Uncategorized',
+                            decks: []
+                        });
+                    }
+                    repoMap.get(safeRepoId).decks.push(deck);
                 });
+                setRepositories(Array.from(repoMap.values()));
             }
-            repoMap.get(safeRepoId).decks.push(deck);
-        });
-        return Array.from(repoMap.values());
-    });
+        } catch (error) {
+            console.error("Failed to fetch decks:", error);
+        }
+    };
 
-    // ... (This part was not in the replace block target but we must match the existing file to restart the useEffect if we want to replace it too, but better to stick to the block)
-    // Actually, I should target the useEffect below it too if I want to fix that as well.
-
-    // Filter and Sort Logic
+    useEffect(() => {
+        refreshDecks();
+    }, []);
     const processedRepositories = useMemo(() => {
         let processed = repositories.map(repo => ({
             ...repo,
@@ -215,6 +235,36 @@ const DeckSelector = ({ onSelectDeck }) => {
                 ...repo,
                 decks: [...repo.decks].sort((a, b) => (a.title || "").localeCompare(b.title || ""))
             }));
+        } else {
+            // Sort by lastOpenedAt or importedAt (latest first)
+            processed = processed.map(repo => ({
+                ...repo,
+                decks: [...repo.decks].sort((a, b) => {
+                    const getLatest = (d) => Math.max(
+                        d.lastOpenedAt ? new Date(d.lastOpenedAt).getTime() : 0,
+                        d.importedAt ? new Date(d.importedAt).getTime() : 0,
+                        d.restoredAt ? new Date(d.restoredAt).getTime() : 0,
+                        d.archivedAt ? new Date(d.archivedAt).getTime() : 0
+                    );
+                    return getLatest(b) - getLatest(a);
+                })
+            }));
+
+            // Also sort repositories by their latest deck
+            processed.sort((a, b) => {
+                const getRepoLatest = (repo) => {
+                    return repo.decks.reduce((latest, d) => {
+                        const deckDate = Math.max(
+                            d.lastOpenedAt ? new Date(d.lastOpenedAt).getTime() : 0,
+                            d.importedAt ? new Date(d.importedAt).getTime() : 0,
+                            d.restoredAt ? new Date(d.restoredAt).getTime() : 0,
+                            d.archivedAt ? new Date(d.archivedAt).getTime() : 0
+                        );
+                        return Math.max(latest, deckDate);
+                    }, 0);
+                };
+                return getRepoLatest(b) - getRepoLatest(a);
+            });
         }
 
         return processed;
@@ -222,10 +272,25 @@ const DeckSelector = ({ onSelectDeck }) => {
 
     // Flatten decks for global view
     const allDecks = useMemo(() => {
-        return processedRepositories.flatMap(repo =>
+        const flattened = processedRepositories.flatMap(repo =>
             repo.decks.map(deck => ({ ...deck, repoId: repo.id, repoTitle: repo.title }))
         );
-    }, [processedRepositories]);
+
+        if (!isSortedAsc) {
+            // Sort by latest activity (latest first)
+            return flattened.sort((a, b) => {
+                const getLatest = (d) => Math.max(
+                    d.lastOpenedAt ? new Date(d.lastOpenedAt).getTime() : 0,
+                    d.importedAt ? new Date(d.importedAt).getTime() : 0,
+                    d.restoredAt ? new Date(d.restoredAt).getTime() : 0,
+                    d.archivedAt ? new Date(d.archivedAt).getTime() : 0
+                );
+                return getLatest(b) - getLatest(a);
+            });
+        }
+
+        return flattened;
+    }, [processedRepositories, isSortedAsc]);
 
     // Derived State
     const currentPage = isEditMode ? editPage : viewPage;
@@ -416,6 +481,25 @@ const DeckSelector = ({ onSelectDeck }) => {
             newSelected.add(deckId);
         }
         setSelectedDecks(newSelected);
+    };
+
+    const handleSelectAll = () => {
+        if (allDecks.length === 0) return;
+
+        const allIds = allDecks.map(d => d.id);
+        const allAlreadySelected = allIds.every(id => selectedDecks.has(id));
+
+        if (allAlreadySelected) {
+            // If all are selected, deselect only those in the current view
+            const newSelected = new Set(selectedDecks);
+            allIds.forEach(id => newSelected.delete(id));
+            setSelectedDecks(newSelected);
+        } else {
+            // Otherwise, select all in current view
+            const newSelected = new Set(selectedDecks);
+            allIds.forEach(id => newSelected.add(id));
+            setSelectedDecks(newSelected);
+        }
     };
 
 
@@ -629,6 +713,47 @@ const DeckSelector = ({ onSelectDeck }) => {
         }
     };
 
+    const handleScriptGeneration = async () => {
+        if (selectedDecks.size === 0) return;
+
+        const style = prompt("Enter script style (educational, promotional, podcaster):", "educational");
+        if (!style) return;
+
+        setIsProcessing(true);
+        try {
+            const deckIds = Array.from(selectedDecks);
+            const response = await fetch('/api/script/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deckIds, style })
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `scripts-bundle-${style}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                setIsSelectionMode(false);
+                setSelectedDecks(new Set());
+                alert("Scripts generated and downloaded!");
+            } else {
+                const err = await response.json();
+                alert(`Generation failed: ${err.message}`);
+            }
+        } catch (error) {
+            console.error('Script generation failed:', error);
+            alert('Script generation failed');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     const handleDownloadFeedbackSelected = async () => {
         if (selectedDecks.size === 0) return;
 
@@ -749,6 +874,50 @@ const DeckSelector = ({ onSelectDeck }) => {
             setIsProcessing(false);
         }
     };
+
+    const handleReplaceSubmit = async (e) => {
+        e.preventDefault();
+        if (!replaceDeckId || !replaceFiles || replaceFiles.length === 0) {
+            alert("Please select files to upload.");
+            return;
+        }
+
+        if (!confirm("WARNING: This will replace the current deck content with the uploaded files. A backup will be created, but any unsaved changes might be lost. Continue?")) {
+            return;
+        }
+
+        setIsProcessing(true);
+        const formData = new FormData();
+        formData.append('deckId', replaceDeckId);
+        formData.append('merge', isSmartReplace ? 'true' : 'false');
+
+        for (let i = 0; i < replaceFiles.length; i++) {
+            formData.append('files', replaceFiles[i]);
+        }
+
+        try {
+            const response = await fetch('/api/replace-deck-content', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                alert("Deck content replaced successfully!");
+                setReplaceDeckId(null);
+                setReplaceFiles(null);
+                window.location.reload();
+            } else {
+                const err = await response.json();
+                alert(`Replacement failed: ${err.message}`);
+            }
+        } catch (error) {
+            console.error("Replacement error:", error);
+            alert("Replacement failed");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     const handleImportSubmit = async (e) => {
         e.preventDefault();
         // Auto-generate ID if empty from title
@@ -803,7 +972,7 @@ const DeckSelector = ({ onSelectDeck }) => {
 
 
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center p-12 relative z-10">
+        <div className="w-full h-full flex flex-col items-center justify-start pt-24 pb-12 px-12 relative z-10 overflow-y-auto custom-scrollbar">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -852,14 +1021,17 @@ const DeckSelector = ({ onSelectDeck }) => {
                     {/* Edit Mode Button */}
                     <button
                         onClick={() => {
-                            if (!isEditMode && currentItems.length > 0) {
-                                // Contextual Navigation: Find the repo of the first visible deck
-                                const firstDeck = currentItems[0];
-                                const repoIndex = processedRepositories.findIndex(r => r.id === firstDeck.repoId);
+                            if (!isEditMode) {
+                                refreshDecks(); // Refresh when entering edit mode
+                                if (currentItems.length > 0) {
+                                    // Contextual Navigation: Find the repo of the first visible deck
+                                    const firstDeck = currentItems[0];
+                                    const repoIndex = processedRepositories.findIndex(r => r.id === firstDeck.repoId);
 
-                                if (repoIndex !== -1) {
-                                    const targetPage = Math.floor(repoIndex / ITEMS_PER_PAGE) + 1;
-                                    setEditPage(targetPage);
+                                    if (repoIndex !== -1) {
+                                        const targetPage = Math.floor(repoIndex / ITEMS_PER_PAGE) + 1;
+                                        setEditPage(targetPage);
+                                    }
                                 }
                             }
                             setIsEditMode(!isEditMode);
@@ -881,6 +1053,20 @@ const DeckSelector = ({ onSelectDeck }) => {
                         <Upload size={20} />
                         <span className="hidden sm:inline text-sm font-medium">Import</span>
                     </button>
+
+
+                    {/* Manage Prompts Button */}
+                    <button
+                        onClick={onManagePrompts}
+                        className="px-4 py-3 rounded-xl border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white transition-all flex items-center gap-2"
+                        title="Manage AI Prompts"
+                    >
+                        <Sparkles size={20} />
+                        <span className="hidden sm:inline text-sm font-medium">Prompts</span>
+                    </button>
+
+
+
 
                     {/* Archive Toggle */}
                     {/* Archive Toggle */}
@@ -960,6 +1146,16 @@ const DeckSelector = ({ onSelectDeck }) => {
                     {isSelectionMode && (
                         <>
                             <button
+                                onClick={handleSelectAll}
+                                className="px-4 py-3 rounded-xl border border-green-500/50 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all flex items-center gap-2"
+                                title={allDecks.length > 0 && allDecks.every(d => selectedDecks.has(d.id)) ? "Deselect All Visible" : "Select All Visible"}
+                            >
+                                <CheckSquare size={20} />
+                                <span className="hidden sm:inline text-sm font-medium">
+                                    {allDecks.length > 0 && allDecks.every(d => selectedDecks.has(d.id)) ? 'Deselect All' : 'Select All'}
+                                </span>
+                            </button>
+                            <button
                                 onClick={handleExportSelected}
                                 disabled={isProcessing || selectedDecks.size === 0}
                                 className="px-4 py-3 rounded-xl bg-purple-500 text-white font-bold hover:bg-purple-600 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -996,12 +1192,23 @@ const DeckSelector = ({ onSelectDeck }) => {
                                 {isProcessing ? <Loader2 className="animate-spin" /> : <Trash2 size={20} />}
                                 Delete ({selectedDecks.size})
                             </button>
+
+                            <button
+                                onClick={handleScriptGeneration}
+                                disabled={isProcessing || selectedDecks.size === 0}
+                                className="px-4 py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Generate YouTube Script"
+                            >
+                                {isProcessing ? <Loader2 className="animate-spin" /> : <FileText size={20} />}
+                                Script ({selectedDecks.size})
+                            </button>
                         </>
+
                     )}
                 </div>
             </motion.div >
 
-            <div className={`w-full max-w-7xl max-h-[60vh] overflow-y-auto pr-4 pb-4 custom-scrollbar min-h-[400px] ${!isEditMode ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 content-start' : 'space-y-12'}`}>
+            <div className={`w-full max-w-7xl pr-4 pb-4 min-h-[400px] ${!isEditMode ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 content-start' : 'space-y-12'}`}>
                 <AnimatePresence mode="wait">
                     {/* Default Flat View */}
                     {!isEditMode && currentItems.map((deck) => (
@@ -1079,9 +1286,11 @@ const DeckSelector = ({ onSelectDeck }) => {
                                             isSelectionMode={isSelectionMode}
                                             isSelected={selectedDecks.has(deck.id)}
                                             onToggleSelect={() => toggleSelection(deck.id)}
+
                                             onDelete={() => handleDeleteDeck(deck.id)}
                                             onArchive={() => handleArchiveDeck(deck.id)}
                                             onRestore={() => handleRestoreDeck(deck.id)}
+                                            onReplace={() => setReplaceDeckId(deck.id)}
                                             status={deck.status}
                                         />
                                     ))}
@@ -1161,7 +1370,7 @@ const DeckSelector = ({ onSelectDeck }) => {
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative"
+                        className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar"
                     >
                         <button
                             onClick={() => setIsImportModalOpen(false)}
@@ -1257,6 +1466,90 @@ const DeckSelector = ({ onSelectDeck }) => {
                                 >
                                     {isProcessing && <Loader2 className="animate-spin" size={16} />}
                                     Import Deck
+                                </button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </div>
+            )}
+
+            {/* Replace Modal */}
+            {replaceDeckId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar"
+                    >
+                        <button
+                            onClick={() => {
+                                setReplaceDeckId(null);
+                                setReplaceFiles(null);
+                            }}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                        >
+                            <X size={24} />
+                        </button>
+
+                        <h2 className="text-2xl font-bold mb-2 text-white flex items-center gap-2">
+                            <Upload className="text-purple-400" /> Replace Deck Content
+                        </h2>
+                        <p className="text-gray-400 mb-4 text-sm">
+                            Upload a new <code>.md</code> or <code>.zip</code> file. This will replace existing slides.
+                            A backup will be created automatically.
+                        </p>
+
+                        <div
+                            className="flex items-center gap-3 p-3 mb-6 rounded-xl bg-purple-500/10 border border-purple-500/20 cursor-pointer hover:bg-purple-500/20 transition-all select-none"
+                            onClick={() => setIsSmartReplace(!isSmartReplace)}
+                        >
+                            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isSmartReplace ? 'bg-purple-500 border-purple-500' : 'border-white/20'}`}>
+                                {isSmartReplace && <CheckSquare size={16} className="text-white" />}
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-sm font-bold text-purple-300">Smart Replace (Recommended)</span>
+                                <span className="text-xs text-gray-500">Updates slides found in files, preserves the rest.</span>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleReplaceSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">New Slide Files (.zip, .md, .jsx, .js) <span className="text-red-500">*</span></label>
+                                <div className="border-2 border-dashed border-white/20 rounded-lg p-6 text-center hover:border-purple-500/50 hover:bg-purple-500/5 transition-all text-gray-400 relative">
+                                    <input
+                                        type="file"
+                                        multiple
+                                        accept=".jsx,.js,.zip,.md"
+                                        required
+                                        className="w-full h-full opacity-0 absolute inset-0 cursor-pointer z-10"
+                                        onChange={e => setReplaceFiles(e.target.files)}
+                                    />
+                                    <div className="flex flex-col items-center gap-2 pointer-events-none">
+                                        <Upload size={32} className="text-gray-500" />
+                                        <p className="text-sm font-medium">Click to upload files (or .zip)</p>
+                                        <p className="text-xs text-gray-500">{replaceFiles ? `${replaceFiles.length} files selected` : 'Drag & drop or click'}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setReplaceDeckId(null);
+                                        setReplaceFiles(null);
+                                    }}
+                                    className="px-4 py-2 rounded-lg hover:bg-white/10 text-white transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isProcessing}
+                                    className="px-6 py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white font-bold transition-all disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    {isProcessing && <Loader2 className="animate-spin" size={16} />}
+                                    Replace
                                 </button>
                             </div>
                         </form>

@@ -19,7 +19,17 @@
 *   **File Format:** Single `.jsx` file.
 *   **Delivery:** Bundle all files into a single Markdown response. Use `## Filename.jsx` as a separator header before each file's code block.
 
-## 2. Component Boilerplate (MUST FOLLOW)
+## 2. File Naming & Export Standards (CRITICAL)
+To prevent syntax errors, follow these rules strictly:
+*   **PascalCase naming:** Use PascalCase for all React components and filenames (e.g., `SlideTitleCard.jsx`).
+*   **Valid Identifiers:** Component names and import variables must be valid JS identifiers (e.g., `import Slide1_Title from './Slide1_Title.jsx'`).
+*   **NO DOTS in variables:** Do NOT include dots in variable names (e.g., do NOT use `import Slide1.jsx from ...`).
+*   **No Messy Filenames:** Do NOT use double underscores (e.g., `__Slide1.jsx__`) or double extensions (e.g., `Slide1.jsx.jsx`).
+*   **Single Extension:** Use exactly one `.jsx` extension.
+*   **Clean Exports:** Each file must have exactly one `export default ComponentName;`.
+*   **DO NOT generate Setup_Instructions.jsx** - All dependencies are already installed in the project.
+
+## 3. Component Boilerplate (MUST FOLLOW)
 Use this exact structure for compatibility:
 
 ```javascript
@@ -53,13 +63,13 @@ const SlideComponent = () => {
 export default SlideComponent;
 ```
 
-## 3. Design Guidelines
+## 4. Design Guidelines
 *   **Dark Mode Only:** The app is strictly dark mode.
 *   **No Heavy Libraries:** Do not use `recharts` or `threejs` unless explicitly asked. Built diagrams using CSS/Divs/SVG.
 *   **Visual Hierarchy:** Titles should be large (text-5xl+), Body text should be readable (text-lg/xl).
 *   **Color Palette:** Slate (900/950) for backgrounds. Blue, Cyan, Purple, Pink, Emerald for accents.
 
-## 4. Task
+## 5. Task
 Generate a slide on the following topic:
 **[INSERT YOUR TOPIC HERE]**
 

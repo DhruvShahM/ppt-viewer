@@ -1,0 +1,6 @@
+﻿[dotenv@17.2.3] injecting env (4) from .env -- tip: ΓÜÖ∩╕Å  specify custom .env file path with { path: '/custom/path/.env' }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ≡ƒöæ add access controls to secrets: https://dotenvx.com/ops
+CWD: C:\Users\dhruv\Downloads\personal_space\go-concurrency-ppt
+FACEBOOK_APP_ID (env): 832568569674292
+Config loaded FB Client ID: 832568569674292
+Generated URL: https://www.facebook.com/v18.0/dialog/oauth?client_id=832568569674292&redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fapi%2Fauth%2Ffacebook%2Fcallback&state=test_state&scope=public_profile,email,pages_show_list,pages_read_engagement,pages_manage_posts,instagram_business_basic,instagram_business_content_publish&response_type=code

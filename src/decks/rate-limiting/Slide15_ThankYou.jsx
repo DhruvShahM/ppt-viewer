@@ -4,14 +4,14 @@ import { ThumbsUp, Share2, Bell } from 'lucide-react';
 
 const Slide15_ThankYou = () => {
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden bg-slate-900 text-white">
+        <div className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden text-white">
 
             {/* Background Animation */}
             <div className="absolute inset-0 opacity-30">
                 {[...Array(10)].map((_, i) => (
                     <motion.div
                         key={i}
-                        className="absolute bg-blue-500/20 rounded-full blur-3xl"
+                        className="absolute rounded-full blur-3xl"
                         style={{
                             width: Math.random() * 400 + 200,
                             height: Math.random() * 400 + 200,
@@ -54,7 +54,7 @@ const Slide15_ThankYou = () => {
                     ].map((action, index) => (
                         <motion.button
                             key={index}
-                            className="flex items-center gap-3 px-8 py-4 bg-slate-800 rounded-full hover:bg-slate-700 transition-colors border border-slate-700"
+                            className="flex items-center gap-3 px-8 py-4 rounded-full hover:bg-slate-700 transition-colors border border-slate-700"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             initial={{ opacity: 0, y: 20 }}

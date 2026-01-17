@@ -2,27 +2,71 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Slide from './Slide';
 import AnnotationLayer from './AnnotationLayer';
-import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock, FileCode, Stamp, X } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Home, Maximize, Minimize, PenTool, Circle, Square, Trash2, MousePointer2, Eraser, Video, ArrowUpRight, Upload, Palette, Type, Check, CaseSensitive, Lock, Unlock, FileCode, FileCode2, Stamp, X, Bot, ZoomIn, ZoomOut, TextCursorInput, Move, RotateCw } from 'lucide-react';
 import DesignFeedback from './DesignFeedback';
+import SocialHub from './SocialHub';
+import SocialExportStudio from './SocialExportStudio';
+import AgentChat from './AgentChat';
 
 
-const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient, fonts, currentFont, onFontSelect }) => {
+const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, videos, onVideoSelect, gradients, onGradientSelect, currentGradient, fonts, currentFont, onFontSelect, isHeadless = false, initialSlideIndex = 0, onConnect, deckTitle, repositoryTitle }) => {
     const [currentSlide, setCurrentSlide] = useState(() => {
+        if (isHeadless) return initialSlideIndex;
         const saved = localStorage.getItem(`lastSlide_${deckId}`);
         return saved ? Math.min(parseInt(saved, 10), slides.length - 1) : 0;
     });
-    const [isPresenting, setIsPresenting] = useState(false);
-    const [showControls, setShowControls] = useState(true);
-    const [showCursor, setShowCursor] = useState(true);
+    const [isPresenting, setIsPresenting] = useState(isHeadless);
+    const [showControls, setShowControls] = useState(!isHeadless);
+    const [showCursor, setShowCursor] = useState(!isHeadless);
     const [activeTool, setActiveTool] = useState('none');
     const [activeColor, setActiveColor] = useState('#ef4444');
     const [isLocked, setIsLocked] = useState(false);
+
+    // Toolbar Position & Orientation State
+    const [toolbarOrientation, setToolbarOrientation] = useState(() =>
+        localStorage.getItem(`toolbar_orientation_${deckId}`) || 'horizontal'
+    );
+    const [toolbarPosition, setToolbarPosition] = useState(() => {
+        const saved = localStorage.getItem(`toolbar_position_${deckId}`);
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return { x: null, y: null }; // null means use default positioning
+            }
+        }
+        return { x: null, y: null };
+    });
+    const [isDraggingToolbar, setIsDraggingToolbar] = useState(false);
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    const toolbarRef = useRef(null);
+
+    // Font Size State
+    const [fontSize, setFontSize] = useState(() => {
+        const saved = localStorage.getItem(`fontSizes_${deckId}`);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                // Handle legacy per-slide format
+                if (typeof parsed === 'object' && parsed !== null) {
+                    return Object.values(parsed)[0] || '16';
+                }
+                return parsed.toString();
+            } catch (e) {
+                return '16';
+            }
+        }
+        return '16';
+    });
 
     // Trademark State
     const [trademarkText, setTrademarkText] = useState(() => localStorage.getItem(`trademark_${deckId}`) || '');
     const [showTrademark, setShowTrademark] = useState(() => !!localStorage.getItem(`trademark_${deckId}`));
     const [trademarkPosition, setTrademarkPosition] = useState(() => localStorage.getItem(`trademark_pos_${deckId}`) || 'top-right');
     const [showTrademarkModal, setShowTrademarkModal] = useState(false);
+    const [showSocialExport, setShowSocialExport] = useState(false); // false | 'studio' | 'accounts'
+    const [showAgentChat, setShowAgentChat] = useState(false);
+    const [isExportRecording, setIsExportRecording] = useState(isHeadless);
 
     useEffect(() => {
         if (trademarkText) {
@@ -30,6 +74,10 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
         }
         localStorage.setItem(`trademark_pos_${deckId}`, trademarkPosition);
     }, [trademarkText, trademarkPosition, deckId]);
+
+    useEffect(() => {
+        localStorage.setItem(`fontSizes_${deckId}`, JSON.stringify(fontSize));
+    }, [fontSize, deckId]);
 
     const positionClasses = {
         'top-left': 'top-6 left-6',
@@ -54,6 +102,15 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
         { name: 'Black', value: '#000000' },
     ];
 
+    const FONT_SIZES = [
+        { name: '12px', value: '12', scale: 0.75 },
+        { name: '14px', value: '14', scale: 0.875 },
+        { name: '16px', value: '16', scale: 1.0 },
+        { name: '18px', value: '18', scale: 1.125 },
+        { name: '20px', value: '20', scale: 1.25 },
+        { name: '24px', value: '24', scale: 1.5 },
+    ];
+
     const controlsTimeoutRef = useRef(null);
     const cursorTimeoutRef = useRef(null);
     const containerRef = useRef(null);
@@ -63,6 +120,31 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
 
     const [annotations, setAnnotations] = useState({}); // { [slideIndex]: { image, texts } }
     const annotationRef = useRef(null);
+
+    const [direction, setDirection] = useState(0);
+    const [slideContentHeight, setSlideContentHeight] = useState(0);
+    const slideWrapperRef = useRef(null);
+
+    useEffect(() => {
+        if (!slideWrapperRef.current) return;
+
+        const updateHeight = () => {
+            if (slideWrapperRef.current) {
+                // Get the scroll height of the slide content
+                const wrapper = slideWrapperRef.current.querySelector('.slide-content-wrapper');
+                if (wrapper) {
+                    setSlideContentHeight(wrapper.scrollHeight);
+                }
+            }
+        };
+
+        const ro = new ResizeObserver(updateHeight);
+        const wrapper = slideWrapperRef.current.querySelector('.slide-content-wrapper');
+        if (wrapper) ro.observe(wrapper);
+
+        updateHeight();
+        return () => ro.disconnect();
+    }, [currentSlide]);
 
     const saveCurrentAnnotations = () => {
         if (annotationRef.current) {
@@ -78,6 +160,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const nextSlide = () => {
         if (currentSlide < totalSlides - 1) {
             saveCurrentAnnotations();
+            setDirection(1);
             setCurrentSlide(c => c + 1);
         }
     };
@@ -85,6 +168,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
     const prevSlide = () => {
         if (currentSlide > 0) {
             saveCurrentAnnotations();
+            setDirection(-1);
             setCurrentSlide(c => c - 1);
         }
     };
@@ -113,45 +197,99 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
 
     // Handle Inactivity Timer
     useEffect(() => {
+        let rafId = null;
+        let lastProximityCheck = 0;
+        const proximityCheckInterval = 100; // Check proximity every 100ms max
+
         const handleMouseMove = (e) => {
             // 1. Cursor Logic: Always show on move, hide after 3s
+            if (isExportRecording) {
+                setShowCursor(false);
+                return;
+            }
             setShowCursor(true);
             if (cursorTimeoutRef.current) clearTimeout(cursorTimeoutRef.current);
             if (isPresenting) {
                 cursorTimeoutRef.current = setTimeout(() => setShowCursor(false), 3000);
             }
 
-            // 2. Toolbar Logic: Show only if at bottom or hovering controls
-            const isBottom = e.clientY > window.innerHeight - 150;
+            // 2. Toolbar Logic: Show if near toolbar position or hovering controls
+            if (isExportRecording) return; // Don't show controls if recording
 
-            if (isBottom || isHoveringControls.current) {
-                setShowControls(true);
-                if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-
-                if (isPresenting && !isHoveringControls.current) {
-                    controlsTimeoutRef.current = setTimeout(() => {
-                        setShowControls(false);
-                    }, 2000);
-                }
-            } else {
-                // Hide controls if not at bottom and not hovering
+            // Skip proximity checks if actively drawing (performance optimization)
+            if (activeTool !== 'none' && activeTool !== 'text') {
+                // Keep toolbar visible while using drawing tools
                 if (isPresenting) {
-                    setShowControls(false);
-                    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+                    setShowControls(true);
                 }
+                return;
             }
+
+            // Throttle proximity checks using timestamp
+            const now = Date.now();
+            if (now - lastProximityCheck < proximityCheckInterval) {
+                return;
+            }
+            lastProximityCheck = now;
+
+            // Use requestAnimationFrame for smooth updates
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+            }
+
+            rafId = requestAnimationFrame(() => {
+                // Check if mouse is near the toolbar
+                let isNearToolbar = false;
+
+                if (toolbarRef.current) {
+                    const toolbarRect = toolbarRef.current.getBoundingClientRect();
+                    const proximityThreshold = 100; // pixels
+
+                    // Check if mouse is within proximity of toolbar
+                    isNearToolbar = (
+                        e.clientX >= toolbarRect.left - proximityThreshold &&
+                        e.clientX <= toolbarRect.right + proximityThreshold &&
+                        e.clientY >= toolbarRect.top - proximityThreshold &&
+                        e.clientY <= toolbarRect.bottom + proximityThreshold
+                    );
+                } else {
+                    // Fallback: Check if at bottom (for default position)
+                    isNearToolbar = e.clientY > window.innerHeight - 150;
+                }
+
+                if (isNearToolbar || isHoveringControls.current) {
+                    setShowControls(true);
+                    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+
+                    if (isPresenting && !isHoveringControls.current) {
+                        controlsTimeoutRef.current = setTimeout(() => {
+                            setShowControls(false);
+                        }, 2000);
+                    }
+                } else {
+                    // Hide controls if not near toolbar and not hovering
+                    if (isPresenting) {
+                        setShowControls(false);
+                        if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+                    }
+                }
+            });
         };
 
         window.addEventListener('mousemove', handleMouseMove);
 
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+            }
             if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
             if (cursorTimeoutRef.current) clearTimeout(cursorTimeoutRef.current);
         };
-    }, [isPresenting]);
+    }, [isPresenting, isExportRecording, toolbarPosition, activeTool]);
 
     const handleMouseEnterControls = () => {
+        if (isExportRecording) return;
         isHoveringControls.current = true;
         if (controlsTimeoutRef.current) {
             clearTimeout(controlsTimeoutRef.current);
@@ -191,6 +329,60 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
         return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
     }, []);
 
+    // Toolbar Drag Handlers
+    const handleToolbarMouseDown = (e) => {
+        // Only start drag if clicking on the drag handle area (not on buttons)
+        if (e.target.closest('button')) return;
+
+        const toolbar = toolbarRef.current;
+        if (!toolbar) return;
+
+        const rect = toolbar.getBoundingClientRect();
+        setDragOffset({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        });
+        setIsDraggingToolbar(true);
+    };
+
+    useEffect(() => {
+        if (!isDraggingToolbar) return;
+
+        const handleMouseMove = (e) => {
+            const newX = e.clientX - dragOffset.x;
+            const newY = e.clientY - dragOffset.y;
+
+            setToolbarPosition({ x: newX, y: newY });
+        };
+
+        const handleMouseUp = () => {
+            setIsDraggingToolbar(false);
+            // Save position to localStorage
+            localStorage.setItem(`toolbar_position_${deckId}`, JSON.stringify(toolbarPosition));
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDraggingToolbar, dragOffset, deckId, toolbarPosition]);
+
+    // Toggle toolbar orientation
+    const toggleToolbarOrientation = () => {
+        const newOrientation = toolbarOrientation === 'horizontal' ? 'vertical' : 'horizontal';
+        setToolbarOrientation(newOrientation);
+        localStorage.setItem(`toolbar_orientation_${deckId}`, newOrientation);
+    };
+
+    // Reset toolbar to default position
+    const resetToolbarPosition = () => {
+        setToolbarPosition({ x: null, y: null });
+        localStorage.removeItem(`toolbar_position_${deckId}`);
+    };
+
 
 
     const handleOpenFile = async () => {
@@ -210,18 +402,46 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
         }
     };
 
+    // Calculate font size scale - use preset scale if available, otherwise calculate from pixel value
+    const fontSizeScale = (() => {
+        const preset = FONT_SIZES.find(f => f.value === fontSize);
+        if (preset) return preset.scale;
+        // For custom values, calculate scale relative to base size of 16px
+        const numValue = parseInt(fontSize);
+        return isNaN(numValue) ? 1.0 : numValue / 16;
+    })();
+
     return (
         <div
             ref={containerRef}
             className={`w-full h-full relative group ${isPresenting && !showCursor ? 'cursor-none' : ''}`}
+            style={{ '--font-size-scale': fontSizeScale }}
         >
             {/* Slides */}
-            <div className="relative z-10 w-full h-full">
-                <AnimatePresence mode="popLayout">
+            <div className="relative z-10 w-full h-full" ref={slideWrapperRef}>
+                <AnimatePresence initial={false} custom={direction} mode="popLayout">
                     {slides.map((SlideComponent, index) => (
                         index === currentSlide && (
-                            <Slide key={index} isActive={true}>
+                            <Slide key={index} isActive={true} custom={direction} style={{
+                                '--font-size-scale': (() => {
+                                    const size = fontSize;
+                                    const preset = FONT_SIZES.find(f => f.value === size);
+                                    if (preset) return preset.scale;
+                                    const numValue = parseInt(size);
+                                    return isNaN(numValue) ? 1.0 : numValue / 16;
+                                })()
+                            }}>
                                 <SlideComponent />
+                                <AnnotationLayer
+                                    ref={annotationRef}
+                                    key={currentSlide}
+                                    activeTool={activeTool}
+                                    color={activeTool === 'eraser' ? '#000000' : activeColor}
+                                    clearTrigger={clearTrigger}
+                                    width={containerRef.current?.offsetWidth || 1920}
+                                    height={Math.max(slideContentHeight, containerRef.current?.offsetHeight || 1080)}
+                                    initialData={annotations[currentSlide]}
+                                />
                             </Slide>
                         )
                     ))}
@@ -238,17 +458,6 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                 </div>
             )}
 
-            {/* Annotation Layer */}
-            <AnnotationLayer
-                ref={annotationRef}
-                key={currentSlide}
-                activeTool={activeTool}
-                color={activeTool === 'eraser' ? '#000000' : activeColor}
-                clearTrigger={clearTrigger}
-                width={containerRef.current?.offsetWidth || 1920}
-                height={containerRef.current?.offsetHeight || 1080}
-                initialData={annotations[currentSlide]}
-            />
 
             {/* Trademark Popup Modal */}
             {isPresenting && showTrademarkModal && (
@@ -312,14 +521,47 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                 </div>
             )}
 
-            {/* Annotation Toolbar (Only in Presentation Mode) */}
-            {isPresenting && !isLocked && (
+            {/* Annotation Toolbar (Only in Presentation Mode) - Now Draggable! */}
+            {isPresenting && !isLocked && !isExportRecording && (
                 <div
+                    ref={toolbarRef}
+                    onMouseDown={handleToolbarMouseDown}
                     onMouseEnter={handleMouseEnterControls}
                     onMouseLeave={handleMouseLeaveControls}
-                    className={`absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-50 bg-black/50 backdrop-blur-md p-2 rounded-full border border-white/10 transition-opacity duration-500 ${!showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                    className={`absolute z-50 bg-black/50 backdrop-blur-md p-2 border border-white/10 transition-opacity duration-500 ${toolbarOrientation === 'horizontal' ? 'rounded-full' : 'rounded-2xl'
+                        } ${!showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'} ${isDraggingToolbar ? 'cursor-grabbing shadow-2xl scale-105' : 'cursor-grab'
                         }`}
+                    style={{
+                        left: toolbarPosition.x !== null ? `${toolbarPosition.x}px` : '50%',
+                        top: toolbarPosition.y !== null ? `${toolbarPosition.y}px` : 'auto',
+                        bottom: toolbarPosition.y !== null ? 'auto' : '32px',
+                        transform: toolbarPosition.x !== null && toolbarPosition.y !== null
+                            ? 'none'
+                            : 'translateX(-50%)',
+                        flexDirection: toolbarOrientation === 'horizontal' ? 'row' : 'column',
+                        display: 'flex',
+                        gap: '0.5rem'
+                    }}
                 >
+                    {/* Drag Handle Indicator */}
+                    <div className={`flex items-center justify-center ${toolbarOrientation === 'horizontal' ? 'px-2' : 'py-2'
+                        }`}>
+                        <Move size={16} className="text-white/40" />
+                    </div>
+
+                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
+
+                    {/* Orientation Toggle */}
+                    <button
+                        onClick={toggleToolbarOrientation}
+                        className="p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
+                        title={`Switch to ${toolbarOrientation === 'horizontal' ? 'Vertical' : 'Horizontal'} Layout`}
+                    >
+                        <RotateCw size={20} />
+                    </button>
+
+                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
+
                     <button
                         onClick={() => setActiveTool('none')}
                         className={`p-3 rounded-full transition-all ${activeTool === 'none' ? 'bg-white text-black' : 'bg-white/10 hover:bg-white/20 text-white'}`}
@@ -370,10 +612,10 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                     >
                         <Eraser size={20} />
                     </button>
-                    <div className="w-px h-8 bg-white/20 mx-1 self-center" />
+                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
 
                     {/* Color Picker */}
-                    <div className="flex gap-1 mr-1">
+                    <div className={`flex gap-1 ${toolbarOrientation === 'horizontal' ? 'flex-row mr-1' : 'flex-col mb-1'}`}>
                         {COLORS.map((c) => (
                             <button
                                 key={c.value}
@@ -387,7 +629,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                         ))}
                     </div>
 
-                    <div className="w-px h-8 bg-white/20 mx-1 self-center" />
+                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
                     <button
                         onClick={() => setClearTrigger(t => t + 1)}
                         className="p-3 rounded-full bg-white/10 hover:bg-red-500/20 text-white hover:text-red-400 transition-all"
@@ -396,7 +638,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                         <Trash2 size={20} />
                     </button>
 
-                    <div className="w-px h-8 bg-white/20 mx-1 self-center" />
+                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
 
                     <button
                         onClick={() => setShowTrademarkModal(prev => !prev)}
@@ -405,7 +647,22 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                     >
                         <Stamp size={20} />
                     </button>
-                    <div className="w-px h-8 bg-white/20 mx-1 self-center" />
+                    <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
+
+                    {/* Reset Position Button */}
+                    {(toolbarPosition.x !== null || toolbarPosition.y !== null) && (
+                        <>
+                            <button
+                                onClick={resetToolbarPosition}
+                                className="p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
+                                title="Reset to Default Position"
+                            >
+                                <X size={20} />
+                            </button>
+                            <div className={toolbarOrientation === 'horizontal' ? 'w-px h-8 bg-white/20 self-center' : 'h-px w-8 bg-white/20 self-center'} />
+                        </>
+                    )}
+
                     <button
                         onClick={() => {
                             setIsLocked(true);
@@ -421,7 +678,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
             )}
 
             {/* Unlock Button */}
-            {isPresenting && isLocked && (
+            {isPresenting && isLocked && !isExportRecording && (
                 <button
                     onClick={() => setIsLocked(false)}
                     className={`absolute bottom-8 left-8 p-3 rounded-full bg-black/20 hover:bg-black/50 text-white/50 hover:text-white transition-all backdrop-blur-sm z-50 ${!showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
@@ -435,11 +692,53 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
             <div
                 onMouseEnter={handleMouseEnterControls}
                 onMouseLeave={handleMouseLeaveControls}
-                className={`absolute bottom-8 right-8 flex gap-4 z-50 transition-opacity duration-500 ${isPresenting && !showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                className={`absolute bottom-8 right-8 flex gap-4 z-50 transition-opacity duration-500 ${isPresenting && (!showControls || isExportRecording) ? 'opacity-0 pointer-events-none' : 'opacity-100'
                     }`}
             >
-                {!isPresenting && (
+                {!isPresenting && !isExportRecording && (
                     <>
+                        {/* Font Size Control - Dropdown + Text Input */}
+                        <div className="relative group self-center mr-4 flex items-center gap-1 bg-black/50 border border-white/20 rounded-full px-3 py-2 hover:bg-white/10">
+                            <TextCursorInput size={14} className="text-white/70" />
+                            <input
+                                type="number"
+                                value={fontSize}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value === '' || (parseInt(value) >= 8 && parseInt(value) <= 48)) {
+                                        setFontSize(value);
+                                    }
+                                }}
+                                onBlur={(e) => {
+                                    const value = parseInt(e.target.value);
+                                    if (isNaN(value) || value < 8) {
+                                        setFontSize('16');
+                                    } else if (value > 48) {
+                                        setFontSize('48');
+                                    }
+                                }}
+                                className="w-12 bg-transparent text-white text-sm font-sans focus:outline-none text-center"
+                                min="8"
+                                max="48"
+                                title="Font Size (8-48px)"
+                            />
+                            <span className="text-white/50 text-xs">px</span>
+                            <div className="h-4 w-px bg-white/20 mx-1" />
+                            <select
+                                onChange={(e) => setFontSize(e.target.value)}
+                                value={fontSize}
+                                className="appearance-none bg-transparent text-white text-sm font-sans focus:outline-none cursor-pointer pr-4"
+                                title="Preset Sizes"
+                            >
+                                {FONT_SIZES.map((f) => (
+                                    <option key={f.value} value={f.value} className="bg-slate-900 text-white">
+                                        {f.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronRight size={12} className="rotate-90 text-white/50 absolute right-2 pointer-events-none" />
+                        </div>
+
                         <div className="relative group self-center mr-4">
                             <select
                                 onChange={(e) => onFontSelect && onFontSelect(e.target.value)}
@@ -484,7 +783,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                             <div className="relative group self-center mr-4">
                                 <select
                                     onChange={(e) => onVideoSelect && onVideoSelect(e.target.value)}
-                                    className="appearance-none bg-black/50 text-white pl-3 pr-8 py-2 rounded-full border border-white/20 hover:bg-white/10 focus:outline-none cursor-pointer text-sm"
+                                    className="appearance-none bg-black/50 text-white pl-3 pr-8 py-2 rounded-full border border-white/20 hover:bg-white/10 focus:outline-none cursor-pointer text-sm w-40 truncate"
                                     defaultValue=""
                                 >
                                     <option value="" disabled>Select Background</option>
@@ -506,12 +805,60 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                         >
                             <Video size={24} />
                         </button>
+
+                        {/* New Connect Button for Social Studio */}
+                        <button
+                            onClick={onConnect}
+                            className="p-2 px-4 rounded-full bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-400 text-sm font-medium transition-all backdrop-blur-sm mr-4 flex items-center gap-2"
+                            title="Connect & Export"
+                        >
+                            <span>Connect</span>
+                        </button>
                         <button
                             onClick={() => setIsPresenting(true)}
                             className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm mr-4"
                             title="Enter Presentation Mode (P)"
                         >
                             <Maximize size={24} />
+                        </button>
+                        <button
+                            onClick={async () => {
+                                let slideTitle = '';
+
+                                // 1. Try to get title from DOM (rendered slide)
+                                if (slideWrapperRef.current) {
+                                    const header = slideWrapperRef.current.querySelector('h1, h2, h3');
+                                    if (header) {
+                                        // Get text content
+                                        const rawTitle = header.innerText || '';
+                                        // Remove leading digits and dots (e.g., "9. Title" -> "Title")
+                                        slideTitle = rawTitle.replace(/^\d+\.?\s*/, '').trim();
+                                    }
+                                }
+
+                                // 2. Fallback to Component Name if DOM failed or returned empty
+                                if (!slideTitle) {
+                                    const currentSlideComp = slides[currentSlide];
+                                    if (currentSlideComp) {
+                                        const name = currentSlideComp.name || '';
+                                        slideTitle = name.replace(/^Slide\d*_?/, '').replace(/_/g, ' ');
+                                    }
+                                }
+
+                                const slidePart = slideTitle ? `"${slideTitle}"` : (deckTitle || 'current topic');
+                                const prompt = `Generate a code snippet for ${slidePart} in ${repositoryTitle || 'Language'}.`;
+
+                                try {
+                                    await navigator.clipboard.writeText(prompt);
+                                    alert(`Copied to clipboard:\n"${prompt}"`);
+                                } catch (err) {
+                                    console.error('Failed to copy', err);
+                                }
+                            }}
+                            className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm mr-4"
+                            title="Copy Code Generation Prompt"
+                        >
+                            <FileCode2 size={24} />
                         </button>
                         <button
                             onClick={onBack}
@@ -527,11 +874,29 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                         >
                             <FileCode size={24} />
                         </button>
+
+                        <SocialHub deckId={deckId} slideIndex={currentSlide + 1} />
+
+                        <button
+                            onClick={() => setShowSocialExport('studio')}
+                            className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm mr-4"
+                            title="Open Social Export Studio"
+                        >
+                            <Video size={24} />
+                        </button>
+
+                        <button
+                            onClick={() => setShowAgentChat(true)}
+                            className="p-3 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 hover:shadow-lg hover:scale-105 transition-all backdrop-blur-sm mr-4"
+                            title="AI Co-Pilot"
+                        >
+                            <Bot size={24} />
+                        </button>
                     </>
                 )}
 
-                {/* Design Feedback - Always mounted to preserve state/recording, hidden when presenting if desired */}
-                <div className={isPresenting ? 'hidden' : 'block'}>
+                {/* Design Feedback - Always mounted to preserve state/recording, hidden when presenting or recording export */}
+                <div className={isPresenting || isExportRecording ? 'hidden' : 'block'}>
                     <DesignFeedback deckId={deckId} slideIndex={currentSlide + 1} />
                 </div>
 
@@ -546,28 +911,30 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                 )}
 
                 {/* Smart Navigation & Counter */}
-                <div className="flex items-center gap-1 bg-black/50 border border-white/20 p-1 pl-4 rounded-full backdrop-blur-sm self-center">
-                    <div className="text-white text-sm font-medium tabular-nums mr-2">
-                        {currentSlide + 1} / {totalSlides}
+                {!isExportRecording && (
+                    <div className="flex items-center gap-1 bg-black/50 border border-white/20 p-1 pl-4 rounded-full backdrop-blur-sm self-center">
+                        <div className="text-white text-sm font-medium tabular-nums mr-2">
+                            {currentSlide + 1} / {totalSlides}
+                        </div>
+                        <div className="h-4 w-px bg-white/20 mx-1" />
+                        <button
+                            onClick={prevSlide}
+                            disabled={currentSlide === 0}
+                            className="p-1.5 rounded-full hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
+                            title="Previous Slide"
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+                        <button
+                            onClick={nextSlide}
+                            disabled={currentSlide === totalSlides - 1}
+                            className="p-1.5 rounded-full hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
+                            title="Next Slide"
+                        >
+                            <ChevronRight size={16} />
+                        </button>
                     </div>
-                    <div className="h-4 w-px bg-white/20 mx-1" />
-                    <button
-                        onClick={prevSlide}
-                        disabled={currentSlide === 0}
-                        className="p-1.5 rounded-full hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
-                        title="Previous Slide"
-                    >
-                        <ChevronLeft size={16} />
-                    </button>
-                    <button
-                        onClick={nextSlide}
-                        disabled={currentSlide === totalSlides - 1}
-                        className="p-1.5 rounded-full hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
-                        title="Next Slide"
-                    >
-                        <ChevronRight size={16} />
-                    </button>
-                </div>
+                )}
 
             </div>
 
@@ -575,7 +942,7 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
 
             {/* Smart Scrubber / Timeline */}
             <div
-                className={`absolute bottom-0 left-0 w-full z-50 transition-all duration-500 group/scrubber ${isPresenting && !showControls ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}
+                className={`absolute bottom-0 left-0 w-full z-50 transition-all duration-500 group/scrubber ${isPresenting && (!showControls || isExportRecording) ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}
                 onMouseLeave={() => setPreviewSlide(null)}
             >
                 {/* Hover Hit Area & Progress Bar */}
@@ -650,6 +1017,27 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
             </div>
 
             {/* Design Feedback Loop - Moved to Toolbar */}
+
+            {showSocialExport && (
+                <SocialExportStudio
+                    slideIndex={currentSlide + 1}
+                    currentSlideNode={slides[currentSlide]}
+                    initialMode={showSocialExport === 'accounts' ? 'accounts' : 'studio'}
+                    onClose={() => setShowSocialExport(false)}
+                    onRecordingStart={() => setIsExportRecording(true)}
+                    onRecordingEnd={() => setIsExportRecording(false)}
+                    onConnect={onConnect}
+                />
+            )}
+
+            <AnimatePresence>
+                {showAgentChat && (
+                    <AgentChat
+                        onClose={() => setShowAgentChat(false)}
+                        onRefreshDeck={() => window.location.reload()}
+                    />
+                )}
+            </AnimatePresence>
         </div >
     );
 };

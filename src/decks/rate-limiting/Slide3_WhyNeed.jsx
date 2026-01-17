@@ -13,7 +13,7 @@ const Slide3_WhyNeed = () => {
     }, []);
 
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center bg-slate-900 text-white p-8">
+        <div className="h-full w-full flex flex-col items-center justify-center text-white p-8">
             <h2 className="text-4xl font-bold mb-12 text-blue-400">Why Rate Limiting is Needed?</h2>
 
             <div className="grid grid-cols-2 gap-12 w-full max-w-6xl">
@@ -31,7 +31,7 @@ const Slide3_WhyNeed = () => {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.2 }}
-                            className="flex items-center gap-4 bg-slate-800 p-4 rounded-lg border border-slate-700"
+                            className="flex items-center gap-4 p-4 rounded-lg border border-slate-700"
                         >
                             <CheckCircle className="text-green-400" size={24} />
                             <span className="text-xl">{item}</span>
@@ -40,8 +40,7 @@ const Slide3_WhyNeed = () => {
                 </div>
 
                 {/* Right: Animation */}
-                <div className="flex flex-col items-center justify-center bg-slate-800/30 rounded-2xl p-8 border border-slate-700 relative overflow-hidden h-[400px]">
-
+                <div className="flex flex-col items-center justify-center rounded-2xl p-8 border border-slate-700 relative overflow-hidden h-[400px]">
                     {/* Traffic Particles */}
                     <div className="absolute inset-0 overflow-hidden">
                         {[...Array(protected_state ? 5 : 20)].map((_, i) => (
@@ -51,7 +50,7 @@ const Slide3_WhyNeed = () => {
                                 style={{ width: 8, height: 8, left: -10 }}
                                 animate={{
                                     x: [0, 500],
-                                    y: [Math.random() * 400, 200] // Converge to server
+                                    y: [Math.random() * 400, 200]
                                 }}
                                 transition={{
                                     duration: protected_state ? 2 : 0.5,

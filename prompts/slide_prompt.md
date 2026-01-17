@@ -18,5 +18,10 @@ Create [NUMBER] slides. Each slide should be a separate file named `Slide[N]_[Na
 
 ## Code Requirements
 *   Export each component as `default`.
+*   **PascalCase naming:** Use PascalCase for all React components and filenames (e.g., `SlideTitleCard.jsx`).
+*   **Valid Identifiers:** All component names and import variables MUST be valid JS identifiers. **NO DOTS** in variable names (e.g., `import Slide1_Title from './Slide1_Title.jsx'`).
+*   **No Messy Filenames:** DO NOT use double underscores (e.g., `__Slide1.jsx__`) or double extensions (e.g., `Slide1.jsx.jsx`).
+*   **Single Extension:** Use exactly one `.jsx` extension.
 *   Ensure animations repeat or loop smoothly if they illustrate a continuous process.
 *   Make sure the layout is responsive but optimized for 16:9 presentation.
+*   **DO NOT generate Setup_Instructions.jsx** - All dependencies are already installed in the project.

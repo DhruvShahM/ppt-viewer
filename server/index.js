@@ -9,6 +9,13 @@ const catchAsync = require('./utils/catchAsync');
 const globalErrorHandler = require('./controllers/errorController');
 
 const metadataManager = require('./utils/metadata');
+const scheduler = require('./services/scheduler');
+const videoRenderer = require('./services/video-renderer');
+const authService = require('./services/auth-service');
+const { ApolloServer } = require('@apollo/server');
+const { expressMiddleware } = require('@apollo/server/express4');
+const typeDefs = require('./graphql/typeDefs');
+const resolvers = require('./graphql/resolvers');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -16,6 +23,9 @@ const PORT = process.env.PORT || 3001;
 // Trigger restart 2
 
 
+
+// Load secrets from local files (if any)
+require('./utils/secrets-loader')();
 
 app.use(cors());
 app.use(express.json());
@@ -32,6 +42,11 @@ if (!fs.existsSync(FEEDBACK_FILE)) {
 // Ensure screenshots directory exists
 if (!fs.existsSync(SCREENSHOTS_DIR)) {
     fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
+}
+
+const RENDERS_DIR = path.join(__dirname, 'renders');
+if (!fs.existsSync(RENDERS_DIR)) {
+    fs.mkdirSync(RENDERS_DIR, { recursive: true });
 }
 
 
@@ -111,9 +126,46 @@ fs.watchFile(FEEDBACK_FILE, { interval: 2000 }, (curr, prev) => {
     }
 });
 
+// Cleanup old renders (older than 8 days)
+const cleanupRenders = () => {
+    try {
+        if (!fs.existsSync(RENDERS_DIR)) return;
+
+        const files = fs.readdirSync(RENDERS_DIR);
+        const MAX_AGE_MS = 8 * 24 * 60 * 60 * 1000; // 8 days
+        const now = Date.now();
+
+        files.forEach(file => {
+            const filePath = path.join(RENDERS_DIR, file);
+            const stats = fs.statSync(filePath);
+
+            // strict 8-day retention from creation time (birthtime)
+            const creationTime = stats.birthtimeMs || stats.mtimeMs;
+
+            if (now - creationTime > MAX_AGE_MS) {
+                try {
+                    fs.unlinkSync(filePath);
+                    console.log(`Deleted expired render (older than 8 days): ${file}`);
+                } catch (err) {
+                    console.error(`Failed to delete expired render ${file}:`, err);
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error cleaning up renders:', error);
+    }
+};
+
 // Run cleanup on startup
 cleanupScreenshots();
 cleanupFeedback();
+cleanupRenders();
+
+// Schedule daily cleanup check
+setInterval(cleanupRenders, 24 * 60 * 60 * 1000);
+
+// Initialize Scheduler (Catch-Up Strategy)
+scheduler.init();
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -180,6 +232,381 @@ app.post('/api/feedback', upload.fields([{ name: 'screenshots', maxCount: 10 }, 
     console.log(`Feedback received for ${deckId} slide ${slideIndex}: ${instruction} (${sCount} screenshots, ${vCount} videos)`);
     res.status(201).json(newFeedback);
 }));
+
+// --- Social Scheduling APIs ---
+
+app.get('/api/social/accounts', (req, res) => {
+    // Return list of connected accounts so generic UI can use it
+    const socialDataService = require('./services/social-data-service');
+    socialDataService.getConnectedAccounts().then(accounts => {
+        res.json(accounts);
+    }).catch(err => {
+        res.status(500).json({ error: err.message });
+    });
+});
+
+app.get('/api/auth/token/:platform', catchAsync(async (req, res, next) => {
+    const { platform } = req.params;
+    const socialDataService = require('./services/social-data-service');
+    const token = await socialDataService.getAccessToken(platform);
+
+    if (token) {
+        res.json({ token, success: true });
+    } else {
+        // 401 indicates "Unauthorized" / "No Token" -> Frontend triggers fallback
+        res.status(401).json({ success: false, error: 'No valid token available' });
+    }
+}));
+
+
+// --- Real Authentication Routes ---
+
+app.get('/api/auth/:platform', (req, res) => {
+    const { platform } = req.params;
+    const { simulated } = req.query;
+
+    if (simulated === 'true') {
+        const mockCode = 'mock_auth_code_' + Date.now();
+        return res.redirect(`/api/auth/${platform}/callback?code=${mockCode}&simulated=true`);
+    }
+
+    let url;
+
+    try {
+        if (platform === 'linkedin') url = authService.getLinkedinAuthUrl();
+        else if (platform === 'youtube' || platform === 'google') url = authService.getGoogleAuthUrl();
+        else if (platform === 'facebook') url = authService.getFacebookAuthUrl();
+        else if (platform === 'instagram') url = authService.getInstagramAuthUrl();
+        else if (platform === 'reddit') url = authService.getRedditAuthUrl();
+        // else if (platform === 'twitter') url = authService.getTwitterAuthUrl();
+        else return res.status(400).send('Platform not supported for real auth');
+
+        res.redirect(url);
+    } catch (e) {
+        if (e.message.includes('Invalid configuration')) {
+            console.warn(`⚠️  Auth blocked: ${e.message}`);
+            return res.send(`
+                <html>
+                <body style="font-family: system-ui, sans-serif; background: #0f172a; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center;">
+                    <h2 style="color: #ef4444;">Configuration Required</h2>
+                    <p style="color: #94a3b8; max-w-md;">${e.message}</p>
+                    <p>This window will close automatically.</p>
+                    <button onclick="window.close()" style="margin-top: 20px; padding: 10px 20px; background: #334155; border: none; color: white; border-radius: 6px; cursor: pointer;">Close Window</button>
+                    <script>
+                        setTimeout(() => window.close(), 5000);
+                    </script>
+                </body>
+                </html>
+            `);
+        }
+
+        console.error("Auth URL generation failed:", e);
+        res.status(500).send("Failed to generate auth URL. Check server logs/keys.");
+    }
+});
+
+app.get('/api/auth/:platform/callback', async (req, res) => {
+    const { platform } = req.params;
+    const { code, simulated } = req.query;
+
+    try {
+        let userData;
+        if (simulated === 'true') {
+            userData = authService.handleSimulatedCallback(platform);
+        } else {
+            if (platform === 'linkedin') userData = await authService.handleLinkedinCallback(code);
+            else if (platform === 'youtube' || platform === 'google') userData = await authService.handleGoogleCallback(code);
+            else if (platform === 'facebook') userData = await authService.handleFacebookCallback(code);
+            else if (platform === 'instagram') userData = await authService.handleInstagramCallback(code);
+            else if (platform === 'reddit') userData = await authService.handleRedditCallback(code);
+        }
+
+        // Return a script that sends the data back to the main window and closes the popup
+        res.send(`
+            <html>
+                <body>
+                    <h1>Connected!</h1>
+                    <p>You have successfully connected ${platform}. Closing...</p>
+                    <script>
+                        window.opener.postMessage({ type: 'SOCIAL_AUTH_SUCCESS', platform: '${platform}', user: ${JSON.stringify(userData)} }, '*');
+                        window.close();
+                    </script>
+                </body>
+            </html>
+        `);
+    } catch (e) {
+        console.error("Auth Callback failed:", e);
+        res.status(500).send(`Authentication failed: ${e.message}`);
+    }
+});
+
+// Instagram Routes (Separate)
+app.get('/api/auth/instagram', catchAsync(async (req, res) => {
+    if (req.query.simulated) {
+        const userData = authService.handleSimulatedCallback('instagram');
+        res.send(`
+            <script>
+                window.opener.postMessage({ type: 'SOCIAL_AUTH_SUCCESS', platform: 'instagram', user: ${JSON.stringify(userData)} }, '*');
+                window.close();
+            </script>
+        `);
+    } else {
+        res.redirect(authService.getInstagramAuthUrl());
+    }
+}));
+
+app.get('/api/auth/instagram/callback', catchAsync(async (req, res) => {
+    const { code, error, error_reason, error_description } = req.query;
+    if (error) {
+        return res.status(400).send(`Error: ${error} - ${error_reason} - ${error_description}`);
+    }
+    try {
+        const userData = await authService.handleInstagramCallback(code);
+        res.send(`
+            <script>
+                window.opener.postMessage({ type: 'SOCIAL_AUTH_SUCCESS', platform: 'instagram', user: ${JSON.stringify(userData)} }, '*');
+                window.close();
+            </script>
+        `);
+    } catch (error) {
+        console.error('Instagram Auth Error:', error);
+        res.status(500).send('Authentication failed: ' + error.message);
+    }
+}));
+
+app.post('/api/upload-media', upload.single('file'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+    res.json({
+        success: true,
+        url: `/api/screenshots/${req.file.filename}`,
+        filename: req.file.filename
+    });
+});
+
+
+app.get('/api/social/queue', (req, res) => {
+    const queue = scheduler.getQueue();
+    // Sort: Pending first (by date), then others (by date desc)
+    queue.sort((a, b) => {
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (a.status !== 'pending' && b.status === 'pending') return 1;
+
+        if (a.status === 'pending') {
+            return new Date(a.scheduledTime) - new Date(b.scheduledTime); // Earliest first
+        } else {
+            return new Date(b.scheduledTime) - new Date(a.scheduledTime); // Newest first
+        }
+    });
+    res.json(queue);
+});
+
+app.post('/api/social/schedule', catchAsync(async (req, res, next) => {
+    // req.body should have: slideId, deckId, caption, platforms, scheduledTime
+    const result = scheduler.schedulePost(req.body);
+    res.status(201).json(result);
+}));
+
+app.delete('/api/social/queue/:id', (req, res) => {
+    const success = scheduler.deletePost(req.params.id);
+    if (success) {
+        res.json({ success: true });
+    } else {
+        res.status(404).json({ error: 'Post not found' });
+    }
+});
+
+app.post('/api/social/run-catchup', (req, res) => {
+    scheduler.checkQueue();
+    res.json({ success: true, message: 'Catch-up triggered' });
+});
+
+app.post('/api/render-video', catchAsync(async (req, res, next) => {
+    const { deckId, slideIndex, duration, width, height } = req.body;
+
+    if (!deckId || slideIndex === undefined || !duration) {
+        return next(new AppError('Missing required fields', 400));
+    }
+
+    const filename = `render-${deckId}-${slideIndex}-${Date.now()}.mp4`;
+    const outputPath = path.join(RENDERS_DIR, filename);
+
+    try {
+        await videoRenderer.renderSlide({
+            deckId,
+            slideIndex,
+            duration: duration || 10,
+            width: width || 1920,
+            height: height || 1080,
+            outputPath
+        });
+
+        res.json({
+            success: true,
+            url: `/api/renders/${filename}`
+        });
+    } catch (error) {
+        console.error("Video render failed", error);
+        return next(new AppError('Video render failed: ' + error.message, 500));
+    }
+}));
+
+app.post('/api/obs/record', catchAsync(async (req, res, next) => {
+    const { deckId, slideIndex, duration } = req.body;
+
+    if (!deckId || slideIndex === undefined || !duration) {
+        return next(new AppError('Missing required fields', 400));
+    }
+
+    const obsService = require('./services/obs-service');
+
+    // Construct local URL for the slide
+    // Assuming the app is running on localhost:5173
+    const slideUrl = `http://localhost:5173/?deckId=${deckId}&slide=${slideIndex}&mode=present`;
+
+    try {
+        const outputPath = await obsService.record(deckId, slideIndex, duration, slideUrl);
+
+        // We need to make this file accessible to the frontend/uploader
+        // OBS saves it to its own Output path. We might want to move it or just reference it.
+        // For simplicity, we'll assume the server can read the path OBS returns.
+
+        res.json({
+            success: true,
+            path: outputPath,
+            message: "OBS Recording Complete"
+        });
+    } catch (error) {
+        console.error("OBS Record failed", error);
+        return next(new AppError('OBS Record failed: ' + error.message, 500));
+    }
+}));
+
+
+app.post('/api/social/youtube/playlist', catchAsync(async (req, res, next) => {
+    const { videoId, playlistName, platform = 'youtube' } = req.body;
+
+    if (!videoId || !playlistName) {
+        return next(new AppError('Missing videoId or playlistName', 400));
+    }
+
+    // Reuse the token logic from scheduler or social-data-service?
+    // We need a token for the user. Ideally, we should pass the accountId to be precise, 
+    // but for now, we'll mimic the scheduler's logic of "find an enabled token".
+    // Better: Frontend should probably send the accountId if possible, but let's stick to the plan: 
+    // "Uses youtubeUploader.addToPlaylist to add the video."
+
+    // We need to get the token.
+    const socialDataService = require('./services/social-data-service');
+    // Assuming single user scenario or defaults for now as per scheduler logic
+    const token = await socialDataService.getAccessToken(platform);
+
+    if (!token) {
+        return next(new AppError('No valid token found for YouTube', 401));
+    }
+
+    // Construct a token object that youtube-uploader expects
+    // youtube-uploader expects { accessToken, refreshToken, expiryDate, ... }
+    // social-data-service.getAccessToken RETURNED just the string or full object?
+    // Let's check social-data-service.getAccessToken. 
+    // ... checking file view ... server/services/youtube-service.js uses tokenData object.
+    // server/index.js line 251: const token = await socialDataService.getAccessToken(platform);
+    // If it returns just a string (AccessToken), youtube-uploader needs more if it wants to refresh.
+    // However, youtube-uploader.addToPlaylist takes (youtube, videoId, playlistName).
+    // youtube argument comes from getClient.
+    // Let's use youtubeUploader.addToPlaylist directly? No, it's an instance method.
+    // Wait, youtube-uploader.js exports `new YouTubeUploader()`.
+
+    // Check `scheduler.js`:
+    // const tokenManager = require('./token-manager');
+    // const allTokens = tokenManager.loadTokens();
+    // ... filter enabled tokens ...
+
+    // Let's do the same here to be safe and compatible.
+    const tokenManager = require('./services/token-manager');
+    const allTokens = tokenManager.loadTokens();
+    const tokens = Object.values(allTokens).filter(t => t.platform === platform && t.isEnabled !== false);
+
+    if (tokens.length === 0) {
+        return next(new AppError('No enabled YouTube accounts found', 404));
+    }
+
+    const youtubeUploader = require('./services/youtube-uploader');
+    const results = [];
+
+    // Add to playlist for ALL enabled accounts? Or just the one that we uploaded to?
+    // The frontend did a direct upload using a SPECIFIC token (from /api/auth/token/youtube).
+    // That endpoint (line 248) calls `socialDataService.getAccessToken` which returns...
+    // Let's check social-data-service.getAccessToken implementation briefly if I could... 
+    // but I can assume it returns the "primary" token. 
+    // If we have multiple accounts, this might be ambiguous.
+    // BUT the user context is "I'm trying to upload", implies single active context or valid default.
+    // We will try to add to all enabled, or just the first one. 
+    // SAFEST: Try all enabled, as we don't know which one the FE used exactly without accountId.
+    // (FE used `data?.getConnectedAccounts?.some` logic).
+
+    for (const tokenData of tokens) {
+        try {
+            const authClient = youtubeUploader.getAuthClient(tokenData);
+            const google = require('googleapis').google;
+            const youtube = google.youtube({ version: 'v3', auth: authClient });
+
+            await youtubeUploader.addToPlaylist(youtube, videoId, playlistName);
+            results.push({ account: tokenData.name, success: true });
+        } catch (e) {
+            console.error(`Failed to add to playlist for ${tokenData.name}:`, e);
+            results.push({ account: tokenData.name, success: false, error: e.message });
+        }
+    }
+
+    res.json({ success: true, results });
+}));
+
+app.get('/api/social/youtube/playlists', catchAsync(async (req, res, next) => {
+    // Platform defaults to youtube
+    const { platform = 'youtube' } = req.query;
+
+    const socialDataService = require('./services/social-data-service');
+    const token = await socialDataService.getAccessToken(platform);
+
+    if (!token) {
+        return next(new AppError('No valid token found for YouTube', 401));
+    }
+
+    // We need the full token object for youtube-service
+    const tokenManager = require('./services/token-manager');
+    const allTokens = tokenManager.loadTokens();
+    // Find the first enabled token for the platform, similar to how we do in getAccessToken logic usually
+    // But getAccessToken returns just the token string typically. 
+    // We need the object. 
+    const tokenData = Object.values(allTokens).find(t => t.platform === platform && t.isEnabled !== false);
+
+    if (!tokenData) {
+        return next(new AppError('No enabled YouTube accounts found', 404));
+    }
+
+    const youtubeService = require('./services/youtube-service');
+    try {
+        const playlists = await youtubeService.getPlaylists(tokenData);
+        res.json({ success: true, playlists });
+    } catch (error) {
+        return next(new AppError('Failed to fetch playlists: ' + error.message, 500));
+    }
+}));
+
+app.get('/api/renders/:filename', (req, res, next) => {
+    const filename = req.params.filename;
+    const filepath = path.join(RENDERS_DIR, filename);
+
+    if (fs.existsSync(filepath)) {
+        res.sendFile(filepath);
+    } else {
+        next(new AppError('Render not found', 404));
+    }
+});
+
+// ------------------------------
 
 app.get('/api/feedback', catchAsync(async (req, res, next) => {
     const fileContent = fs.readFileSync(FEEDBACK_FILE, 'utf8');
@@ -390,7 +817,6 @@ app.post('/api/restore', catchAsync(async (req, res, next) => {
             });
             res.json({ success: true });
         } catch (error) {
-            console.error('Restore process failed:', error);
             return next(new AppError('Restore process failed', 500));
         }
     };
@@ -398,8 +824,129 @@ app.post('/api/restore', catchAsync(async (req, res, next) => {
     runRestore();
 }));
 
+app.post('/api/script/download', catchAsync(async (req, res, next) => {
+    const { deckIds, style = 'educational' } = req.body;
+
+    if (!deckIds || !Array.isArray(deckIds) || deckIds.length === 0) {
+        return next(new AppError('Invalid deckIds', 400));
+    }
+
+    const AdmZip = require('adm-zip');
+    const { exec } = require('child_process');
+
+    const zip = new AdmZip();
+    const scriptsDir = path.join(__dirname, '..', 'scripts');
+
+    // Helper to run script generation
+    const processDeck = async (deckId) => {
+        return new Promise((resolve) => {
+            // 1. Extract content
+            exec(`node extract_deck_content.js ${deckId}`, { cwd: scriptsDir }, (err) => {
+                if (err) {
+                    console.error(`Extraction failed for ${deckId}:`, err);
+                    return resolve(null);
+                }
+
+                // 2. Generate Prompt
+                exec(`node generate_script_prompt.js --style=${style}`, { cwd: scriptsDir }, (err, stdout) => {
+                    if (err) {
+                        console.error(`Generation failed for ${deckId}:`, err);
+                        return resolve(null);
+                    }
+                    resolve({ deckId, content: stdout });
+                });
+            });
+        });
+    };
+
+    console.log(`Generating scripts for ${deckIds.length} decks (Style: ${style})...`);
+
+    try {
+        const results = [];
+        for (const id of deckIds) {
+            const result = await processDeck(id);
+            if (result) {
+                results.push(result);
+                zip.addFile(`${id}-script-prompt.txt`, Buffer.from(result.content, 'utf8'));
+            }
+        }
+
+        if (results.length === 0) {
+            return next(new AppError('Failed to generate any scripts', 500));
+        }
+
+        const zipBuffer = zip.toBuffer();
+
+        res.set('Content-Type', 'application/zip');
+        res.set('Content-Disposition', `attachment; filename="scripts-bundle-${style}.zip"`);
+        res.set('Content-Length', zipBuffer.length);
+        res.send(zipBuffer);
+
+    } catch (error) {
+        console.error("Script generation failed:", error);
+        return next(new AppError("Script generation failed", 500));
+    }
+}));
 
 
+
+
+
+
+// --- Config Management ---
+app.get('/api/config/keys', (req, res) => {
+    // Return the keys (Unmasked for local convenience as per user request)
+    const keys = {
+        GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
+        LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID || '',
+        LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET || '',
+        FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID || '',
+        FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET || '',
+        INSTAGRAM_CLIENT_ID: process.env.INSTAGRAM_CLIENT_ID || '',
+        INSTAGRAM_CLIENT_SECRET: process.env.INSTAGRAM_CLIENT_SECRET || '',
+        REDDIT_CLIENT_ID: process.env.REDDIT_CLIENT_ID || '',
+        REDDIT_CLIENT_SECRET: process.env.REDDIT_CLIENT_SECRET || '',
+    };
+    res.json(keys);
+});
+
+app.post('/api/config/keys', catchAsync(async (req, res, next) => {
+    const newKeys = req.body; // { GOOGLE_CLIENT_ID: '...', ... }
+
+    // 1. Update process.env for immediate effect
+    Object.keys(newKeys).forEach(key => {
+        if (newKeys[key]) {
+            process.env[key] = newKeys[key];
+        }
+    });
+
+    // 2. Persist to .env file
+    const envPath = path.join(__dirname, '..', '.env');
+    let envContent = '';
+
+    if (fs.existsSync(envPath)) {
+        envContent = fs.readFileSync(envPath, 'utf8');
+    }
+
+    Object.keys(newKeys).forEach(key => {
+        const value = newKeys[key];
+        // If not empty, update
+        if (value) {
+            const regex = new RegExp(`^${key}=.*$`, 'm');
+            if (regex.test(envContent)) {
+                envContent = envContent.replace(regex, `${key}=${value}`);
+            } else {
+                envContent += `\n${key}=${value}`;
+            }
+        }
+    });
+
+    fs.writeFileSync(envPath, envContent.trim() + '\n');
+
+    console.log('Updated .env file and process.env');
+    res.json({ success: true });
+}));
 
 
 // Configure multer for code uploads
@@ -592,15 +1139,28 @@ app.post('/api/import-deck', codeUpload.array('files'), catchAsync(async (req, r
     fs.writeFileSync(path.join(deckDir, 'deck.js'), deckJsContent);
 
 
-    // Update deck-index.json
-    const DECK_INDEX_FILE = path.join(__dirname, '..', 'src', 'data', 'deck-index.json');
-    let deckIndex = [];
+    // Update BOTH deck-index.json files (frontend and backend)
+    const FRONTEND_DECK_INDEX = path.join(__dirname, '..', 'src', 'data', 'deck-index.json');
+    const BACKEND_DECK_INDEX = path.join(__dirname, 'data', 'deck-index.json');
+
+    // Read frontend deck index
+    let frontendDeckIndex = [];
     try {
-        if (fs.existsSync(DECK_INDEX_FILE)) {
-            deckIndex = JSON.parse(fs.readFileSync(DECK_INDEX_FILE, 'utf8'));
+        if (fs.existsSync(FRONTEND_DECK_INDEX)) {
+            frontendDeckIndex = JSON.parse(fs.readFileSync(FRONTEND_DECK_INDEX, 'utf8'));
         }
     } catch (e) {
-        console.error("Error reading deck index", e);
+        console.error("Error reading frontend deck index", e);
+    }
+
+    // Read backend deck index
+    let backendDeckIndex = [];
+    try {
+        if (fs.existsSync(BACKEND_DECK_INDEX)) {
+            backendDeckIndex = JSON.parse(fs.readFileSync(BACKEND_DECK_INDEX, 'utf8'));
+        }
+    } catch (e) {
+        console.error("Error reading backend deck index", e);
     }
 
     const newDeck = {
@@ -618,12 +1178,294 @@ app.post('/api/import-deck', codeUpload.array('files'), catchAsync(async (req, r
         importedAt: new Date().toISOString()
     };
 
-    deckIndex.push(newDeck);
-    fs.writeFileSync(DECK_INDEX_FILE, JSON.stringify(deckIndex, null, 2));
+    // Add to both indexes
+    frontendDeckIndex.push(newDeck);
+    backendDeckIndex.push(newDeck);
+
+    // Write to both files
+    try {
+        fs.writeFileSync(FRONTEND_DECK_INDEX, JSON.stringify(frontendDeckIndex, null, 2));
+        console.log(`Updated frontend deck index: ${FRONTEND_DECK_INDEX}`);
+    } catch (e) {
+        console.error("Error writing frontend deck index", e);
+    }
+
+    try {
+        fs.writeFileSync(BACKEND_DECK_INDEX, JSON.stringify(backendDeckIndex, null, 2));
+        console.log(`Updated backend deck index: ${BACKEND_DECK_INDEX}`);
+    } catch (e) {
+        console.error("Error writing backend deck index", e);
+    }
 
     console.log(`Deck imported successfully: ${deckId}`);
     res.status(201).json({ success: true, deck: newDeck });
 
+}));
+
+app.post('/api/replace-deck-content', codeUpload.array('files'), catchAsync(async (req, res, next) => {
+    const { deckId } = req.body;
+
+    if (!deckId || !req.files || req.files.length === 0) {
+        return next(new AppError('Missing deckId or files', 400));
+    }
+
+    const deckDir = path.join(__dirname, '..', 'src', 'decks', deckId);
+    const backupDir = path.join(__dirname, '..', 'src', 'decks', `${deckId}_backup_${Date.now()}`);
+
+    // Check if deck exists
+    if (!fs.existsSync(deckDir)) {
+        return next(new AppError('Deck not found', 404));
+    }
+
+    console.log(`Starting replacement for deck: ${deckId}`);
+    console.log(`Creating backup at: ${backupDir}`);
+
+    // 1. BACKUP
+    try {
+        fs.renameSync(deckDir, backupDir);
+    } catch (err) {
+        console.error("Backup failed:", err);
+        return next(new AppError('Failed to create backup. Aborting replacement.', 500));
+    }
+
+    // Function to rollback
+    const rollback = () => {
+        console.warn(`Rolling back replacement for ${deckId}...`);
+        try {
+            if (fs.existsSync(deckDir)) {
+                // Use rmSync with force and recursive (Node 14.14+)
+                fs.rmSync(deckDir, { recursive: true, force: true });
+            }
+            fs.renameSync(backupDir, deckDir);
+            console.log("Rollback successful.");
+        } catch (err) {
+            console.error("CRITICAL: Rollback failed!", err);
+        }
+    };
+
+    // 2. PREPARE NEW DIRECTORY
+    try {
+        fs.mkdirSync(deckDir, { recursive: true });
+    } catch (err) {
+        console.error("Failed to create new deck directory:", err);
+        rollback();
+        return next(new AppError('Failed to create new deck directory', 500));
+    }
+
+    // 3. PROCESS FILES (Copied logic from import-deck mostly)
+    const importedFiles = [];
+    const AdmZip = require('adm-zip');
+
+    try {
+        for (const file of req.files) {
+            if (file.mimetype === 'application/zip' || file.mimetype === 'application/x-zip-compressed' || file.originalname.endsWith('.zip')) {
+                // Handle Zip File
+                try {
+                    const zip = new AdmZip(file.path);
+                    const zipEntries = zip.getEntries();
+
+                    zipEntries.forEach(entry => {
+                        if (!entry.isDirectory && (entry.entryName.endsWith('.jsx') || entry.entryName.endsWith('.js'))) {
+                            const fileName = path.basename(entry.entryName);
+                            if (fileName.startsWith('.')) return;
+
+                            const targetPath = path.join(deckDir, fileName);
+
+                            if (!entry.entryName.includes('__MACOSX')) {
+                                fs.writeFileSync(targetPath, entry.getData());
+                                importedFiles.push(fileName);
+                            }
+                        }
+                    });
+                    try { fs.unlinkSync(file.path); } catch (e) { }
+                } catch (zipErr) {
+                    console.error("Error extracting zip:", zipErr);
+                    throw new Error("Zip extraction failed");
+                }
+            } else {
+                // Handle Regular File
+                const targetPath = path.join(deckDir, file.originalname);
+                fs.renameSync(file.path, targetPath);
+                importedFiles.push(file.originalname);
+            }
+        }
+    } catch (err) {
+        console.error("Failed to process uploaded files:", err);
+        rollback();
+        return next(new AppError('Failed to process uploaded files', 500));
+    }
+
+    // Process Markdown if any
+    const mdFiles = importedFiles.filter(f => f.endsWith('.md'));
+    for (const mdFile of mdFiles) {
+        try {
+            const mdPath = path.join(deckDir, mdFile);
+            const content = fs.readFileSync(mdPath, 'utf8');
+            const sections = content.split(/(?=^##\s+)/m);
+            let extractedCount = 0;
+
+            sections.forEach(section => {
+                const trimmed = section.trim();
+                if (!trimmed.startsWith('##')) return;
+                const firstLineEnd = trimmed.indexOf('\n');
+                if (firstLineEnd === -1) return;
+                let filenameLine = trimmed.substring(2, firstLineEnd).trim();
+                const codeBlockRegex = /```(?:jsx|js|javascript|typescript|ts)?\s*([\s\S]*?)```/;
+                const match = trimmed.match(codeBlockRegex);
+
+                if (match && match[1]) {
+                    let code = match[1].trim();
+                    let filename = filenameLine.replace(/[^\w\d\-\.]/g, '_');
+                    if (!filename.match(/\.(js|jsx)$/i)) filename += '.jsx';
+
+                    const targetPath = path.join(deckDir, filename);
+                    fs.writeFileSync(targetPath, code);
+                    importedFiles.push(filename);
+                    extractedCount++;
+                }
+            });
+
+            // Fallback for simple slide format
+            if (extractedCount === 0) {
+                const codeBlockRegexGlobal = /```(?:jsx|js|javascript|typescript|ts)?\s*([\s\S]*?)```/g;
+                let match;
+                let idx = 1;
+                while ((match = codeBlockRegexGlobal.exec(content)) !== null) {
+                    if (match[1]) {
+                        let code = match[1].trim();
+                        // Relaxed check: allows named exports too
+                        if (code.includes('import') && (code.includes('export default') || code.includes('export const') || code.includes('export function') || code.includes('export class'))) {
+
+                            // Try to extract filename from comment like "// Slide1_Title.jsx"
+                            let filename = `Slide_${idx}.jsx`;
+                            const firstLine = code.split('\n')[0].trim();
+                            if (firstLine.startsWith('//') && firstLine.includes('.jsx')) {
+                                const probableName = firstLine.replace('//', '').trim();
+                                if (/^[\w\-\.]+\.jsx$/.test(probableName)) {
+                                    filename = probableName;
+                                }
+                            }
+
+                            // Ensure default export exists
+                            if (!code.includes('export default')) {
+                                const nameMatch = code.match(/export\s+(?:const|function|class)\s+([A-Za-z0-9_]+)/);
+                                if (nameMatch && nameMatch[1]) {
+                                    code += `\n\nexport default ${nameMatch[1]};`;
+                                }
+                            }
+
+                            const targetPath = path.join(deckDir, filename);
+                            fs.writeFileSync(targetPath, code);
+                            importedFiles.push(filename);
+                            extractedCount++;
+                            idx++;
+                        }
+                    }
+                }
+            }
+
+        } catch (err) {
+            console.error(`Error processing markdown ${mdFile}:`, err);
+            // Non-critical, but good to have
+        }
+    }
+
+    // 4. SMART MERGE - Restore missing files from backup
+    // This allows for partial updates (e.g. updating only 3 slides in a 12-slide deck)
+    const isMerge = String(req.body.merge) === 'true';
+
+    if (isMerge) {
+        console.log(`Performing smart merge for ${deckId}...`);
+        try {
+            const backupFiles = fs.readdirSync(backupDir);
+            for (const file of backupFiles) {
+                // Only restore slides/code files, not the old deck.js which we'll regenerate
+                if ((file.endsWith('.jsx') || file.endsWith('.js')) && file !== 'deck.js') {
+                    const targetPath = path.join(deckDir, file);
+                    if (!fs.existsSync(targetPath)) {
+                        fs.copyFileSync(path.join(backupDir, file), targetPath);
+                        console.log(`  Restored ${file} from backup`);
+                    }
+                }
+                // Also restore other assets like images/videos if they exist in subdirectories
+                const backupFilePath = path.join(backupDir, file);
+                if (fs.statSync(backupFilePath).isDirectory()) {
+                    const targetPath = path.join(deckDir, file);
+                    if (!fs.existsSync(targetPath)) {
+                        // Primitive directory copy
+                        fs.mkdirSync(targetPath, { recursive: true });
+                        const subFiles = fs.readdirSync(backupFilePath);
+                        for (const subFile of subFiles) {
+                            fs.copyFileSync(path.join(backupFilePath, subFile), path.join(targetPath, subFile));
+                        }
+                        console.log(`  Restored directory ${file} from backup`);
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn("Smart merge had some issues, but continuing:", err);
+        }
+    } else {
+        console.log(`Performing full replacement for ${deckId} (merge disabled)`);
+    }
+
+    // 5. VERIFY & GENERATE DECK.JS
+    const slideFiles = fs.readdirSync(deckDir).filter(f => f.endsWith('.jsx') || (f.endsWith('.js') && f !== 'deck.js'));
+
+    if (slideFiles.length === 0) {
+        console.error("No valid slide files found after processing.");
+        rollback();
+        return next(new AppError('No valid slide files found (jsx/js). Replacement aborted.', 400));
+    }
+
+    slideFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+    let allComponents = [];
+    let importStatements = [];
+
+    for (const file of slideFiles) {
+        const filePath = path.join(deckDir, file);
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        const fileName = path.parse(file).name;
+
+        // Find all named exports (e.g. export const Slide1...)
+        const exportRegex = /export\s+(?:const|function|class)\s+([A-Za-z0-9_]+)/g;
+        let match;
+        let exportedNames = [];
+        while ((match = exportRegex.exec(fileContent)) !== null) {
+            exportedNames.push(match[1]);
+        }
+
+        if (exportedNames.length > 0) {
+            // Use named exports
+            importStatements.push(`import { ${exportedNames.join(', ')} } from './${file}';`);
+            allComponents.push(...exportedNames);
+        } else {
+            // Fallback: Default import
+            importStatements.push(`import ${fileName} from './${file}';`);
+            allComponents.push(fileName);
+        }
+    }
+
+    const deckJsContent = `${importStatements.join('\n')}\n\nexport default [\n    ${allComponents.join(',\n    ')}\n];`;
+
+    try {
+        fs.writeFileSync(path.join(deckDir, 'deck.js'), deckJsContent);
+    } catch (err) {
+        console.error("Failed to write deck.js:", err);
+        rollback();
+        return next(new AppError('Failed to write deck.js', 500));
+    }
+
+    // 6. SUCCESS - DELETE BACKUP
+    try {
+        fs.rmSync(backupDir, { recursive: true, force: true });
+        console.log("Replacement successful. Backup deleted.");
+    } catch (err) {
+        console.warn("Replacement successful but failed to delete backup:", err);
+    }
+
+    res.json({ success: true, message: "Deck content replaced successfully" });
 }));
 
 const archiver = require('archiver');
@@ -780,6 +1622,15 @@ app.post('/api/feedback/download-docx', catchAsync(async (req, res, next) => {
 }));
 
 
+app.get('/api/decks', catchAsync(async (req, res, next) => {
+    try {
+        const metadata = metadataManager.readMetadata();
+        res.json(metadata);
+    } catch (error) {
+        return next(new AppError('Failed to fetch decks', 500));
+    }
+}));
+
 app.patch('/api/decks/:deckId', catchAsync(async (req, res, next) => {
     const { deckId } = req.params;
     const updates = req.body;
@@ -824,12 +1675,18 @@ app.post('/api/repositories/rename', catchAsync(async (req, res, next) => {
         return next(new AppError('Failed to rename repository', 500));
     }
 }));
-
 app.post('/api/open-file', catchAsync(async (req, res, next) => {
     const { deckId, slideIndex } = req.body;
 
     if (!deckId || slideIndex === undefined) {
         return next(new AppError('Missing required fields', 400));
+    }
+
+    // Update lastOpenedAt
+    try {
+        metadataManager.updateDeck(deckId, { lastOpenedAt: new Date().toISOString() });
+    } catch (err) {
+        console.warn(`Failed to update lastOpenedAt for ${deckId}:`, err.message);
     }
 
     const deckDir = path.join(__dirname, '..', 'src', 'decks', deckId);
@@ -845,8 +1702,33 @@ app.post('/api/open-file', catchAsync(async (req, res, next) => {
     // Try parsing deck.js first to get accurate file path
     if (fs.existsSync(deckJsPath)) {
         try {
-            const deckContent = fs.readFileSync(deckJsPath, 'utf8');
-            const exportMatch = deckContent.match(/export\s+default\s*\[([\s\S]*?)\]/);
+            let deckContent = fs.readFileSync(deckJsPath, 'utf8');
+            let exportMatch = deckContent.match(/export\s+default\s*\[([\s\S]*?)\]/);
+            let currentDeckDir = deckDir;
+
+            // Handle indirect export: export default SomeVar;
+            if (!exportMatch) {
+                const varMatch = deckContent.match(/export\s+default\s+([A-Za-z0-9_]+)/);
+                if (varMatch) {
+                    const varName = varMatch[1];
+                    const imports = Array.from(deckContent.matchAll(/import\s+([\s\S]+?)\s+from\s+['"](.+)['"]/g));
+                    for (const m of imports) {
+                        if (new RegExp(`\\b${varName}\\b`).test(m[1])) {
+                            const indirectPath = path.resolve(deckDir, m[2]);
+                            const fullIndirectPath = fs.existsSync(indirectPath + '.jsx') ? indirectPath + '.jsx' : (fs.existsSync(indirectPath + '.js') ? indirectPath + '.js' : (fs.existsSync(indirectPath) ? indirectPath : null));
+
+                            if (fullIndirectPath && fs.existsSync(fullIndirectPath)) {
+                                deckContent = fs.readFileSync(fullIndirectPath, 'utf8');
+                                currentDeckDir = path.dirname(fullIndirectPath);
+                                // Look for either named array export or default array export in the indirect file
+                                exportMatch = deckContent.match(new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+\\b${varName}\\b\\s*=\\s*\\[([\\s\\S]*?)\\]`)) ||
+                                    deckContent.match(/export\s+default\s*\[([\s\S]*?)\]/);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
 
             if (exportMatch) {
                 const exportBody = exportMatch[1];
@@ -858,14 +1740,20 @@ app.post('/api/open-file', catchAsync(async (req, res, next) => {
 
                 if (slideIndex < componentNames.length) {
                     const componentName = componentNames[slideIndex];
+                    let importPath;
                     const safeName = componentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    const importRegex = new RegExp(`import\\s+${safeName}\\s+from\\s+['"](.+)['"]`);
-                    const importMatch = deckContent.match(importRegex);
+                    const imports = Array.from(deckContent.matchAll(/import\s+([\s\S]+?)\s+from\s+['"](.+)['"]/g));
 
-                    if (importMatch) {
-                        const importPath = importMatch[1];
-                        // Resolve path relative to deckDir
-                        let resolvedPath = path.resolve(deckDir, importPath);
+                    for (const m of imports) {
+                        if (new RegExp(`\\b${safeName}\\b`).test(m[1])) {
+                            importPath = m[2];
+                            break;
+                        }
+                    }
+
+                    if (importPath) {
+                        // Resolve path relative to current resolved directory
+                        let resolvedPath = path.resolve(currentDeckDir, importPath);
 
                         // Attach extension if missing
                         if (!resolvedPath.match(/\.(js|jsx)$/)) {
@@ -878,6 +1766,7 @@ app.post('/api/open-file', catchAsync(async (req, res, next) => {
 
                         // Verify existence
                         if (fs.existsSync(resolvedPath)) {
+                            console.log(`Open-file: Resolved slide to ${resolvedPath}`);
                             filepath = resolvedPath;
                             filename = path.basename(resolvedPath);
                         }
@@ -894,7 +1783,13 @@ app.post('/api/open-file', catchAsync(async (req, res, next) => {
         console.warn('Falling back to directory listing for open-file');
 
         const files = fs.readdirSync(deckDir);
-        const slideFiles = files.filter(f => (f.endsWith('.jsx') || f.endsWith('.js')) && f !== 'deck.js');
+        // Exclude deck definition files and common non-slide patterns
+        const slideFiles = files.filter(f =>
+            (f.endsWith('.jsx') || f.endsWith('.js')) &&
+            f !== 'deck.js' &&
+            !f.toLowerCase().includes('deck') &&
+            !f.startsWith('utils')
+        );
         slideFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
         filename = slideFiles[slideIndex];
@@ -925,14 +1820,335 @@ app.post('/api/open-file', catchAsync(async (req, res, next) => {
 }));
 
 
-app.all('*', (req, res, next) => {
-    next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+
+// --- Prompt Management APIs ---
+const PROMPTS_FILE = path.join(__dirname, '..', 'prompts', 'index.json');
+const PROMPTS_DIR = path.join(__dirname, '..', 'prompts');
+
+// Helper to read prompts
+const getPrompts = () => {
+    if (!fs.existsSync(PROMPTS_FILE)) return [];
+    try {
+        return JSON.parse(fs.readFileSync(PROMPTS_FILE, 'utf8'));
+    } catch (e) {
+        console.error("Error reading prompts index:", e);
+        return [];
+    }
+};
+
+// Helper to save prompts
+const savePrompts = (prompts) => {
+    fs.writeFileSync(PROMPTS_FILE, JSON.stringify(prompts, null, 2));
+};
+
+app.get('/api/prompts', (req, res) => {
+    const prompts = getPrompts();
+    const promptsWithInputs = prompts.map(p => {
+        const contentPath = path.join(PROMPTS_DIR, p.filename);
+        if (fs.existsSync(contentPath)) {
+            try {
+                const content = fs.readFileSync(contentPath, 'utf8');
+
+                // 1. Look for explicit INPUT: section
+                const match = content.match(/INPUT:[\s\S]*?\n([\s\S]*?)(?=\n\n|$)/i);
+                if (match) {
+                    return { ...p, inputSnippet: match[1].trim() };
+                }
+
+                // 2. Look for lines that contain variable placeholders
+                const lines = content.split('\n');
+                const varLines = lines.filter(l => /<[^>]+>|\{\{[^}]+\}\}|\[[^\]]+\]/.test(l));
+                if (varLines.length > 0) {
+                    return { ...p, inputSnippet: varLines.slice(0, 5).join('\n') };
+                }
+
+                // 3. Fallback: Provide a general preview of the start of the content
+                const preview = content.substring(0, 300).trim();
+                return { ...p, inputSnippet: preview + (content.length > 300 ? '...' : '') };
+            } catch (e) {
+                console.error(`Error reading snippet for ${p.id}:`, e);
+            }
+        }
+        return p;
+    });
+    res.json(promptsWithInputs);
 });
 
-app.use(globalErrorHandler);
+app.get('/api/prompts/:id', (req, res) => {
+    const prompts = getPrompts();
+    const prompt = prompts.find(p => p.id === req.params.id);
+    if (!prompt) return res.status(404).json({ error: 'Prompt not found' });
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    // Read content from file
+    const contentPath = path.join(PROMPTS_DIR, prompt.filename);
+    let content = "";
+    if (fs.existsSync(contentPath)) {
+        content = fs.readFileSync(contentPath, 'utf8');
+    }
+
+    res.json({ ...prompt, content });
 });
+
+app.post('/api/prompts', (req, res) => {
+    const { name, type, content, status, category } = req.body;
+    if (!name || !content) return res.status(400).json({ error: 'Name and content are required' });
+
+    const prompts = getPrompts();
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
+    const filename = `${id}.md`;
+
+    const newPrompt = {
+        id,
+        name,
+        type: type || 'User',
+        category: category || '',
+        status: status || 'Draft',
+        filename,
+        versions: [{ version: 1, createdAt: new Date().toISOString() }],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+
+    prompts.push(newPrompt);
+    savePrompts(prompts);
+
+    // Save content file
+    fs.writeFileSync(path.join(PROMPTS_DIR, filename), content);
+
+    res.status(201).json(newPrompt);
+});
+
+app.put('/api/prompts/:id', (req, res) => {
+    const { id } = req.params;
+    const { name, type, content, status, category } = req.body;
+
+    const prompts = getPrompts();
+    const index = prompts.findIndex(p => p.id === id);
+    if (index === -1) return res.status(404).json({ error: 'Prompt not found' });
+
+    const prompt = prompts[index];
+    const oldContentPath = path.join(PROMPTS_DIR, prompt.filename);
+    let oldContent = "";
+    if (fs.existsSync(oldContentPath)) {
+        oldContent = fs.readFileSync(oldContentPath, 'utf8');
+    }
+
+    // Check if content changed to bump version
+    let versionBump = false;
+    if (content !== undefined && content !== oldContent) {
+        versionBump = true;
+    }
+
+    const updatedPrompt = {
+        ...prompt,
+        name: name || prompt.name,
+        type: type || prompt.type,
+        category: category !== undefined ? category : prompt.category,
+        status: status || prompt.status,
+        updatedAt: new Date().toISOString()
+    };
+
+    if (versionBump) {
+        const nextVersion = (prompt.versions && prompt.versions.length > 0)
+            ? Math.max(...prompt.versions.map(v => v.version)) + 1
+            : 1;
+
+        if (!updatedPrompt.versions) updatedPrompt.versions = [];
+        updatedPrompt.versions.push({
+            version: nextVersion,
+            createdAt: new Date().toISOString()
+        });
+
+        // Save content
+        fs.writeFileSync(oldContentPath, content);
+    }
+
+    prompts[index] = updatedPrompt;
+    savePrompts(prompts);
+
+    res.json(updatedPrompt);
+});
+
+app.post('/api/prompts/:id/duplicate', (req, res) => {
+    const { id } = req.params;
+    const prompts = getPrompts();
+    const original = prompts.find(p => p.id === id);
+    if (!original) return res.status(404).json({ error: 'Prompt not found' });
+
+    const newId = original.id + '-copy-' + Date.now();
+    const newFilename = `${newId}.md`;
+
+    // Copy content
+    const originalContentPath = path.join(PROMPTS_DIR, original.filename);
+    if (fs.existsSync(originalContentPath)) {
+        const content = fs.readFileSync(originalContentPath, 'utf8');
+        fs.writeFileSync(path.join(PROMPTS_DIR, newFilename), content);
+    }
+
+    const newPrompt = {
+        ...original,
+        id: newId,
+        name: `${original.name} (Copy)`,
+        status: 'Draft',
+        filename: newFilename,
+        versions: [{ version: 1, createdAt: new Date().toISOString() }],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+
+    prompts.push(newPrompt);
+    savePrompts(prompts);
+
+    res.status(201).json(newPrompt);
+});
+
+app.delete('/api/prompts/:id', (req, res) => {
+    const { id } = req.params;
+    let prompts = getPrompts();
+    const prompt = prompts.find(p => p.id === id);
+
+    if (!prompt) return res.status(404).json({ error: 'Prompt not found' });
+
+    // Delete file
+    const contentPath = path.join(PROMPTS_DIR, prompt.filename);
+    if (fs.existsSync(contentPath)) {
+        try {
+            fs.unlinkSync(contentPath);
+        } catch (e) {
+            console.error("Failed to delete prompt file:", e);
+        }
+    }
+
+    prompts = prompts.filter(p => p.id !== id);
+    savePrompts(prompts);
+
+    res.json({ success: true });
+});
+
+app.post('/api/prompts/bulk-delete', (req, res) => {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'IDs array required' });
+    }
+
+    let prompts = getPrompts();
+    const promptsToDelete = prompts.filter(p => ids.includes(p.id));
+
+    promptsToDelete.forEach(prompt => {
+        const contentPath = path.join(PROMPTS_DIR, prompt.filename);
+        if (fs.existsSync(contentPath)) {
+            try {
+                fs.unlinkSync(contentPath);
+            } catch (e) {
+                console.error(`Failed to delete prompt file for ${prompt.id}:`, e);
+            }
+        }
+    });
+
+    prompts = prompts.filter(p => !ids.includes(p.id));
+    savePrompts(prompts);
+
+    res.json({ success: true, count: promptsToDelete.length });
+});
+
+app.post('/api/prompts/bulk-status', (req, res) => {
+    const { ids, status } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0 || !status) {
+        return res.status(400).json({ error: 'IDs array and status required' });
+    }
+
+    const prompts = getPrompts();
+    let updatedCount = 0;
+
+    const updatedPrompts = prompts.map(p => {
+        if (ids.includes(p.id)) {
+            updatedCount++;
+            return {
+                ...p,
+                status,
+                updatedAt: new Date().toISOString()
+            };
+        }
+        return p;
+    });
+
+    savePrompts(updatedPrompts);
+    res.json({ success: true, count: updatedCount });
+});
+
+
+
+
+// --- AI Agent Route ---
+app.post('/api/agent/chat', (req, res) => {
+    const { prompt } = req.body;
+    if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    console.log(`Agent received prompt: ${prompt}`);
+
+    // Adjust python command if necessary based on environment
+    const pythonCommand = 'python';
+    const scriptPath = path.join(__dirname, '..', 'agent_service.py');
+
+    // Basic sanitization to prevent breaking the shell command structure
+    // We wrap the prompt in double quotes, so we need to escape internal double quotes.
+    const safePrompt = prompt.replace(/"/g, '\\"');
+
+    exec(`${pythonCommand} "${scriptPath}" "${safePrompt}"`, { maxBuffer: 1024 * 1024 * 5 }, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Agent execution error: ${error.message}`);
+            console.error(`Stderr: ${stderr}`);
+            return res.status(500).json({ success: false, error: error.message, details: stderr });
+        }
+
+        try {
+            // The python script prints JSON to stdout
+            // We need to find the JSON object in the output (in case of other prints)
+            // But our script strictly prints one JSON line at the end ideally.
+            // Let's assume stdout contains the JSON.
+            const jsonStart = stdout.indexOf('{');
+            const jsonEnd = stdout.lastIndexOf('}');
+            if (jsonStart !== -1 && jsonEnd !== -1) {
+                const jsonStr = stdout.substring(jsonStart, jsonEnd + 1);
+                const result = JSON.parse(jsonStr);
+                res.json(result);
+            } else {
+                throw new Error("No JSON found in output");
+            }
+        } catch (e) {
+            console.error("Failed to parse agent output:", stdout);
+            res.status(500).json({ success: false, error: 'Invalid response from agent', raw: stdout });
+        }
+    });
+});
+
+// Apollo Server Setup
+const startServer = async () => {
+    const apolloServer = new ApolloServer({
+        typeDefs,
+        resolvers,
+    });
+
+    await apolloServer.start();
+
+    // GraphQL Endpoint
+    app.use('/graphql', cors(), express.json(), expressMiddleware(apolloServer));
+
+    // Handle 404 for non-graphql routes
+    app.all('*', (req, res, next) => {
+        next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+    });
+
+    app.use(globalErrorHandler);
+
+    app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+        console.log(`GraphQL ready at http://localhost:${PORT}/graphql`);
+    });
+};
+
+startServer();
 
 

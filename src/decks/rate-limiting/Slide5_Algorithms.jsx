@@ -39,7 +39,7 @@ const algorithms = [
 
 const Slide5_Algorithms = () => {
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center bg-slate-900 text-white p-8">
+        <div className="h-full w-full flex flex-col items-center justify-center text-white p-8">
             <h2 className="text-5xl font-bold mb-16 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                 Popular Algorithms
             </h2>
@@ -63,11 +63,10 @@ const Slide5_Algorithms = () => {
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ delay: index * 0.2 + 0.4, type: "spring" }}
-                            className={`p-4 rounded-full bg-slate-900/50 ${algo.color}`}
+                            className={`p-4 rounded-full ${algo.color}`}
                         >
                             <algo.icon size={48} />
                         </motion.div>
-
                         <div className="text-center">
                             <h3 className="text-2xl font-bold mb-2">{algo.title}</h3>
                             <p className="text-gray-400">{algo.desc}</p>
