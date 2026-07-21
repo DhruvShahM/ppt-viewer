@@ -12,7 +12,7 @@
     "version": 1,
     "hasLargeAssets": false,
     "importedAt": "2025-12-22T12:56:11.998Z",
-    "lastOpenedAt": "2025-12-29T08:07:59.988Z"
+    "lastOpenedAt": "2026-07-21T13:35:55.569Z"
   },
   {
     "id": "array_method_v1",
@@ -102,7 +102,7 @@
     "hasLargeAssets": false,
     "archivedAt": "2025-12-05T14:31:55.292Z",
     "restoredAt": "2025-12-05T14:32:24.836Z",
-    "lastOpenedAt": "2025-12-23T03:58:05.536Z"
+    "lastOpenedAt": "2026-07-21T13:38:30.459Z"
   },
   {
     "id": "hindi-concurrency",
@@ -557,5 +557,34 @@
     "hasLargeAssets": false,
     "importedAt": "2025-12-23T16:29:28.766Z",
     "lastOpenedAt": "2025-12-29T08:32:27.824Z"
+  },
+  {
+    "id": "ai-vs-ml-vs-dl",
+    "title": "AI vs ML vs DL",
+    "repoId": "ai-topics",
+    "repoTitle": "AI Topics",
+    "description": "Clear distinction between AI, Machine Learning, and Deep Learning - understanding the three levels.",
+    "icon": "Cpu",
+    "color": "purple",
+    "status": "active",
+    "path": "src/decks/ai-vs-ml-vs-dl",
+    "version": 1,
+    "hasLargeAssets": false,
+    "lastOpenedAt": "2026-07-21T14:30:21.902Z"
+  },
+  {
+    "id": "ai-vs-ml-vs-dl-hindi",
+    "title": "AI vs ML vs DL (Hindi)",
+    "repoId": "ai-topics",
+    "repoTitle": "AI Topics",
+    "description": "Artificial Intelligence, Machine Learning, और Deep Learning के बीच स्पष्ट अंतर (हिंदी)",
+    "icon": "Cpu",
+    "color": "purple",
+    "status": "active",
+    "path": "src/decks/ai-vs-ml-vs-dl-hindi",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2026-07-21T13:40:00.000Z",
+    "lastOpenedAt": "2026-07-21T14:26:47.689Z"
   }
 ]

@@ -734,16 +734,22 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                                 onChange={(e) => {
                                     const value = e.target.value;
                                     if (value === '' || (parseInt(value) >= 8 && parseInt(value) <= 48)) {
-                                        setFontSizes(prev => ({ ...prev, [currentSlide]: value }));
+                                        setFontSizes(prev => {
+                                            const newSize = value;
+                                            const updated = {};
+                                            slides.forEach((_, index) => updated[index] = newSize);
+                                            return updated;
+                                        });
                                     }
                                 }}
                                 onBlur={(e) => {
                                     const value = parseInt(e.target.value);
-                                    if (isNaN(value) || value < 8) {
-                                        setFontSizes(prev => ({ ...prev, [currentSlide]: '16' }));
-                                    } else if (value > 48) {
-                                        setFontSizes(prev => ({ ...prev, [currentSlide]: '48' }));
-                                    }
+                                    const clampedValue = isNaN(value) || value < 8 ? '16' : value > 48 ? '48' : value.toString();
+                                    setFontSizes(prev => {
+                                        const updated = {};
+                                        slides.forEach((_, index) => updated[index] = clampedValue);
+                                        return updated;
+                                    });
                                 }}
                                 className="w-12 bg-transparent text-white text-sm font-sans focus:outline-none text-center"
                                 min="8"
@@ -753,7 +759,14 @@ const PresentationViewer = ({ slides, deckId, onBack, showVideo, toggleVideo, vi
                             <span className="text-white/50 text-xs">px</span>
                             <div className="h-4 w-px bg-white/20 mx-1" />
                             <select
-                                onChange={(e) => setFontSizes(prev => ({ ...prev, [currentSlide]: e.target.value }))}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setFontSizes(prev => {
+                                        const updated = {};
+                                        slides.forEach((_, index) => updated[index] = value);
+                                        return updated;
+                                    });
+                                }}
                                 value={fontSizes[currentSlide] || '16'}
                                 className="appearance-none bg-transparent text-white text-sm font-sans focus:outline-none cursor-pointer pr-4"
                                 title="Preset Sizes"
