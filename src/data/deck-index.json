@@ -96,5 +96,18 @@
     "version": 1,
     "hasLargeAssets": false,
     "importedAt": "2025-12-23T16:29:28.766Z"
+  },
+  {
+    "id": "ai-vs-ml-vs-dl",
+    "title": "AI vs ML vs DL",
+    "repoId": "ai-topics",
+    "repoTitle": "AI Topics",
+    "description": "Clear distinction between AI, Machine Learning, and Deep Learning - understanding the three levels.",
+    "icon": "Brain",
+    "color": "purple",
+    "status": "active",
+    "path": "src/decks/ai-vs-ml-vs-dl",
+    "version": 1,
+    "hasLargeAssets": false
   }
 ]

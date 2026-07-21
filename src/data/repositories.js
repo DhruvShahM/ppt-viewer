@@ -88,5 +88,18 @@ export const REPOSITORIES = [
                 color: 'pink'
             }
         ]
+    },
+    {
+        id: 'ai-topics',
+        title: 'AI Topics',
+        decks: [
+            {
+                id: 'ai-vs-ml-vs-dl',
+                title: 'AI vs ML vs DL',
+                description: 'Clear distinction between AI, Machine Learning, and Deep Learning - understanding the three levels.',
+                icon: 'Brain',
+                color: 'purple'
+            }
+        ]
     }
 ];
