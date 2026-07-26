@@ -110,5 +110,19 @@
     "version": 1,
     "hasLargeAssets": false,
     "importedAt": "2026-07-21T13:40:00.000Z"
+  },
+  {
+    "id": "supervised-learning",
+    "title": "Supervised Learning",
+    "repoId": "ai-topics",
+    "repoTitle": "AI Topics",
+    "description": "Learning from labeled data with examples",
+    "icon": "Database",
+    "color": "green",
+    "status": "active",
+    "path": "src/decks/supervised-learning",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2026-07-21T16:38:00.000Z"
   }
 ]

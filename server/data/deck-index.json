@@ -570,7 +570,7 @@
     "path": "src/decks/ai-vs-ml-vs-dl",
     "version": 1,
     "hasLargeAssets": false,
-    "lastOpenedAt": "2026-07-21T14:30:21.902Z"
+    "lastOpenedAt": "2026-07-21T16:46:47.053Z"
   },
   {
     "id": "ai-vs-ml-vs-dl-hindi",
@@ -585,6 +585,21 @@
     "version": 1,
     "hasLargeAssets": false,
     "importedAt": "2026-07-21T13:40:00.000Z",
-    "lastOpenedAt": "2026-07-21T14:26:47.689Z"
+    "lastOpenedAt": "2026-07-21T16:56:40.899Z"
+  },
+  {
+    "id": "supervised-learning",
+    "title": "Supervised Learning",
+    "repoId": "ai-topics",
+    "repoTitle": "AI Topics",
+    "description": "Learning from labeled data with examples",
+    "icon": "Database",
+    "color": "green",
+    "status": "active",
+    "path": "src/decks/supervised-learning",
+    "version": 1,
+    "hasLargeAssets": false,
+    "importedAt": "2026-07-21T16:38:00.000Z",
+    "lastOpenedAt": "2026-07-21T17:01:34.664Z"
   }
 ]

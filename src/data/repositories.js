@@ -101,11 +101,11 @@ export const REPOSITORIES = [
                 color: 'purple'
             },
             {
-                id: 'ai-vs-ml-vs-dl-hindi',
-                title: 'AI vs ML vs DL (Hindi)',
-                description: 'AI, Machine Learning, और Deep Learning के बीच स्पष्ट अंतर - तीनों स्तरों को समझना।',
-                icon: 'Cpu',
-                color: 'purple'
+                id: 'supervised-learning',
+                title: 'Supervised Learning',
+                description: 'Learning from labeled data with examples',
+                icon: 'Database',
+                color: 'green'
             }
         ]
     }
